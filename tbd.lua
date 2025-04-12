@@ -61,8 +61,9 @@ local TBD = {
 }
 
 -- Icon set (Phosphor Icons)
+-- Enhanced Dynamic Icon Library
 local Icons = {
-    -- Phosphor Icons 
+    -- Essential UI Icons
     Home = "rbxassetid://7733960981",
     Settings = "rbxassetid://7734053495",
     Search = "rbxassetid://7743871002",
@@ -83,6 +84,99 @@ local Icons = {
     Minus = "rbxassetid://7743878772",
     Grid = "rbxassetid://7734141275",
     List = "rbxassetid://7734055829",
+    
+    -- Game Elements
+    Player = "rbxassetid://7743878152",
+    Target = "rbxassetid://7734061145",
+    Crown = "rbxassetid://7734130516",
+    Flag = "rbxassetid://7733965207",
+    Trophy = "rbxassetid://7734064876",
+    Heart = "rbxassetid://7734142266",
+    Gem = "rbxassetid://7734064308",
+    Coin = "rbxassetid://7743868936",
+    
+    -- Actions
+    Play = "rbxassetid://7734063280",
+    Pause = "rbxassetid://7734063056",
+    Stop = "rbxassetid://7734064628",
+    Next = "rbxassetid://7734058022",
+    Previous = "rbxassetid://7734061507",
+    Upload = "rbxassetid://7734064994",
+    Download = "rbxassetid://7734137056",
+    Refresh = "rbxassetid://7734062381",
+    Trash = "rbxassetid://7734064813",
+    Save = "rbxassetid://7734052844",
+    Edit = "rbxassetid://7734136858",
+    
+    -- Communication
+    Chat = "rbxassetid://7733971931",
+    Mail = "rbxassetid://7734056641",
+    Share = "rbxassetid://7734063691",
+    Phone = "rbxassetid://7734059095",
+    Video = "rbxassetid://7734065011",
+    Camera = "rbxassetid://7733970940",
+    
+    -- Navigation
+    Compass = "rbxassetid://7734057821",
+    Location = "rbxassetid://7734056377",
+    Map = "rbxassetid://7734056734",
+    Route = "rbxassetid://7734062696",
+    
+    -- User Interface
+    Slider = "rbxassetid://7734064085",
+    Toggle = "rbxassetid://7734064757",
+    Button = "rbxassetid://7734055078",
+    Dropdown = "rbxassetid://7744077761",
+    ColorPicker = "rbxassetid://7734056047",
+    
+    -- Categories
+    Folder = "rbxassetid://7734139505",
+    File = "rbxassetid://7734138954",
+    Image = "rbxassetid://7734141937",
+    Audio = "rbxassetid://7734131319",
+    Script = "rbxassetid://7743870318",
+    Book = "rbxassetid://7733964960",
+    
+    -- Tools
+    Sword = "rbxassetid://7734064681",
+    Shield = "rbxassetid://7734063638",
+    Magic = "rbxassetid://7734056549",
+    Key = "rbxassetid://7734055447",
+    Lock = "rbxassetid://7734056453",
+    Unlock = "rbxassetid://7734064966",
+    
+    -- Social
+    User = "rbxassetid://7743879125",
+    Users = "rbxassetid://7734061249",
+    AddUser = "rbxassetid://7734136412",
+    RemoveUser = "rbxassetid://7734062517",
+    UserCheck = "rbxassetid://7734131789",
+    
+    -- Devices & Tech
+    Desktop = "rbxassetid://7734137056",
+    Laptop = "rbxassetid://7734055567",
+    Mobile = "rbxassetid://7734057383",
+    Tablet = "rbxassetid://7734064711",
+    Controller = "rbxassetid://7734130380",
+    Keyboard = "rbxassetid://7734141631",
+    
+    -- Weather
+    Sun = "rbxassetid://7734064652",
+    Moon = "rbxassetid://7734057507",
+    Cloud = "rbxassetid://7734130269",
+    Rain = "rbxassetid://7734062109",
+    Snow = "rbxassetid://7734064137",
+    Thunder = "rbxassetid://7734138067",
+    
+    -- Misc
+    Brush = "rbxassetid://7733966841",
+    Palette = "rbxassetid://7734058963",
+    Chart = "rbxassetid://7733972491",
+    Graph = "rbxassetid://7733974603",
+    Calendar = "rbxassetid://7733970808",
+    Clock = "rbxassetid://7733976252",
+    Tag = "rbxassetid://7734064742",
+    Gift = "rbxassetid://7734054896",
     ChevronDown = "rbxassetid://7734063248",
     ChevronUp = "rbxassetid://7734063094",
     ChevronLeft = "rbxassetid://7734063497",
@@ -317,6 +411,29 @@ local function MakeDraggable(draggableFrame, handle)
             )
         end
     end)
+end
+
+-- Helper function to get icon by name or create a custom icon
+function TBD:GetIcon(iconNameOrId)
+    if not iconNameOrId then return nil end
+    
+    -- If it's already an asset ID, return it
+    if typeof(iconNameOrId) == "string" and string.match(iconNameOrId, "^rbxassetid://") then
+        return iconNameOrId
+    end
+    
+    -- If it's an icon name in our library, return the asset ID
+    if typeof(iconNameOrId) == "string" and Icons[iconNameOrId] then
+        return Icons[iconNameOrId]
+    end
+    
+    -- If it's a numeric asset ID without rbxassetid:// prefix, add it
+    if typeof(iconNameOrId) == "number" or (typeof(iconNameOrId) == "string" and tonumber(iconNameOrId)) then
+        return "rbxassetid://" .. tostring(iconNameOrId)
+    end
+    
+    -- Default to home icon if not found
+    return Icons.Home
 end
 
 -- Enhanced SetTheme function that updates UI (NEW)
@@ -1122,9 +1239,9 @@ function TabSystem:AddTab(tabInfo)
     local name = tabInfo.Name or "Tab"
     local icon = tabInfo.Icon
     
-    -- Create tab button
-    local tabButton = Create("Frame", {
-        Name = name .. "Button",
+    -- Create tab button container (frame)
+    local tabButtonContainer = Create("Frame", {
+        Name = name .. "ButtonContainer",
         BackgroundColor3 = CurrentTheme.Primary,
         BackgroundTransparency = 0.4,
         Size = UDim2.new(1, 0, 0, 40),
@@ -1132,11 +1249,20 @@ function TabSystem:AddTab(tabInfo)
     })
     
     -- Register for theme updates (NEW)
-    TBD:RegisterThemeable(tabButton, {BackgroundColor3 = "Primary"})
+    TBD:RegisterThemeable(tabButtonContainer, {BackgroundColor3 = "Primary"})
     
     Create("UICorner", {
         CornerRadius = UDim.new(0, 6),
-        Parent = tabButton
+        Parent = tabButtonContainer
+    })
+    
+    -- Create the clickable button that will be inside the container
+    local tabButton = Create("TextButton", {
+        Name = name .. "Button",
+        BackgroundTransparency = 1, -- Transparent background
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",  -- No text because we'll use a TextLabel for that
+        Parent = tabButtonContainer
     })
     
     -- Add icon if provided
@@ -1226,6 +1352,7 @@ function TabSystem:AddTab(tabInfo)
     local tab = {
         Name = name,
         Button = tabButton,
+        ButtonContainer = tabButtonContainer, -- Store reference to the ButtonContainer for theme tweens
         Icon = icon and tabButton:FindFirstChild("Icon") or nil,
         Title = title,
         Content = tabContent,
@@ -1301,8 +1428,9 @@ function TabSystem:AddTab(tabInfo)
         
         local buttonHeight = description and 60 or 46
         
-        local button = Create("Frame", {
-            Name = "Button_" .. name,
+        -- Create the button container (frame)
+        local buttonContainer = Create("Frame", {
+            Name = "ButtonContainer_" .. name,
             BackgroundColor3 = CurrentTheme.Secondary,
             BackgroundTransparency = 0.4,
             Size = UDim2.new(1, 0, 0, buttonHeight),
@@ -1310,11 +1438,20 @@ function TabSystem:AddTab(tabInfo)
         })
         
         -- Register for theme updates (NEW)
-        TBD:RegisterThemeable(button, {BackgroundColor3 = "Secondary"})
+        TBD:RegisterThemeable(buttonContainer, {BackgroundColor3 = "Secondary"})
         
         Create("UICorner", {
             CornerRadius = UDim.new(0, 6),
-            Parent = button
+            Parent = buttonContainer
+        })
+        
+        -- Create the actual clickable button
+        local buttonObj = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = buttonContainer
         })
         
         local buttonTitle = Create("TextLabel", {
@@ -1327,7 +1464,7 @@ function TabSystem:AddTab(tabInfo)
             TextColor3 = CurrentTheme.TextPrimary,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = button
+            Parent = buttonContainer -- Changed from button to buttonContainer
         })
         
         -- Register for theme updates (NEW)
@@ -1344,34 +1481,77 @@ function TabSystem:AddTab(tabInfo)
                 TextColor3 = CurrentTheme.TextSecondary,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = button
+                Parent = buttonContainer -- Changed from button to buttonContainer
             })
             
             -- Register for theme updates (NEW)
             TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
         end
         
-        local buttonObj = Create("TextButton", {
-            Name = "Button",
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Text = "",
-            Parent = button
-        })
-        
         buttonObj.MouseButton1Click:Connect(function()
             callback()
         end)
         
         buttonObj.MouseEnter:Connect(function()
-            Tween(button, {BackgroundTransparency = 0.2}, 0.2)
+            -- Enhanced button hover effect
+            Tween(buttonContainer, {
+                BackgroundTransparency = 0.2,
+                BackgroundColor3 = CurrentTheme.Secondary:Lerp(CurrentTheme.Accent, 0.2),
+                Size = UDim2.new(1, 6, 0, buttonHeight + 2)
+            }, 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            
+            -- Adjust position to keep centered during size change
+            Tween(buttonContainer, {
+                Position = UDim2.new(0, -3, 0, -1)
+            }, 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            
+            -- Scale title text slightly
+            buttonContainer:FindFirstChild("Title").TextSize = buttonContainer:FindFirstChild("Title").TextSize + 1
+            
+            -- Add a subtle glow effect
+            local glowEffect = buttonContainer:FindFirstChild("GlowEffect")
+            if not glowEffect then
+                glowEffect = Create("ImageLabel", {
+                    Name = "GlowEffect",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Size = UDim2.new(1, 20, 1, 20),
+                    ZIndex = 0,
+                    Image = "rbxassetid://6014054326", -- Soft glow
+                    ImageColor3 = CurrentTheme.Accent,
+                    ImageTransparency = 1, -- Start fully transparent
+                    Parent = buttonContainer
+                })
+            end
+            
+            -- Animate the glow appearing
+            Tween(glowEffect, {ImageTransparency = 0.8}, 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
         end)
         
         buttonObj.MouseLeave:Connect(function()
-            Tween(button, {BackgroundTransparency = 0.4}, 0.2)
+            -- Restore original appearance
+            Tween(buttonContainer, {
+                BackgroundTransparency = 0.4, 
+                BackgroundColor3 = CurrentTheme.Secondary,
+                Size = UDim2.new(1, 0, 0, buttonHeight),
+                Position = UDim2.new(0, 0, 0, 0)
+            }, 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            
+            -- Restore original text size
+            if buttonContainer:FindFirstChild("Title") then
+                buttonContainer:FindFirstChild("Title").TextSize = buttonContainer:FindFirstChild("Title").TextSize - 1
+            end
+            
+            -- Fade out glow
+            local glowEffect = buttonContainer:FindFirstChild("GlowEffect")
+            if glowEffect then
+                Tween(glowEffect, {ImageTransparency = 1}, 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            end
         end)
         
-        return button
+        -- Return the container for compatibility with existing code
+        return buttonContainer
     end
     
     -- CREATE TOGGLE METHOD
@@ -4308,24 +4488,58 @@ end
         return keybindObject
     end
     
-    -- Tab button behavior
+    -- Tab button behavior with enhanced hover effects
     tabButton.MouseEnter:Connect(function()
         if self.ActiveTab ~= tab then
-            Tween(tabButton, {BackgroundTransparency = 0.2}, 0.2)
+            -- Background fade and slight grow effect
+            Tween(tabButtonContainer, {
+                BackgroundTransparency = 0.2,
+                Size = UDim2.new(1, 4, 0, 42) -- Slightly larger
+            }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            
+            -- Adjust position to keep centered during size change
+            Tween(tabButtonContainer, {
+                Position = UDim2.new(0, -2, 0, -1)
+            }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            
             if icon then
-                Tween(icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
+                -- Icon glow and color change
+                Tween(icon, {
+                    ImageColor3 = CurrentTheme.TextPrimary,
+                    Size = UDim2.new(0, 22, 0, 22) -- Slightly larger
+                }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             end
-            Tween(title, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
+            
+            -- Text brightness effect
+            Tween(title, {
+                TextColor3 = CurrentTheme.TextPrimary,
+                TextSize = 15 -- Slightly larger text
+            }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
     end)
     
     tabButton.MouseLeave:Connect(function()
         if self.ActiveTab ~= tab then
-            Tween(tabButton, {BackgroundTransparency = 0.4}, 0.2)
+            -- Restore original size and transparency
+            Tween(tabButtonContainer, {
+                BackgroundTransparency = 0.4,
+                Size = UDim2.new(1, 0, 0, 40),
+                Position = UDim2.new(0, 0, 0, 0)
+            }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            
             if icon then
-                Tween(icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
+                -- Restore icon
+                Tween(icon, {
+                    ImageColor3 = CurrentTheme.TextSecondary,
+                    Size = UDim2.new(0, 20, 0, 20)
+                }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             end
-            Tween(title, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+            
+            -- Restore text
+            Tween(title, {
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 14
+            }, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         end
     end)
     
@@ -4350,7 +4564,8 @@ function TabSystem:SelectTab(tab)
     
     -- Deselect current active tab
     if activeTab then
-        Tween(activeTab.Button, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 0.4}, 0.2)
+        -- Use ButtonContainer for background tweening instead of Button
+        Tween(activeTab.ButtonContainer, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 0.4}, 0.2)
         if activeTab.Icon then
             Tween(activeTab.Icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
         end
@@ -4361,7 +4576,8 @@ function TabSystem:SelectTab(tab)
     -- Select the new tab
     self.ActiveTab = tab
     
-    Tween(tab.Button, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.2}, 0.2)
+    -- Use ButtonContainer for background tweening instead of Button
+    Tween(tab.ButtonContainer, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.2}, 0.2)
     if tab.Icon then
         Tween(tab.Icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
     end
@@ -4753,10 +4969,9 @@ function Window:CreateTab(options)
     local name = options.Name or "Tab"
     local icon = options.Icon
     
-    if options.ImageSource and options.ImageSource == "Phosphor" then
-        icon = Icons[icon] or Icons.Home
-    elseif icon and typeof(icon) == "string" and Icons[icon] then
-        icon = Icons[icon]
+    -- Use the more robust GetIcon helper function
+    if icon then
+        icon = TBD:GetIcon(icon)
     end
     
     local tabInfo = {
@@ -4820,7 +5035,7 @@ end
 function Window:CreateHomePage()
     local homeTab = {
         Name = "Home",
-        Icon = Icons.Home,
+        Icon = TBD:GetIcon("Home"),
         Elements = {}
     }
     
