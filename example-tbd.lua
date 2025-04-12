@@ -1,7 +1,7 @@
 --[[
-    TBD UI Library - HoHo Edition Example (v5)
-    This example demonstrates all features of the redesigned TBD UI Library
-    with fixes for dropdown and color picker issues
+    TBD UI Library - New Edition Example (v7)
+    This example demonstrates all features of the TBD UI Library including
+    fixed dropdown, color picker, and theme system
 ]]
 
 -- Load the TBD UI Library
@@ -14,7 +14,7 @@ local Window = TBD:CreateWindow({
     Theme = "HoHo", -- Try the new HoHo theme (options: Default, Midnight, Neon, Aqua, HoHo)
     Size = {780, 460}, -- Wider layout as requested
     Position = "Center",
-    LogoId = "rbxassetid://140132696023344", -- Example logo asset ID
+    LogoId = "rbxassetid://10588367664", -- Example logo asset ID
     LoadingEnabled = true,
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
@@ -32,7 +32,6 @@ local Window = TBD:CreateWindow({
 })
 
 -- The Home tab is automatically created when ShowHomePage is true
--- You can access it with Window.HomeTab if you need to add custom elements
 Window.HomeTab:CreateButton({
     Name = "Join Discord",
     Description = "Join our community for updates and support",
@@ -93,7 +92,7 @@ MainTab:CreateButton({
 })
 
 -- Show different notification types
-local notifyButton = MainTab:CreateButton({
+MainTab:CreateButton({
     Name = "Show All Notifications",
     Description = "Demonstrate notification system",
     Callback = function()
@@ -439,6 +438,44 @@ SettingsTab:CreateButton({
     end
 })
 
+-- Theme testing button
+SettingsTab:CreateButton({
+    Name = "Test Theme Changing",
+    Description = "Cycles through all available themes",
+    Callback = function()
+        local themes = {"Default", "Midnight", "Neon", "Aqua", "HoHo"}
+        local currentIndex = 1
+        
+        -- Function to cycle themes
+        local function cycleTheme()
+            if currentIndex > #themes then
+                TBD:Notification({
+                    Title = "Theme Test",
+                    Message = "Finished cycling through all themes",
+                    Type = "Success",
+                    Duration = 3
+                })
+                return
+            end
+            
+            local theme = themes[currentIndex]
+            TBD:SetTheme(theme)
+            
+            TBD:Notification({
+                Title = "Theme Changed",
+                Message = "Applied the " .. theme .. " theme",
+                Type = "Info",
+                Duration = 1.5
+            })
+            
+            currentIndex = currentIndex + 1
+            task.delay(2, cycleTheme)
+        end
+        
+        cycleTheme()
+    end
+})
+
 -- Hide/Show UI functionality with keybind
 local function toggleUI()
     if Window.MainFrame.Visible then
@@ -463,4 +500,4 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gameProce
 end)
 
 -- Print a message to confirm the UI has loaded completely
-print("TBD UI Library v5 loaded successfully!")
+print("TBD UI Library v7 loaded successfully!")
