@@ -1,8 +1,18 @@
-# TBD UI Library
+# TBD UI Library (Enhanced)
 
-A modern, feature-rich Roblox UI library for script hubs and executors.
+A modern, feature-rich Roblox UI library for script hubs and executors with improved mobile support and enhanced features.
 
 ![TBD UI Library](https://i.ibb.co/MkwVJpJt/giphy-5.gif)
+
+## New Features in v1.1.0
+
+- **Improved Mobile Support** - Fully responsive design with optimized layouts for touch screens
+- **Fixed Notification System** - Properly positioned notifications on all screen sizes
+- **Enhanced Window Controls** - Better close/minimize buttons and improved dragging
+- **Customizable Loading Screen** - Choose from multiple animation styles and customize appearance
+- **New Theme (Aqua)** - Beautiful new aqua-themed preset
+- **Better Error Handling** - More robust error checking and graceful fallbacks
+- **Performance Improvements** - Optimized for better performance across all devices
 
 ## Features
 
@@ -22,7 +32,7 @@ A modern, feature-rich Roblox UI library for script hubs and executors.
 To use TBD UI Library in your Roblox script, simply use the loadstring function to load the library:
 
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 ```
 
 ## Getting Started
@@ -33,13 +43,21 @@ local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyo
 local Window = TBD:CreateWindow({
     Title = "My Script Hub",                      -- Title of the window
     Subtitle = "v1.0.0",                          -- Optional subtitle
-    Theme = "Default",                            -- "Default", "Midnight", or "Neon"
-    Size = {450, 550},                            -- Width, Height
+    Theme = "Aqua",                               -- "Default", "Midnight", "Neon", or "Aqua"
+    Size = {450, 550},                            -- Width, Height (auto-adjusts for mobile)
     Position = "Center",                          -- "Center" or {X, Y} coordinates
     LogoId = "12345678",                          -- Optional logo (AssetId)
     LoadingEnabled = true,                        -- Enable/disable loading screen
     LoadingTitle = "My Script Hub",               -- Loading screen title
     LoadingSubtitle = "Preparing...",             -- Loading screen subtitle
+    
+    -- New: Loading screen customization
+    LoadingScreenCustomization = {
+        AnimationStyle = "Fade",                  -- "Fade", "Slide", or "Scale"
+        LogoSize = UDim2.new(0, 100, 0, 100),     -- Size of the logo
+        LogoPosition = UDim2.new(0.5, 0, 0.35, 0) -- Position of the logo
+    },
+    
     ConfigSettings = {                            -- Optional configuration settings
         ConfigFolder = "MyScriptHub"
     },
@@ -272,7 +290,7 @@ TBD:LoadAutoloadConfig()  -- Call this at the end of your script!
 
 ```lua
 -- Change active theme
-TBD:SetTheme("Midnight")  -- "Default", "Midnight", "Neon"
+TBD:SetTheme("Aqua")  -- "Default", "Midnight", "Neon", "Aqua"
 
 -- Get current theme
 local currentTheme = TBD:GetTheme()
@@ -287,6 +305,51 @@ TBD:CustomTheme({
 })
 ```
 
+### New: Advanced Theme Customization
+
+```lua
+-- Create a completely custom theme
+TBD:CustomTheme({
+    -- Colors
+    Primary = Color3.fromRGB(255, 75, 75),
+    PrimaryDark = Color3.fromRGB(220, 55, 55),
+    Background = Color3.fromRGB(25, 25, 35),
+    ContainerBackground = Color3.fromRGB(35, 35, 45),
+    SecondaryBackground = Color3.fromRGB(45, 45, 55),
+    ElementBackground = Color3.fromRGB(55, 55, 65),
+    TextPrimary = Color3.fromRGB(240, 240, 250),
+    TextSecondary = Color3.fromRGB(180, 180, 190),
+    
+    -- Appearance
+    CornerRadius = UDim.new(0, 10),
+    DropShadowEnabled = true,
+    AnimationSpeed = 0.25,
+    Transparency = 0.95,
+    
+    -- Fonts
+    Font = Enum.Font.SourceSansBold,
+    HeaderSize = 20,
+    TextSize = 15,
+    
+    -- Other
+    IconPack = "Material",
+    
+    -- New: Loading screen customization
+    LoadingScreenCustomization = {
+        AnimationStyle = "Scale", -- "Fade", "Slide", "Scale"
+        LogoSize = UDim2.new(0, 120, 0, 120),
+        TitlePosition = UDim2.new(0.5, 0, 0.6, 0)
+    }
+})
+```
+
+### New: Customizing Notification Position
+
+```lua
+-- Change notification position
+TBD.NotificationSystem:SetPosition("BottomRight")  -- "TopRight", "TopLeft", "BottomRight", "BottomLeft"
+```
+
 ### Cleanup
 
 ```lua
@@ -296,166 +359,25 @@ TBD:Destroy()
 
 ## Complete Example
 
-```lua
--- Load the TBD UI Library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua", true))()
+See the included [example-tbd-enhanced.lua](example-tbd-enhanced.lua) file for a complete demo of all features.
 
--- Create a window
-local Window = TBD:CreateWindow({
-    Title = "My Script Hub",
-    Subtitle = "v1.0.0",
-    Theme = "Default",
-    Size = {450, 550},
-    Position = "Center",
-    LoadingEnabled = true,
-    LoadingTitle = "My Script Hub",
-    LoadingSubtitle = "Preparing...",
-    ConfigSettings = {
-        ConfigFolder = "MyScriptHub"
-    }
-})
+## Mobile Support
 
--- Create tabs
-local MainTab = Window:CreateTab({
-    Name = "Main",
-    Icon = "home",
-    ImageSource = "Phosphor"
-})
+The enhanced TBD UI Library automatically detects and optimizes for mobile devices:
 
-local SettingsTab = Window:CreateTab({
-    Name = "Settings",
-    Icon = "settings",
-    ImageSource = "Phosphor"
-})
+- Larger touch targets for better interaction
+- Adjusted spacing and sizing for mobile screens
+- On-screen controls optimized for touch
+- Fixed notification positioning accounting for safe areas
+- Improved scrolling behavior
 
--- Add UI elements to Main tab
-MainTab:CreateSection("Player Settings")
+## Troubleshooting
 
-MainTab:CreateToggle({
-    Name = "Toggle Fly",
-    Description = "Enable/disable fly mode",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Implementation for fly hack
-    end
-}, "FlyToggle")
+If you encounter any issues:
 
-MainTab:CreateSlider({
-    Name = "Walk Speed",
-    Description = "Adjust your character's walk speed",
-    Range = {16, 100},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(Value)
-        if game.Players.LocalPlayer.Character then
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-        end
-    end
-}, "WalkSpeed")
-
-MainTab:CreateDivider()
-
-MainTab:CreateSection("Game Functions")
-
-MainTab:CreateButton({
-    Name = "Teleport to Lobby",
-    Callback = function()
-        -- Implementation for teleport
-        TBD:Notification({
-            Title = "Teleporting",
-            Message = "You are being teleported to the lobby...",
-            Type = "Info"
-        })
-    end
-})
-
--- Add UI elements to Settings tab
-SettingsTab:CreateSection("UI Settings")
-
-SettingsTab:CreateDropdown({
-    Name = "Theme",
-    Items = {"Default", "Midnight", "Neon"},
-    Default = "Default",
-    Callback = function(Theme)
-        TBD:SetTheme(Theme)
-    end
-}, "UITheme")
-
-SettingsTab:CreateColorPicker({
-    Name = "Custom Accent Color",
-    Color = Color3.fromRGB(64, 90, 255),
-    Callback = function(Color)
-        TBD:CustomTheme({
-            Primary = Color,
-            PrimaryDark = Color:Lerp(Color3.new(0, 0, 0), 0.2)
-        })
-    end
-}, "AccentColor")
-
-SettingsTab:CreateButton({
-    Name = "Save Configuration",
-    Callback = function()
-        TBD:SaveConfig("UserConfig")
-        TBD:Notification({
-            Title = "Configuration Saved",
-            Message = "Your settings have been saved!",
-            Type = "Success"
-        })
-    end
-})
-
--- Load auto-save config at the end of your script
-TBD:LoadAutoloadConfig()
-```
-
-## Customization Reference
-
-### Theme Properties
-
-These properties can be used with `TBD:CustomTheme()`:
-
-| Property | Description |
-|----------|-------------|
-| Primary | Main accent color |
-| PrimaryDark | Darker version of accent color |
-| Background | Main window background |
-| ContainerBackground | Container background color |
-| SecondaryBackground | Secondary background color |
-| ElementBackground | UI element background color |
-| TextPrimary | Primary text color |
-| TextSecondary | Secondary/dimmed text color |
-| Success | Success indicator color |
-| Warning | Warning indicator color |
-| Error | Error indicator color |
-| Info | Information indicator color |
-| InputBackground | Background of input fields |
-| Highlight | Highlight/hover color |
-| BorderColor | Border color for elements |
-| DropShadowEnabled | Enable/disable drop shadows |
-| RoundingEnabled | Enable/disable rounded corners |
-| CornerRadius | Corner radius for UI elements |
-| AnimationSpeed | Animation duration in seconds |
-| GlassEffect | Enable/disable glass effect |
-| BlurIntensity | Blur intensity for glass effect |
-| Transparency | Background transparency |
-| Font | UI font |
-| HeaderSize | Header text size |
-| TextSize | Normal text size |
-| IconPack | Default icon pack ("Material" or "Phosphor") |
-
-## Available Icons
-
-### Material Design Icons
-
-Common icons available in the Material design set:
-
-`home`, `settings`, `search`, `close`, `add`, `remove`, `warning`, `info`, `check`, `error`, `notification`, `folder`, `person`, `star`, `favorite`, `dashboard`, `code`, `games`
-
-### Phosphor Icons
-
-Common icons available in the Phosphor design set:
-
-`home`, `settings`, `search`, `close`, `add`, `remove`, `warning`, `info`, `check`, `error`, `notification`, `folder`, `person`, `star`, `favorite`, `dashboard`, `code`, `games`
+1. **UI not appearing**: Make sure you're using the correct URL in your loadstring
+2. **Notifications appearing off-screen**: This should be fixed in the enhanced version; if issues persist, try setting the notification position manually with `TBD.NotificationSystem:SetPosition("TopRight")`
+3. **Error messages**: The enhanced library includes better error handling with specific warning messages
 
 ## License
 
