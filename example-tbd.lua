@@ -1,19 +1,19 @@
 --[[
-    TBD UI Library - Fixed Example Script
-    This example demonstrates all features of the fixed TBD UI Library
+    TBD UI Library - HoHo Edition Example
+    This example demonstrates all features of the redesigned TBD UI Library
 ]]
 
 -- Load the TBD UI Library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 
 -- Create a Window with enhanced options
 local Window = TBD:CreateWindow({
     Title = "TBD Script Hub",
-    Subtitle = "v1.1.0",
-    Theme = "Aqua", -- Try the new Aqua theme (options: Default, Midnight, Neon, Aqua)
-    Size = {500, 550}, -- Automatically adapts for mobile
+    Subtitle = "v2.0.0 HoHo Edition",
+    Theme = "HoHo", -- Try the new HoHo theme (options: Default, Midnight, Neon, Aqua, HoHo)
+    Size = {780, 460}, -- Wider layout as requested
     Position = "Center",
-    LogoId = "12345678", -- Replace with your logo asset ID
+    LogoId = "rbxassetid://12345678", -- Replace with your logo asset ID
     LoadingEnabled = true,
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
@@ -26,23 +26,31 @@ local Window = TBD:CreateWindow({
         AnimationStyle = "Slide", -- Options: "Fade", "Slide", "Scale"
         LogoSize = UDim2.new(0, 120, 0, 120),
         LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
-        ProgressBarSize = UDim2.new(0.8, 0, 0, 8)
-    },
-    
-    ConfigSettings = {
-        ConfigFolder = "TBDScriptHub"
+        ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
     }
 })
 
 -- The Home tab is automatically created when ShowHomePage is true
 -- You can access it with Window.HomeTab if you need to add custom elements
+Window.HomeTab:CreateButton({
+    Name = "Join Discord",
+    Description = "Join our community for updates and support",
+    Callback = function()
+        setclipboard("https://discord.gg/yourdiscord")
+        TBD:Notification({
+            Title = "Discord Invite",
+            Message = "Discord invite link copied to clipboard!",
+            Type = "Success",
+            Duration = 3
+        })
+    end
+})
 
 -- Create Tabs
 local MainTab = Window:CreateTab({
     Name = "Main",
     Icon = "home",
-    ImageSource = "Phosphor",
-    ShowTitle = true
+    ImageSource = "Phosphor"
 })
 
 local PlayerTab = Window:CreateTab({
@@ -69,31 +77,29 @@ local SettingsTab = Window:CreateTab({
     ImageSource = "Phosphor"
 })
 
+-- Fix position of notifications
+TBD.NotificationSystem:SetPosition("TopRight")
+
 -- Main Tab Elements
 MainTab:CreateSection("Welcome")
 
 MainTab:CreateButton({
-    Name = "Join Discord",
-    Description = "Join our community for updates and support",
+    Name = "Show Notification",
+    Description = "Display a sample notification",
     Callback = function()
         TBD:Notification({
-            Title = "Discord Invite",
-            Message = "Opening Discord invite link...",
-            Type = "Info",
-            Duration = 3
+            Title = "Welcome",
+            Message = "TBD UI Library has been loaded successfully!",
+            Type = "Success",
+            Duration = 5
         })
-        
-        -- Example: setclipboard("https://discord.gg/your-invite")
     end
 })
 
--- Fix position of notifications
-TBD.NotificationSystem:SetPosition("TopRight")
-
 -- Show different notification types
 local notifyButton = MainTab:CreateButton({
-    Name = "Show Notifications",
-    Description = "Demonstrate fixed notification system",
+    Name = "Show All Notifications",
+    Description = "Demonstrate notification system",
     Callback = function()
         -- Success notification
         TBD:Notification({
@@ -170,6 +176,19 @@ MainTab:CreateToggle({
     end
 })
 
+-- Testing the fixed CreateSlider function
+MainTab:CreateSlider({
+    Name = "Music Volume",
+    Description = "Adjust the background music volume",
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 50,
+    Flag = "MusicVolume",
+    Callback = function(Value)
+        print("Music Volume:", Value)
+    end
+})
+
 -- Player Tab Elements
 PlayerTab:CreateSection("Character Modifications")
 
@@ -229,14 +248,105 @@ PlayerTab:CreateToggle({
     end
 })
 
--- Themes Tab Elements - Showcasing the new theme features
+-- Demonstrate dropdown feature
+PlayerTab:CreateDropdown({
+    Name = "Select Team",
+    Description = "Choose which team to join",
+    Items = {"Red Team", "Blue Team", "Green Team", "Yellow Team", "No Team"},
+    Default = "No Team",
+    Flag = "SelectedTeam",
+    Callback = function(Team)
+        TBD:Notification({
+            Title = "Team Selected",
+            Message = "You selected: " .. Team,
+            Type = "Info"
+        })
+    end
+})
+
+-- Demonstrate text input
+PlayerTab:CreateTextbox({
+    Name = "Custom Player Name",
+    Description = "Set a custom name (visual only)",
+    PlaceholderText = "Enter name...",
+    Text = "",
+    CharacterLimit = 16,
+    Flag = "CustomName",
+    Callback = function(Text)
+        TBD:Notification({
+            Title = "Name Changed",
+            Message = "Set custom name to: " .. Text,
+            Type = "Success"
+        })
+    end
+})
+
+-- Visuals Tab Elements
+VisualsTab:CreateSection("Visual Options")
+
+VisualsTab:CreateToggle({
+    Name = "ESP",
+    Description = "See players through walls",
+    CurrentValue = false,
+    Callback = function(Value)
+        TBD:Notification({
+            Title = "ESP",
+            Message = Value and "ESP enabled" or "ESP disabled",
+            Type = Value and "Success" or "Info"
+        })
+    end
+})
+
+VisualsTab:CreateToggle({
+    Name = "Tracers",
+    Description = "Draw lines to players",
+    CurrentValue = false,
+    Callback = function(Value)
+        TBD:Notification({
+            Title = "Tracers",
+            Message = Value and "Tracers enabled" or "Tracers disabled",
+            Type = Value and "Success" or "Info"
+        })
+    end
+})
+
+VisualsTab:CreateColorPicker({
+    Name = "ESP Color",
+    Description = "Change the color of ESP elements",
+    Color = Color3.fromRGB(255, 0, 0),
+    Flag = "ESPColor",
+    Callback = function(Color)
+        TBD:Notification({
+            Title = "ESP Color",
+            Message = "ESP color updated",
+            Type = "Success"
+        })
+    end
+})
+
+VisualsTab:CreateDropdown({
+    Name = "ESP Style",
+    Description = "Select the style of ESP to use",
+    Items = {"Box", "Name", "Box + Name", "Box + Name + Health", "Custom"},
+    Default = "Box",
+    Flag = "ESPStyle",
+    Callback = function(Style)
+        TBD:Notification({
+            Title = "ESP Style",
+            Message = "Set ESP style to: " .. Style,
+            Type = "Info"
+        })
+    end
+})
+
+-- Themes Tab Elements - Showcasing the theme system
 ThemesTab:CreateSection("UI Themes")
 
 ThemesTab:CreateDropdown({
     Name = "Select Theme",
     Description = "Choose a pre-built theme for the UI",
-    Items = {"Default", "Midnight", "Neon", "Aqua"}, -- Added new Aqua theme
-    Default = "Aqua",
+    Items = {"Default", "Midnight", "Neon", "Aqua", "HoHo"}, -- Added new HoHo theme
+    Default = "HoHo",
     Flag = "UITheme", -- Flag for saving in config
     Callback = function(Theme)
         TBD:SetTheme(Theme)
@@ -244,6 +354,28 @@ ThemesTab:CreateDropdown({
         TBD:Notification({
             Title = "Theme Changed",
             Message = "Applied the " .. Theme .. " theme",
+            Type = "Success"
+        })
+    end
+})
+
+ThemesTab:CreateColorPicker({
+    Name = "Custom Accent Color",
+    Description = "Set a custom accent color for the UI",
+    Color = Color3.fromRGB(255, 30, 50), -- Default HoHo accent
+    Callback = function(Color)
+        TBD:CustomTheme({
+            Accent = Color,
+            DarkAccent = Color3.new(
+                math.clamp(Color.R - 0.2, 0, 1),
+                math.clamp(Color.G - 0.2, 0, 1),
+                math.clamp(Color.B - 0.2, 0, 1)
+            )
+        })
+        
+        TBD:Notification({
+            Title = "Custom Color",
+            Message = "Custom accent color applied",
             Type = "Success"
         })
     end
@@ -267,5 +399,36 @@ SettingsTab:CreateDropdown({
             Message = "Notifications will now appear in the " .. Position .. " position",
             Type = "Info"
         })
+    end
+})
+
+SettingsTab:CreateKeybind({
+    Name = "Toggle UI",
+    Description = "Key to show/hide the interface",
+    CurrentKeybind = "RightShift",
+    Flag = "ToggleUI",
+    Callback = function(Key)
+        TBD:Notification({
+            Title = "Toggle Key",
+            Message = "UI toggle key set to " .. Key,
+            Type = "Info"
+        })
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "Destroy UI",
+    Description = "Permanently remove the interface",
+    Callback = function()
+        TBD:Notification({
+            Title = "Destroying UI",
+            Message = "Interface will be destroyed in 3 seconds",
+            Type = "Warning",
+            Duration = 3
+        })
+        
+        task.delay(3, function()
+            Window:Destroy()
+        end)
     end
 })
