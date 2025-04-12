@@ -1,22 +1,30 @@
 --[[
-    TBD UI Library - Example Script
-    This example demonstrates how to create a complete script hub using TBD UI Library
+    TBD UI Library - Enhanced Example Script
+    This example demonstrates all features of the enhanced TBD UI Library
 ]]
 
 -- Load the TBD UI Library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 
--- Create a Window
+-- Create a Window with enhanced options
 local Window = TBD:CreateWindow({
     Title = "TBD Script Hub",
-    Subtitle = "v1.0.0",
-    Theme = "Default",
-    Size = {500, 550},
+    Subtitle = "v1.1.0",
+    Theme = "Aqua", -- Try the new Aqua theme (options: Default, Midnight, Neon, Aqua)
+    Size = {500, 550}, -- Automatically adapts for mobile
     Position = "Center",
     LogoId = "12345678", -- Replace with your logo asset ID
     LoadingEnabled = true,
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
+    
+    -- Enhanced loading screen customization
+    LoadingScreenCustomization = {
+        AnimationStyle = "Slide", -- Options: "Fade", "Slide", "Scale"
+        LogoSize = UDim2.new(0, 120, 0, 120),
+        LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
+        ProgressBarSize = UDim2.new(0.8, 0, 0, 8)
+    },
     
     ConfigSettings = {
         ConfigFolder = "TBDScriptHub"
@@ -60,9 +68,9 @@ local VisualsTab = Window:CreateTab({
     ImageSource = "Phosphor"
 })
 
-local TeleportsTab = Window:CreateTab({
-    Name = "Teleports",
-    Icon = "map",
+local ThemesTab = Window:CreateTab({
+    Name = "Themes",
+    Icon = "favorite",
     ImageSource = "Phosphor"
 })
 
@@ -91,18 +99,51 @@ MainTab:CreateButton({
     end
 })
 
-MainTab:CreateButton({
-    Name = "Copy Script Link",
+-- Show different notification types
+local notifyButton = MainTab:CreateButton({
+    Name = "Show Notifications",
+    Description = "Demonstrate fixed notification system",
     Callback = function()
-        -- Implement copy to clipboard logic here
+        -- Success notification
         TBD:Notification({
-            Title = "Link Copied",
-            Message = "Script link copied to clipboard!",
+            Title = "Success",
+            Message = "Operation completed successfully!",
             Type = "Success",
-            Duration = 3
+            Duration = 4
         })
         
-        -- Example: setclipboard("https://yourscriptlink.com")
+        -- Wait a moment before showing next notification
+        task.wait(1)
+        
+        -- Info notification
+        TBD:Notification({
+            Title = "Information",
+            Message = "This is an informational message with details about something important.",
+            Type = "Info",
+            Duration = 4
+        })
+        
+        -- Wait a moment before showing next notification
+        task.wait(1)
+        
+        -- Warning notification
+        TBD:Notification({
+            Title = "Warning",
+            Message = "Please be careful! This action might have consequences.",
+            Type = "Warning",
+            Duration = 4
+        })
+        
+        -- Wait a moment before showing next notification
+        task.wait(1)
+        
+        -- Error notification
+        TBD:Notification({
+            Title = "Error",
+            Message = "Something went wrong. Please try again later.",
+            Type = "Error",
+            Duration = 4
+        })
     end
 })
 
@@ -318,123 +359,14 @@ VisualsTab:CreateSlider({
     end
 }, "FieldOfView")
 
--- Teleports Tab Elements
-TeleportsTab:CreateSection("Locations")
+-- Themes Tab Elements - Showcasing the new theme features
+ThemesTab:CreateSection("UI Themes")
 
--- Example dropdown for teleport locations
-local teleportLocations = {"Spawn", "Shop", "Boss Area", "Secret Room"}
-
-TeleportsTab:CreateDropdown({
-    Name = "Select Location",
-    Description = "Choose where to teleport",
-    Items = teleportLocations,
-    Default = "Spawn",
-    Callback = function(Location)
-        -- Store selected location
-        _G.SelectedTeleport = Location
-        
-        TBD:Notification({
-            Title = "Location Selected",
-            Message = "Selected " .. Location .. " for teleport",
-            Type = "Info"
-        })
-    end
-}, "TeleportLocation")
-
-TeleportsTab:CreateButton({
-    Name = "Teleport to Location",
-    Callback = function()
-        -- Implement teleport logic based on selected location
-        if not _G.SelectedTeleport then
-            TBD:Notification({
-                Title = "Teleport Error",
-                Message = "Please select a location first",
-                Type = "Error"
-            })
-            return
-        end
-        
-        TBD:Notification({
-            Title = "Teleporting",
-            Message = "Teleporting to " .. _G.SelectedTeleport .. "...",
-            Type = "Success"
-        })
-        
-        -- Teleport logic would go here
-        -- This is where you'd implement the actual teleport code
-        
-        -- Example:
-        --[[
-        local teleportCoordinates = {
-            ["Spawn"] = Vector3.new(0, 10, 0),
-            ["Shop"] = Vector3.new(100, 10, 100),
-            ["Boss Area"] = Vector3.new(-100, 10, -100),
-            ["Secret Room"] = Vector3.new(50, 30, -50)
-        }
-        
-        if game.Players.LocalPlayer.Character and 
-           game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and
-           teleportCoordinates[_G.SelectedTeleport] then
-            
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = 
-                CFrame.new(teleportCoordinates[_G.SelectedTeleport])
-        end
-        --]]
-    end
-})
-
-TeleportsTab:CreateDivider()
-
-TeleportsTab:CreateSection("Player Teleports")
-
-TeleportsTab:CreateInput({
-    Name = "Teleport to Player",
-    Description = "Enter username of player to teleport to",
-    PlaceholderText = "Username...",
-    Default = "",
-    Callback = function(Text, EnterPressed)
-        if not EnterPressed then return end
-        
-        -- Find player
-        local targetPlayer = nil
-        for _, player in pairs(game.Players:GetPlayers()) do
-            if player.Name:lower() == Text:lower() or player.DisplayName:lower() == Text:lower() then
-                targetPlayer = player
-                break
-            end
-        end
-        
-        if targetPlayer then
-            TBD:Notification({
-                Title = "Player Found",
-                Message = "Teleporting to " .. targetPlayer.Name,
-                Type = "Success"
-            })
-            
-            -- Teleport to player
-            if game.Players.LocalPlayer.Character and targetPlayer.Character then
-                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(
-                    targetPlayer.Character:GetPrimaryPartCFrame()
-                )
-            end
-        else
-            TBD:Notification({
-                Title = "Player Not Found",
-                Message = "Could not find player: " .. Text,
-                Type = "Error"
-            })
-        end
-    end
-}, "PlayerTeleport")
-
--- Settings Tab Elements
-SettingsTab:CreateSection("UI Settings")
-
-SettingsTab:CreateDropdown({
-    Name = "Theme",
-    Description = "Change the UI theme",
-    Items = {"Default", "Midnight", "Neon"},
-    Default = "Default",
+ThemesTab:CreateDropdown({
+    Name = "Select Theme",
+    Description = "Choose a pre-built theme for the UI",
+    Items = {"Default", "Midnight", "Neon", "Aqua"}, -- Added new Aqua theme
+    Default = "Aqua",
     Callback = function(Theme)
         TBD:SetTheme(Theme)
         
@@ -446,7 +378,20 @@ SettingsTab:CreateDropdown({
     end
 }, "UITheme")
 
-SettingsTab:CreateSlider({
+ThemesTab:CreateColorPicker({
+    Name = "Primary Color",
+    Description = "Change the main accent color",
+    Color = Color3.fromRGB(0, 210, 255), -- Default Aqua primary color
+    Callback = function(Color)
+        -- Apply just the primary color change
+        TBD:CustomTheme({
+            Primary = Color,
+            PrimaryDark = Color:Lerp(Color3.new(0, 0, 0), 0.2) -- Automatically create a darker version
+        })
+    end
+}, "PrimaryColor")
+
+ThemesTab:CreateSlider({
     Name = "UI Transparency",
     Description = "Adjust the transparency of the UI",
     Range = {0, 90},
@@ -462,6 +407,106 @@ SettingsTab:CreateSlider({
         })
     end
 }, "UITransparency")
+
+ThemesTab:CreateDropdown({
+    Name = "Icon Pack",
+    Description = "Choose which icon style to use",
+    Items = {"Material", "Phosphor"},
+    Default = "Phosphor",
+    Callback = function(Pack)
+        -- Change icon pack
+        TBD:CustomTheme({
+            IconPack = Pack
+        })
+        
+        TBD:Notification({
+            Title = "Icon Pack Changed",
+            Message = "Applied the " .. Pack .. " icon pack. Changes will appear when reopening the UI.",
+            Type = "Info"
+        })
+    end
+}, "IconPack")
+
+ThemesTab:CreateToggle({
+    Name = "Drop Shadows",
+    Description = "Toggle UI element shadows",
+    CurrentValue = true,
+    Callback = function(Value)
+        -- Toggle drop shadows
+        TBD:CustomTheme({
+            DropShadowEnabled = Value
+        })
+    end
+}, "DropShadows")
+
+ThemesTab:CreateDivider()
+
+ThemesTab:CreateSection("Custom Theme")
+
+ThemesTab:CreateButton({
+    Name = "Create Random Theme",
+    Description = "Generate a random color theme",
+    Callback = function()
+        -- Generate random colors
+        local primary = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+        local background = Color3.fromRGB(math.random(10, 30), math.random(10, 30), math.random(10, 30))
+        
+        -- Apply random theme
+        TBD:CustomTheme({
+            Primary = primary,
+            PrimaryDark = primary:Lerp(Color3.new(0, 0, 0), 0.2),
+            Background = background,
+            ContainerBackground = background:Lerp(Color3.new(1, 1, 1), 0.1),
+            SecondaryBackground = background:Lerp(Color3.new(1, 1, 1), 0.2),
+            ElementBackground = background:Lerp(Color3.new(1, 1, 1), 0.3)
+        })
+        
+        TBD:Notification({
+            Title = "Random Theme Applied",
+            Message = "Created a unique random theme!",
+            Type = "Success"
+        })
+    end
+})
+
+-- Settings Tab Elements
+SettingsTab:CreateSection("UI Settings")
+
+SettingsTab:CreateDropdown({
+    Name = "Notification Position",
+    Description = "Where notifications appear on screen",
+    Items = {"TopRight", "TopLeft", "BottomRight", "BottomLeft"},
+    Default = "TopRight",
+    Callback = function(Position)
+        -- Set notification position
+        NotificationSystem:SetPosition(Position)
+        
+        TBD:Notification({
+            Title = "Position Updated",
+            Message = "Notifications will now appear in the " .. Position .. " position",
+            Type = "Info"
+        })
+    end
+}, "NotificationPosition")
+
+SettingsTab:CreateSlider({
+    Name = "Notification Duration",
+    Description = "How long notifications remain on screen (seconds)",
+    Range = {1, 10},
+    Increment = 0.5,
+    CurrentValue = 5,
+    Callback = function(Value)
+        -- Update notification duration
+        NotificationSystem.DefaultDuration = Value
+        
+        TBD:Notification({
+            Title = "Duration Updated",
+            Message = "Notifications will now display for " .. Value .. " seconds",
+            Type = "Info",
+            Duration = Value -- Apply the new duration immediately
+        })
+    end
+}, "NotificationDuration")
 
 SettingsTab:CreateDivider()
 
