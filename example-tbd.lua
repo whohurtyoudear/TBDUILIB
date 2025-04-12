@@ -1,6 +1,6 @@
 --[[
-    TBD UI Library - HoHo Edition Example
-    This example demonstrates all features of the redesigned TBD UI Library
+    TBD UI Library - HoHo Edition Example (v4)
+    This example demonstrates all features of the fully fixed TBD UI Library
 ]]
 
 -- Load the TBD UI Library
@@ -9,11 +9,11 @@ local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyo
 -- Create a Window with enhanced options
 local Window = TBD:CreateWindow({
     Title = "TBD Script Hub",
-    Subtitle = "v2.0.0 HoHo Edition",
+    Subtitle = "v2.0.0 Edition",
     Theme = "HoHo", -- Try the new HoHo theme (options: Default, Midnight, Neon, Aqua, HoHo)
     Size = {780, 460}, -- Wider layout as requested
     Position = "Center",
-    LogoId = "rbxassetid://10588367664", -- Example logo asset ID
+    LogoId = "rbxassetid://140132696023344", -- Example logo asset ID
     LoadingEnabled = true,
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
@@ -49,32 +49,27 @@ Window.HomeTab:CreateButton({
 -- Create Tabs
 local MainTab = Window:CreateTab({
     Name = "Main",
-    Icon = "home",
-    ImageSource = "Phosphor"
+    Icon = "home"
 })
 
 local PlayerTab = Window:CreateTab({
     Name = "Player",
-    Icon = "person",
-    ImageSource = "Phosphor"
+    Icon = "person"
 })
 
 local VisualsTab = Window:CreateTab({
     Name = "Visuals",
-    Icon = "eye",
-    ImageSource = "Phosphor"
+    Icon = "eye"
 })
 
 local ThemesTab = Window:CreateTab({
     Name = "Themes",
-    Icon = "favorite",
-    ImageSource = "Phosphor"
+    Icon = "favorite"
 })
 
 local SettingsTab = Window:CreateTab({
     Name = "Settings",
-    Icon = "settings",
-    ImageSource = "Phosphor"
+    Icon = "settings"
 })
 
 -- Fix position of notifications
@@ -201,10 +196,12 @@ PlayerTab:CreateSlider({
     Flag = "WalkSpeed", -- Flag for saving in config
     Callback = function(Value)
         -- Implement walk speed
-        if game.Players.LocalPlayer.Character and 
-           game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-        end
+        pcall(function()
+            if game.Players.LocalPlayer.Character and 
+            game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+            end
+        end)
     end
 })
 
@@ -217,10 +214,12 @@ PlayerTab:CreateSlider({
     Flag = "JumpPower", -- Flag for saving in config
     Callback = function(Value)
         -- Implement jump power
-        if game.Players.LocalPlayer.Character and 
-           game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
-        end
+        pcall(function()
+            if game.Players.LocalPlayer.Character and 
+            game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+            end
+        end)
     end
 })
 
@@ -241,7 +240,9 @@ PlayerTab:CreateToggle({
                 if _G.InfiniteJump and 
                    game.Players.LocalPlayer.Character and 
                    game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-                    game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    pcall(function()
+                        game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end)
                 end
             end)
         end
@@ -432,3 +433,29 @@ SettingsTab:CreateButton({
         end)
     end
 })
+
+-- Hide/Show UI functionality with keybind
+local function toggleUI()
+    if Window.MainFrame.Visible then
+        Window:Minimize()
+    else
+        Window:Expand()
+    end
+end
+
+-- Setup global keyboard toggle
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    local keyName = "None"
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        keyName = string.sub(tostring(input.KeyCode), 14)
+    end
+    
+    if keyName == TBD.Flags["ToggleUI"] or keyName == "RightShift" then
+        toggleUI()
+    end
+end)
+
+-- Print a message to confirm the UI has loaded completely
+print("TBD UI Library v4 loaded successfully!")
