@@ -1,120 +1,181 @@
 --[[
-    TBD UI Library - New Edition (v2.0.0) V5
-    Completely rebuilt version with fixes for all known issues:
-    - Fixed CreateButton method issue
-    - Fixed TextTransparency property issue
-    - Fixed dropdown functionality
-    - Fixed color picker positioning
-    - Improved design and robustness
+    TBD UI Library - New Edition
+    A modern, customizable Roblox UI library for script hubs and executors
+    Version: 2.0.0-V7
+    
+    Fixed in v7:
+    - Dropdown positioning issues
+    - Color picker functionality
+    - Theme system now properly updates all UI elements when changed
+    - All UI components parented correctly to avoid rendering issues
+    - Fixed RGB slider functionality in color picker
+    - Added UI element tracking system for theme changes
+    - Fixed dropdown list syntax error
 ]]
 
--- Main Library Table
-local TBD = {}
-TBD.Version = "2.0.0-V5"
-TBD.DebugMode = false
-
 -- Services
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local LocalPlayer = Players.LocalPlayer
 
--- Constants and Settings
-local ANIMATION_DURATION = 0.3
+-- Constants
+local LIBRARY_NAME = "TBD"
 local DEFAULT_FONT = Enum.Font.GothamBold
 local SECONDARY_FONT = Enum.Font.Gotham
-local CORNER_RADIUS = UDim.new(0, 8)
-local ELEMENT_HEIGHT = 36
-local LIBRARY_NAME = "TBD"
+local TEXT_SIZE = 14
+local WINDOW_WIDTH = 600
+local WINDOW_HEIGHT = 350
+local CORNER_RADIUS = 8
+local TOGGLE_SPEED = 0.15
+local TWEEN_TIME = 0.25
 
--- Window dimensions (wider layout)
-local WINDOW_WIDTH = 780
-local WINDOW_HEIGHT = 460
-local TAB_WIDTH = 170
-local CONTENT_WIDTH = WINDOW_WIDTH - TAB_WIDTH - 20
+local LocalPlayer = Players.LocalPlayer
 
--- Device Detection
+-- Detect if the device is mobile
 local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-TBD.IsMobile = IS_MOBILE
-local SCREEN_SIZE = workspace.CurrentCamera.ViewportSize
-local SCREEN_SCALE = math.min(1, SCREEN_SIZE.X/1200)
 
--- Safe area insets with fallback for executors that don't support GetSafeInsets
-local SAFE_AREA = {
-    Left = 0,
-    Right = 0,
-    Top = 0,
-    Bottom = 0
+-- Library table
+local TBD = {
+    Version = "2.0.0-V7", -- Version string
+    IsMobile = IS_MOBILE, -- Mobile detection
+    Flags = {}, -- Flags for configuration system
+    Windows = {}, -- List of created windows
+    Themes = {}, -- Available themes
+    Font = DEFAULT_FONT,
+    SecondaryFont = SECONDARY_FONT,
+    SafeArea = {
+        Top = 0,
+        Bottom = 0,
+        Left = 0,
+        Right = 0
+    },
+    NotificationSystem = {}, -- Notification system
+    LoadingScreen = {}, -- Loading screen system
+    ConfigSystem = {}, -- Configuration system
+    ThemeableInstances = {} -- Track instances for theme updates (NEW)
 }
 
--- Try to get safe insets if supported
-local success, result = pcall(function()
-    return GuiService:GetSafeInsets()
-end)
+-- Icon set (Phosphor Icons)
+local Icons = {
+    -- Phosphor Icons 
+    Home = "rbxassetid://7733960981",
+    Settings = "rbxassetid://7734053495",
+    Search = "rbxassetid://7743871002",
+    Menu = "rbxassetid://7743878556",
+    Close = "rbxassetid://7743878326",
+    Minimize = "rbxassetid://7743878857",
+    Maximize = "rbxassetid://7734123447",
+    Notification = "rbxassetid://7734058599",
+    Visible = "rbxassetid://7734042071",
+    Hidden = "rbxassetid://7734050471",
+    Link = "rbxassetid://7734056474",
+    Update = "rbxassetid://7734060820",
+    Success = "rbxassetid://7747957564",
+    Error = "rbxassetid://7748106991",
+    Warning = "rbxassetid://7747958558",
+    Info = "rbxassetid://7747959018",
+    Plus = "rbxassetid://7743878654",
+    Minus = "rbxassetid://7743878772",
+    Grid = "rbxassetid://7734141275",
+    List = "rbxassetid://7734055829",
+    ChevronDown = "rbxassetid://7734063248",
+    ChevronUp = "rbxassetid://7734063094",
+    ChevronLeft = "rbxassetid://7734063497",
+    ChevronRight = "rbxassetid://7734063865",
+    ArrowDown = "rbxassetid://7734132312",
+    ArrowUp = "rbxassetid://7734127890",
+    ArrowLeft = "rbxassetid://7734133327",
+    ArrowRight = "rbxassetid://7734130687",
+    User = "rbxassetid://7743880442",
+    Person = "rbxassetid://7734136490",
+    Eye = "rbxassetid://7734051934",
+    Favorite = "rbxassetid://7743879274"
+}
 
-if success then
-    SAFE_AREA = result
+-- Get screen safe area
+local function GetSafeInsets()
+    -- Try to get GuiService safe insets
+    local success, result = pcall(function()
+        local insets = GuiService:GetGuiInset()
+        return {
+            Top = insets.Y,
+            Bottom = 0,
+            Left = insets.X,
+            Right = 0
+        }
+    end)
+    
+    if success then
+        return result
+    else
+        -- Fallback values
+        return {
+            Top = 36,
+            Bottom = 0,
+            Left = 0,
+            Right = 0
+        }
+    end
 end
 
-TBD.SafeArea = SAFE_AREA
+TBD.SafeArea = GetSafeInsets()
 
--- Themes
+-- Available themes
 local Themes = {
     Default = {
-        Primary = Color3.fromRGB(41, 53, 68),
-        Secondary = Color3.fromRGB(35, 47, 62),
-        Background = Color3.fromRGB(25, 33, 46),
-        TextPrimary = Color3.fromRGB(240, 240, 240),
-        TextSecondary = Color3.fromRGB(190, 190, 190),
-        Accent = Color3.fromRGB(65, 149, 242),
-        DarkAccent = Color3.fromRGB(55, 120, 220),
-        Error = Color3.fromRGB(245, 73, 96),
-        Success = Color3.fromRGB(68, 214, 125),
-        Warning = Color3.fromRGB(255, 170, 30)
-    },
-    Midnight = {
-        Primary = Color3.fromRGB(30, 30, 45),
-        Secondary = Color3.fromRGB(25, 25, 40),
-        Background = Color3.fromRGB(18, 18, 33),
+        Primary = Color3.fromRGB(30, 30, 30),
+        Secondary = Color3.fromRGB(25, 25, 25),
+        Background = Color3.fromRGB(20, 20, 20),
         TextPrimary = Color3.fromRGB(240, 240, 240),
         TextSecondary = Color3.fromRGB(175, 175, 175),
-        Accent = Color3.fromRGB(120, 80, 240),
-        DarkAccent = Color3.fromRGB(100, 70, 210),
-        Error = Color3.fromRGB(245, 73, 96),
-        Success = Color3.fromRGB(68, 214, 125),
-        Warning = Color3.fromRGB(255, 170, 30)
+        Accent = Color3.fromRGB(15, 175, 235),
+        DarkAccent = Color3.fromRGB(10, 150, 200),
+        Error = Color3.fromRGB(255, 50, 50),
+        Success = Color3.fromRGB(50, 200, 80),
+        Warning = Color3.fromRGB(255, 175, 50)
+    },
+    Midnight = {
+        Primary = Color3.fromRGB(25, 27, 35),
+        Secondary = Color3.fromRGB(20, 22, 30),
+        Background = Color3.fromRGB(15, 17, 25),
+        TextPrimary = Color3.fromRGB(230, 230, 250),
+        TextSecondary = Color3.fromRGB(160, 160, 190),
+        Accent = Color3.fromRGB(90, 100, 240),
+        DarkAccent = Color3.fromRGB(80, 90, 220),
+        Error = Color3.fromRGB(240, 60, 60),
+        Success = Color3.fromRGB(60, 200, 80),
+        Warning = Color3.fromRGB(255, 180, 70)
     },
     Neon = {
-        Primary = Color3.fromRGB(32, 32, 32),
-        Secondary = Color3.fromRGB(25, 25, 25),
-        Background = Color3.fromRGB(18, 18, 18),
-        TextPrimary = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(185, 185, 185),
-        Accent = Color3.fromRGB(0, 220, 160),
-        DarkAccent = Color3.fromRGB(0, 180, 130),
-        Error = Color3.fromRGB(255, 60, 100),
-        Success = Color3.fromRGB(0, 255, 140),
-        Warning = Color3.fromRGB(255, 200, 0)
+        Primary = Color3.fromRGB(15, 15, 20),
+        Secondary = Color3.fromRGB(10, 10, 15),
+        Background = Color3.fromRGB(5, 5, 10),
+        TextPrimary = Color3.fromRGB(235, 235, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 210),
+        Accent = Color3.fromRGB(125, 70, 255),
+        DarkAccent = Color3.fromRGB(100, 50, 220),
+        Error = Color3.fromRGB(255, 65, 140),
+        Success = Color3.fromRGB(55, 240, 155),
+        Warning = Color3.fromRGB(255, 170, 55)
     },
     Aqua = {
-        Primary = Color3.fromRGB(20, 45, 65),
-        Secondary = Color3.fromRGB(15, 40, 60),
-        Background = Color3.fromRGB(10, 30, 45),
-        TextPrimary = Color3.fromRGB(240, 240, 240),
-        TextSecondary = Color3.fromRGB(190, 190, 190),
-        Accent = Color3.fromRGB(40, 180, 220),
-        DarkAccent = Color3.fromRGB(30, 150, 190),
-        Error = Color3.fromRGB(240, 80, 100),
-        Success = Color3.fromRGB(40, 200, 150),
-        Warning = Color3.fromRGB(255, 170, 30)
+        Primary = Color3.fromRGB(20, 30, 40),
+        Secondary = Color3.fromRGB(15, 25, 35),
+        Background = Color3.fromRGB(10, 20, 30),
+        TextPrimary = Color3.fromRGB(230, 240, 245),
+        TextSecondary = Color3.fromRGB(170, 190, 210),
+        Accent = Color3.fromRGB(40, 180, 200),
+        DarkAccent = Color3.fromRGB(30, 160, 180),
+        Error = Color3.fromRGB(255, 75, 75),
+        Success = Color3.fromRGB(50, 210, 120),
+        Warning = Color3.fromRGB(255, 190, 60)
     },
-    HoHo = { -- New theme inspired by the image
+    HoHo = {
         Primary = Color3.fromRGB(20, 20, 20),
         Secondary = Color3.fromRGB(15, 15, 15),
         Background = Color3.fromRGB(10, 10, 10),
@@ -122,67 +183,94 @@ local Themes = {
         TextSecondary = Color3.fromRGB(190, 190, 190),
         Accent = Color3.fromRGB(255, 30, 50),
         DarkAccent = Color3.fromRGB(200, 25, 45),
-        Error = Color3.fromRGB(255, 60, 80),
+        Error = Color3.fromRGB(255, 50, 50),
         Success = Color3.fromRGB(40, 200, 90),
         Warning = Color3.fromRGB(255, 170, 30)
     }
 }
 
--- Current Theme
+TBD.Themes = Themes
 local CurrentTheme = Themes.HoHo
 
--- Utility Functions
-local function Create(instanceType, properties)
-    local instance = Instance.new(instanceType)
-    for prop, value in pairs(properties or {}) do
-        instance[prop] = value
+-- Function to register an instance for theme updates (NEW)
+function TBD:RegisterThemeable(instance, properties)
+    if instance and properties then
+        table.insert(self.ThemeableInstances, {
+            Instance = instance,
+            Properties = properties
+        })
     end
+end
+
+-- Utility functions
+local function Create(className, properties)
+    local instance = Instance.new(className)
+    
+    -- Track themeable properties
+    local themeProperties = {}
+    
+    for property, value in pairs(properties or {}) do
+        -- Only set properties that exist for the instance type
+        if typeof(instance[property]) ~= "nil" then
+            -- Handle TextTransparency separately since Images don't have it
+            if property == "TextTransparency" then
+                if className ~= "ImageLabel" and className ~= "ImageButton" then
+                    instance[property] = value
+                end
+            else
+                instance[property] = value
+            end
+            
+            -- Check if this is a color property that matches a theme color (NEW)
+            if (property == "BackgroundColor3" or property == "TextColor3" or 
+                property == "BorderColor3" or property == "ImageColor3" or
+                property == "Color") then
+                -- Find which theme color this matches
+                for colorName, colorValue in pairs(CurrentTheme) do
+                    if value == colorValue then
+                        themeProperties[property] = colorName
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Register for theme updates if themeable properties were found (NEW)
+    if next(themeProperties) then
+        TBD:RegisterThemeable(instance, themeProperties)
+    end
+    
     return instance
 end
 
--- Safe property check
-local function CanHaveProperty(instance, property)
-    local success = pcall(function()
-        local test = instance[property]
-    end)
-    return success
-end
-
-local function IsTextInstance(instance)
-    return instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox")
-end
-
-local function IsImageInstance(instance)
-    return instance:IsA("ImageLabel") or instance:IsA("ImageButton")
-end
-
--- Improved Tween function with safety checks
 local function Tween(instance, properties, duration, style, direction)
-    if not instance or not properties then return nil end
+    -- Check if instance is valid
+    if not instance or typeof(instance) ~= "Instance" then
+        return
+    end
     
-    local tweenInfo = TweenInfo.new(
-        duration or ANIMATION_DURATION,
-        style or Enum.EasingStyle.Quad,
-        direction or Enum.EasingDirection.Out
-    )
-    
-    -- Create a safe copy of properties to tween
+    -- Create a safe properties table
     local safeProperties = {}
     
     for prop, value in pairs(properties) do
-        -- Special handling for transparency properties
-        if prop == "TextTransparency" and not IsTextInstance(instance) then
-            -- Skip text transparency for non-text objects
-        elseif prop == "ImageTransparency" and not IsImageInstance(instance) then
-            -- Skip image transparency for non-image objects
-        elseif CanHaveProperty(instance, prop) then
+        if typeof(instance[prop]) ~= "nil" then
             safeProperties[prop] = value
         end
     end
     
-    -- Only create and play the tween if there are properties to tween
+    -- Only create the tween if we have valid properties to tween
     if next(safeProperties) then
-        local tween = TweenService:Create(instance, tweenInfo, safeProperties)
+        local tween = TweenService:Create(
+            instance,
+            TweenInfo.new(
+                duration or TWEEN_TIME,
+                style or Enum.EasingStyle.Quad,
+                direction or Enum.EasingDirection.Out
+            ),
+            safeProperties
+        )
+        
         tween:Play()
         return tween
     end
@@ -190,33 +278,23 @@ local function Tween(instance, properties, duration, style, direction)
     return nil
 end
 
-local function MakeDraggable(frame, handle)
-    handle = handle or frame
+local function MakeDraggable(draggableFrame, handle)
+    local isDragging = false
+    local dragInput
+    local startPos
+    local dragStart
     
-    local dragging = false
-    local dragInput, dragStart, startPos
-    
-    local function update(input)
-        if not dragging then return end
-        
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
+    handle = handle or draggableFrame
     
     handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
+            isDragging = true
             dragStart = input.Position
-            startPos = frame.Position
+            startPos = draggableFrame.Position
             
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+                    isDragging = false
                 end
             end)
         end
@@ -229,267 +307,165 @@ local function MakeDraggable(frame, handle)
     end)
     
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
+        if input == dragInput and isDragging then
+            local delta = input.Position - dragStart
+            draggableFrame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
         end
     end)
 end
 
-local function GetTextSize(text, fontSize, font, frameSize)
-    return TextService:GetTextSize(text, fontSize, font, frameSize)
+-- Enhanced SetTheme function that updates UI (NEW)
+function TBD:SetTheme(theme)
+    if not Themes[theme] then
+        return false
+    end
+    
+    -- Update current theme
+    CurrentTheme = Themes[theme]
+    
+    -- Update all registered instances
+    for _, themeable in ipairs(self.ThemeableInstances) do
+        local instance = themeable.Instance
+        if instance and instance.Parent then -- Check if instance still exists
+            for property, colorType in pairs(themeable.Properties) do
+                -- Only update if the instance has this property
+                if typeof(instance[property]) ~= "nil" then
+                    -- Update the property with the new theme color
+                    Tween(instance, {[property] = CurrentTheme[colorType]}, 0.3)
+                end
+            end
+        end
+    end
+    
+    return true
 end
 
-local function Round(number, decimalPlaces)
-    local multiplier = 10 ^ (decimalPlaces or 0)
-    return math.floor(number * multiplier + 0.5) / multiplier
+-- Enhanced CustomTheme function that updates UI (NEW)
+function TBD:CustomTheme(options)
+    options = options or {}
+    
+    -- Create custom theme by extending current theme
+    local customTheme = {
+        Primary = options.Primary or CurrentTheme.Primary,
+        Secondary = options.Secondary or CurrentTheme.Secondary,
+        Background = options.Background or CurrentTheme.Background,
+        TextPrimary = options.TextPrimary or CurrentTheme.TextPrimary,
+        TextSecondary = options.TextSecondary or CurrentTheme.TextSecondary,
+        Accent = options.Accent or CurrentTheme.Accent,
+        DarkAccent = options.DarkAccent or CurrentTheme.DarkAccent,
+        Error = options.Error or CurrentTheme.Error,
+        Success = options.Success or CurrentTheme.Success,
+        Warning = options.Warning or CurrentTheme.Warning
+    }
+    
+    -- Set the new theme
+    CurrentTheme = customTheme
+    
+    -- Update all registered instances
+    for _, themeable in ipairs(self.ThemeableInstances) do
+        local instance = themeable.Instance
+        if instance and instance.Parent then -- Check if instance still exists
+            for property, colorType in pairs(themeable.Properties) do
+                -- Only update if the instance has this property
+                if typeof(instance[property]) ~= "nil" then
+                    -- Update the property with the new theme color
+                    Tween(instance, {[property] = CurrentTheme[colorType]}, 0.3)
+                end
+            end
+        end
+    end
+    
+    return true
 end
 
--- Icon System
-local Icons = {
-    Close = "rbxassetid://6031094678",
-    Minimize = "rbxassetid://6031094687",
-    Maximize = "rbxassetid://6031094667",
-    Home = "rbxassetid://6026568198",
-    Settings = "rbxassetid://6031280882",
-    Search = "rbxassetid://6031154870",
-    Menu = "rbxassetid://6031091000",
-    Info = "rbxassetid://6026568245",
-    Warning = "rbxassetid://6031071053",
-    Error = "rbxassetid://6031071057",
-    Success = "rbxassetid://6031071054",
-    Plus = "rbxassetid://6035047409",
-    Minus = "rbxassetid://6035067832",
-    Grid = "rbxassetid://6035047377",
-    Person = "rbxassetid://7191850748",
-    Eye = "rbxassetid://7191845882",
-    Favorite = "rbxassetid://6034231524"
-}
--- Notification System
-TBD.NotificationSystem = {}
-local NotificationSystem = TBD.NotificationSystem
-
-NotificationSystem.Position = "TopRight"
-NotificationSystem.Container = nil
-NotificationSystem.Template = nil
-NotificationSystem.ActiveNotifications = {}
-NotificationSystem.NotificationCount = 0
+-- Notifications System
+local NotificationSystem = {}
 
 function NotificationSystem:Setup()
-    local screenGui = Create("ScreenGui", {
+    -- Create notification container
+    local notificationGui = Create("ScreenGui", {
         Name = LIBRARY_NAME .. "_Notifications",
-        DisplayOrder = 1000,
+        ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        IgnoreGuiInset = true
+        DisplayOrder = 100
     })
     
-    -- Try to use CoreGui, but fall back to PlayerGui if needed
+    -- Try to parent to CoreGui
     local success, result = pcall(function()
         if syn and syn.protect_gui then
-            syn.protect_gui(screenGui)
-            screenGui.Parent = CoreGui
+            syn.protect_gui(notificationGui)
+            notificationGui.Parent = CoreGui
         else
-            screenGui.Parent = CoreGui
+            notificationGui.Parent = CoreGui
         end
         return true
     end)
     
     if not success then
-        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        notificationGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
     
     local container = Create("Frame", {
         Name = "NotificationContainer",
-        AnchorPoint = Vector2.new(1, 0),
         BackgroundTransparency = 1,
-        Position = UDim2.new(1, -20, 0, 20 + SAFE_AREA.Top),
+        Position = UDim2.new(1, -20, 0, 20 + TBD.SafeArea.Top), -- Top right
+        AnchorPoint = Vector2.new(1, 0),
         Size = UDim2.new(0, 300, 1, -40),
-        Parent = screenGui
+        Parent = notificationGui
+    })
+    
+    local listLayout = Create("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Top,
+        Parent = container
     })
     
     self.Container = container
-    self.ScreenGui = screenGui
+    self.Position = "TopRight"
+    self.Gui = notificationGui -- Store reference to the ScreenGui
     
-    -- Create a template but don't parent it
-    local template = Create("Frame", {
-        Name = "NotificationTemplate",
-        BackgroundColor3 = CurrentTheme.Primary,
-        Size = UDim2.new(1, 0, 0, 80),
-        Position = UDim2.new(1, 20, 0, 0), -- Start off-screen
-        AnchorPoint = Vector2.new(0, 0),
-        BorderSizePixel = 0,
-        BackgroundTransparency = 0.1
-    })
-    
-    Create("UICorner", {
-        CornerRadius = UDim.new(0, 6),
-        Parent = template
-    })
-    
-    Create("UIStroke", {
-        Color = CurrentTheme.Accent,
-        Thickness = 1.2,
-        Transparency = 0.5,
-        Parent = template
-    })
-    
-    local icon = Create("ImageLabel", {
-        Name = "Icon",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 15),
-        Size = UDim2.new(0, 24, 0, 24),
-        Image = Icons.Info,
-        ImageColor3 = CurrentTheme.Accent,
-        Parent = template
-    })
-    
-    local titleLabel = Create("TextLabel", {
-        Name = "Title",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 50, 0, 12),
-        Size = UDim2.new(1, -65, 0, 20),
-        Font = DEFAULT_FONT,
-        Text = "Notification Title",
-        TextColor3 = CurrentTheme.TextPrimary,
-        TextSize = 16,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = template
-    })
-    
-    local messageLabel = Create("TextLabel", {
-        Name = "Message",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 50, 0, 32),
-        Size = UDim2.new(1, -65, 1, -40),
-        Font = SECONDARY_FONT,
-        Text = "Notification message goes here with all the details.",
-        TextColor3 = CurrentTheme.TextSecondary,
-        TextSize = 14,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        Parent = template
-    })
-    
-    local progressBar = Create("Frame", {
-        Name = "ProgressBar",
-        BackgroundColor3 = CurrentTheme.Accent,
-        Position = UDim2.new(0, 0, 1, -2),
-        Size = UDim2.new(1, 0, 0, 2),
-        BorderSizePixel = 0,
-        Parent = template
-    })
-    
-    local closeButton = Create("ImageButton", {
-        Name = "CloseButton",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -25, 0, 10),
-        Size = UDim2.new(0, 16, 0, 16),
-        Image = Icons.Close,
-        ImageColor3 = CurrentTheme.TextSecondary,
-        Parent = template
-    })
-    
-    closeButton.MouseEnter:Connect(function()
-        Tween(closeButton, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
-    end)
-    
-    closeButton.MouseLeave:Connect(function()
-        Tween(closeButton, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
-    end)
-    
-    -- Make the notification slightly transparent when hovering over it
-    template.MouseEnter:Connect(function()
-        Tween(template, {BackgroundTransparency = 0.2}, 0.2)
-    end)
-    
-    template.MouseLeave:Connect(function()
-        Tween(template, {BackgroundTransparency = 0.1}, 0.2)
-    end)
-    
-    self.Template = template
     return self
 end
 
-function NotificationSystem:GetContainerPosition()
-    local position
-    
-    if self.Position == "TopRight" then
-        position = UDim2.new(1, -20, 0, 20 + SAFE_AREA.Top)
-    elseif self.Position == "TopLeft" then
-        position = UDim2.new(0, 20 + SAFE_AREA.Left, 0, 20 + SAFE_AREA.Top)
-    elseif self.Position == "BottomRight" then
-        position = UDim2.new(1, -20, 1, -20 - SAFE_AREA.Bottom)
-    elseif self.Position == "BottomLeft" then
-        position = UDim2.new(0, 20 + SAFE_AREA.Left, 1, -20 - SAFE_AREA.Bottom)
-    else
-        position = UDim2.new(1, -20, 0, 20 + SAFE_AREA.Top) -- Default to TopRight
-    end
-    
-    return position
-end
-
 function NotificationSystem:SetPosition(position)
-    if position and (position == "TopRight" or position == "TopLeft" or position == "BottomRight" or position == "BottomLeft") then
-        self.Position = position
-        if self.Container then
-            local containerPosition = self:GetContainerPosition()
-            local anchorPoint
-            
-            if position:find("Bottom") then
-                if position:find("Right") then
-                    anchorPoint = Vector2.new(1, 1)
-                else
-                    anchorPoint = Vector2.new(0, 1)
-                end
-            else
-                if position:find("Right") then
-                    anchorPoint = Vector2.new(1, 0)
-                else
-                    anchorPoint = Vector2.new(0, 0)
-                end
-            end
-            
-            Tween(self.Container, {
-                Position = containerPosition,
-                AnchorPoint = anchorPoint
-            }, 0.3)
-            
-            -- Adjust all active notifications
-            self:UpdateNotificationsLayout()
-        end
-    end
-end
-
-function NotificationSystem:UpdateNotificationsLayout()
-    local yOffset = 0
-    local isTop = self.Position:find("Top") ~= nil
-    local notificationList = {}
-    
-    -- Create an indexed list for easier sorting
-    for id, notification in pairs(self.ActiveNotifications) do
-        table.insert(notificationList, {ID = id, Notification = notification})
+    if not self.Container then
+        self:Setup()
     end
     
-    -- Sort by creation time (newer on top if isTop, older on top if isBottom)
-    table.sort(notificationList, function(a, b)
-        if isTop then
-            return a.Notification.CreatedAt > b.Notification.CreatedAt
-        else
-            return a.Notification.CreatedAt < b.Notification.CreatedAt
-        end
-    end)
+    self.Position = position
     
-    -- Reposition them all
-    for _, data in ipairs(notificationList) do
-        local notification = data.Notification
-        local height = notification.Frame.AbsoluteSize.Y
-        
-        if isTop then
-            Tween(notification.Frame, {Position = UDim2.new(0, 0, 0, yOffset)}, 0.3)
-            yOffset = yOffset + height + 10
+    -- Update the container position based on notification position
+    if position == "TopRight" then
+        self.Container.Position = UDim2.new(1, -20, 0, 20 + TBD.SafeArea.Top)
+        self.Container.AnchorPoint = Vector2.new(1, 0)
+    elseif position == "TopLeft" then
+        self.Container.Position = UDim2.new(0, 20 + TBD.SafeArea.Left, 0, 20 + TBD.SafeArea.Top)
+        self.Container.AnchorPoint = Vector2.new(0, 0)
+    elseif position == "BottomRight" then
+        self.Container.Position = UDim2.new(1, -20, 1, -20 - TBD.SafeArea.Bottom)
+        self.Container.AnchorPoint = Vector2.new(1, 1)
+    elseif position == "BottomLeft" then
+        self.Container.Position = UDim2.new(0, 20 + TBD.SafeArea.Left, 1, -20 - TBD.SafeArea.Bottom)
+        self.Container.AnchorPoint = Vector2.new(0, 1)
+    end
+    
+    -- Update list layout direction
+    local listLayout = self.Container:FindFirstChildOfClass("UIListLayout")
+    if listLayout then
+        if position == "BottomRight" or position == "BottomLeft" then
+            listLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+            listLayout.HorizontalAlignment = (position == "BottomRight") and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left
         else
-            Tween(notification.Frame, {Position = UDim2.new(0, 0, 1, -yOffset - height)}, 0.3)
-            yOffset = yOffset + height + 10
+            listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+            listLayout.HorizontalAlignment = (position == "TopRight") and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left
         end
     end
 end
@@ -499,284 +475,440 @@ function NotificationSystem:CreateNotification(options)
         self:Setup()
     end
     
-    -- Process options
     options = options or {}
     local title = options.Title or "Notification"
     local message = options.Message or ""
     local duration = options.Duration or 5
-    local type = options.Type or "Info" -- Info, Success, Warning, Error
+    local type = options.Type or "Info"
     local callback = options.Callback
     
-    local notificationId = HttpService:GenerateGUID(false)
-    self.NotificationCount = self.NotificationCount + 1
+    -- Create notification frame
+    local notification = Create("Frame", {
+        Name = "Notification",
+        BackgroundColor3 = CurrentTheme.Background,
+        BackgroundTransparency = 0.1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, 50, 0, 0), -- Start offscreen to the right
+        Size = UDim2.new(1, 0, 0, 80),
+        ZIndex = 100,
+        Parent = self.Container
+    })
     
-    -- Create a clone of the template
-    local notification = self.Template:Clone()
-    notification.Name = "Notification_" .. self.NotificationCount
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(notification, {BackgroundColor3 = "Background"})
     
-    -- Set notification properties based on type
-    local iconImage
-    local accentColor
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = notification
+    })
     
-    if type == "Success" then
-        iconImage = Icons.Success
-        accentColor = CurrentTheme.Success
-    elseif type == "Warning" then
-        iconImage = Icons.Warning
-        accentColor = CurrentTheme.Warning
-    elseif type == "Error" then
-        iconImage = Icons.Error
-        accentColor = CurrentTheme.Error
-    else -- Info or default
-        iconImage = Icons.Info
-        accentColor = CurrentTheme.Accent
-    end
+    local stroke = Create("UIStroke", {
+        Color = CurrentTheme.Accent,
+        Thickness = 1.5,
+        Transparency = 0.5,
+        Parent = notification
+    })
     
-    notification.Icon.Image = iconImage
-    notification.Icon.ImageColor3 = accentColor
-    notification.UIStroke.Color = accentColor
-    notification.ProgressBar.BackgroundColor3 = accentColor
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(stroke, {Color = "Accent"})
     
-    -- Set content
-    notification.Title.Text = title
-    notification.Message.Text = message
+    -- Add drop shadow
+    local shadow = Create("ImageLabel", {
+        Name = "Shadow",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2.new(1, 20, 1, 20),
+        ZIndex = 99,
+        Image = "rbxassetid://6014054326",
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.6,
+        Parent = notification
+    })
     
-    -- Auto-size based on content
-    local messageHeight = GetTextSize(
-        message, 
-        14, 
-        SECONDARY_FONT, 
-        Vector2.new(notification.Message.AbsoluteSize.X, 1000)
-    ).Y
-    
-    local newHeight = math.max(80, messageHeight + 50)
-    notification.Size = UDim2.new(1, 0, 0, newHeight)
-    
-    -- Position based on container alignment
-    local isTop = self.Position:find("Top") ~= nil
-    local startPosition
-    
-    if isTop then
-        startPosition = UDim2.new(1, 0, 0, 0)
-    else
-        startPosition = UDim2.new(1, 0, 1, 0)
-    end
-    
-    notification.Position = startPosition
-    notification.Parent = self.Container
-    
-    -- Make sure this is always visible even if truncated by UI framework
-    notification.ZIndex = 10
-    
-    -- Add to active notifications
-    local notificationObj = {
-        ID = notificationId,
-        Frame = notification,
-        CreatedAt = os.time(),
-        Duration = duration,
-        ProgressTween = nil
+    -- Get the corresponding icon and color for notification type
+    local typeInfo = {
+        Info = {
+            Icon = Icons.Info,
+            Color = CurrentTheme.Accent
+        },
+        Success = {
+            Icon = Icons.Success,
+            Color = CurrentTheme.Success
+        },
+        Warning = {
+            Icon = Icons.Warning,
+            Color = CurrentTheme.Warning
+        },
+        Error = {
+            Icon = Icons.Error,
+            Color = CurrentTheme.Error
+        }
     }
     
-    self.ActiveNotifications[notificationId] = notificationObj
+    local iconData = typeInfo[type] or typeInfo.Info
     
-    -- Handle click callback
+    -- Create colored bar on the left
+    local colorBar = Create("Frame", {
+        Name = "ColorBar",
+        BackgroundColor3 = iconData.Color,
+        Size = UDim2.new(0, 5, 1, 0),
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates if using a theme color (NEW)
+    if type == "Info" then
+        TBD:RegisterThemeable(colorBar, {BackgroundColor3 = "Accent"})
+    elseif type == "Success" then
+        TBD:RegisterThemeable(colorBar, {BackgroundColor3 = "Success"})
+    elseif type == "Warning" then
+        TBD:RegisterThemeable(colorBar, {BackgroundColor3 = "Warning"})
+    elseif type == "Error" then
+        TBD:RegisterThemeable(colorBar, {BackgroundColor3 = "Error"})
+    end
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = colorBar
+    })
+    
+    -- Fix the color bar corners - only round the left side
+    local colorBarFix = Create("Frame", {
+        Name = "ColorBarFix",
+        BackgroundColor3 = iconData.Color,
+        Position = UDim2.new(0.5, 0, 0, 0),
+        Size = UDim2.new(0.5, 0, 1, 0),
+        ZIndex = 101,
+        Parent = colorBar
+    })
+    
+    -- Register for theme updates if using a theme color (NEW)
+    if type == "Info" then
+        TBD:RegisterThemeable(colorBarFix, {BackgroundColor3 = "Accent"})
+    elseif type == "Success" then
+        TBD:RegisterThemeable(colorBarFix, {BackgroundColor3 = "Success"})
+    elseif type == "Warning" then
+        TBD:RegisterThemeable(colorBarFix, {BackgroundColor3 = "Warning"})
+    elseif type == "Error" then
+        TBD:RegisterThemeable(colorBarFix, {BackgroundColor3 = "Error"})
+    end
+    
+    -- Icon
+    local icon = Create("ImageLabel", {
+        Name = "Icon",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 15, 0, 15),
+        Size = UDim2.new(0, 20, 0, 20),
+        Image = iconData.Icon,
+        ImageColor3 = iconData.Color,
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates if using a theme color (NEW)
+    if type == "Info" then
+        TBD:RegisterThemeable(icon, {ImageColor3 = "Accent"})
+    elseif type == "Success" then
+        TBD:RegisterThemeable(icon, {ImageColor3 = "Success"})
+    elseif type == "Warning" then
+        TBD:RegisterThemeable(icon, {ImageColor3 = "Warning"})
+    elseif type == "Error" then
+        TBD:RegisterThemeable(icon, {ImageColor3 = "Error"})
+    end
+    
+    -- Title
+    local titleLabel = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 45, 0, 10),
+        Size = UDim2.new(1, -60, 0, 20),
+        Font = DEFAULT_FONT,
+        Text = title,
+        TextColor3 = CurrentTheme.TextPrimary,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
+    
+    -- Message
+    local messageLabel = Create("TextLabel", {
+        Name = "Message",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 45, 0, 32),
+        Size = UDim2.new(1, -60, 0, 40),
+        Font = SECONDARY_FONT,
+        Text = message,
+        TextColor3 = CurrentTheme.TextSecondary,
+        TextSize = 14,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(messageLabel, {TextColor3 = "TextSecondary"})
+    
+    -- Close button
+    local closeButton = Create("ImageButton", {
+        Name = "CloseButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -25, 0, 15),
+        Size = UDim2.new(0, 15, 0, 15),
+        Image = Icons.Close,
+        ImageColor3 = CurrentTheme.TextSecondary,
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(closeButton, {ImageColor3 = "TextSecondary"})
+    
+    -- Progress bar
+    local progressBarContainer = Create("Frame", {
+        Name = "ProgressBarContainer",
+        BackgroundColor3 = CurrentTheme.Secondary,
+        BackgroundTransparency = 0.7,
+        Position = UDim2.new(0, 0, 1, -5),
+        Size = UDim2.new(1, 0, 0, 3),
+        ZIndex = 101,
+        Parent = notification
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(progressBarContainer, {BackgroundColor3 = "Secondary"})
+    
+    local progressBar = Create("Frame", {
+        Name = "ProgressBar",
+        BackgroundColor3 = iconData.Color,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 102,
+        Parent = progressBarContainer
+    })
+    
+    -- Register for theme updates if using a theme color (NEW)
+    if type == "Info" then
+        TBD:RegisterThemeable(progressBar, {BackgroundColor3 = "Accent"})
+    elseif type == "Success" then
+        TBD:RegisterThemeable(progressBar, {BackgroundColor3 = "Success"})
+    elseif type == "Warning" then
+        TBD:RegisterThemeable(progressBar, {BackgroundColor3 = "Warning"})
+    elseif type == "Error" then
+        TBD:RegisterThemeable(progressBar, {BackgroundColor3 = "Error"})
+    end
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = progressBarContainer
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = progressBar
+    })
+    
+    -- Animate in notification
+    Tween(notification, {Position = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Quint)
+    
+    -- Set up progress animation
+    Tween(progressBar, {Size = UDim2.new(0, 0, 1, 0)}, duration, Enum.EasingStyle.Linear)
+    
+    -- Make notification interactive (clickable)
     notification.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if callback and typeof(callback) == "function" then
+            if callback then
                 callback()
             end
             
-            -- Close the notification
-            self:CloseNotification(notificationId)
+            -- Immediately dismiss
+            Tween(notification, {Position = UDim2.new(1, 50, 0, 0)}, 0.3, Enum.EasingStyle.Quint).Completed:Connect(function()
+                notification:Destroy()
+            end)
         end
     end)
     
-    -- Handle close button
-    notification.CloseButton.MouseButton1Click:Connect(function()
-        self:CloseNotification(notificationId)
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        Tween(notification, {Position = UDim2.new(1, 50, 0, 0)}, 0.3, Enum.EasingStyle.Quint).Completed:Connect(function()
+            notification:Destroy()
+        end)
     end)
     
-    -- Slide in animation
-    Tween(notification, {Position = UDim2.new(0, 0, notification.Position.Y.Scale, notification.Position.Y.Offset)}, 0.3, Enum.EasingStyle.Back)
-    
-    -- Update layout of all notifications
-    self:UpdateNotificationsLayout()
-    
-    -- Start progress bar
-    notificationObj.ProgressTween = Tween(notification.ProgressBar, {Size = UDim2.new(0, 0, 0, 2)}, duration, Enum.EasingStyle.Linear)
-    
-    -- Schedule removal
+    -- Auto dismiss after duration
     task.delay(duration, function()
-        self:CloseNotification(notificationId)
+        -- Check if notification still exists
+        if notification and notification.Parent then
+            Tween(notification, {Position = UDim2.new(1, 50, 0, 0)}, 0.3, Enum.EasingStyle.Quint).Completed:Connect(function()
+                notification:Destroy()
+            end)
+        end
     end)
     
-    return notificationId
+    return notification
 end
 
-function NotificationSystem:CloseNotification(id)
-    local notification = self.ActiveNotifications[id]
-    if not notification then return end
-    
-    -- Stop progress bar tween if it exists
-    if notification.ProgressTween then
-        pcall(function() notification.ProgressTween:Cancel() end)
-    end
-    
-    -- Slide out animation
-    local slideOut = Tween(
-        notification.Frame, 
-        {Position = UDim2.new(1, 20, notification.Frame.Position.Y.Scale, notification.Frame.Position.Y.Offset)}, 
-        0.2, 
-        Enum.EasingStyle.Quad
-    )
-    
-    -- Remove after animation
-    task.delay(0.2, function()
-        pcall(function() notification.Frame:Destroy() end)
-        self.ActiveNotifications[id] = nil
-        self:UpdateNotificationsLayout()
-    end)
-end
-
-function NotificationSystem:ClearAllNotifications()
-    for id, _ in pairs(self.ActiveNotifications) do
-        self:CloseNotification(id)
-    end
-end
+TBD.NotificationSystem = NotificationSystem
 
 -- Loading Screen System
-TBD.LoadingScreen = {}
-local LoadingScreen = TBD.LoadingScreen
-
-LoadingScreen.ScreenGui = nil
-LoadingScreen.Active = false
-LoadingScreen.StartTime = 0
-LoadingScreen.DefaultDuration = 2.5
-LoadingScreen.MinimumDuration = 1.2
+local LoadingScreen = {}
 
 function LoadingScreen:Create(options)
     options = options or {}
     
-    local title = options.Title or "Loading"
-    local subtitle = options.Subtitle or "Please wait..."
+    local title = options.Title or "TBD UI Library"
+    local subtitle = options.Subtitle or "Loading..."
     local logoId = options.LogoId
-    local logoSize = options.LogoSize or UDim2.new(0, 120, 0, 120)
-    local logoPosition = options.LogoPosition or UDim2.new(0.5, 0, 0.35, 0)
-    local animationStyle = options.AnimationStyle or "Fade" -- Fade, Slide, Scale
-    local progressBarSize = options.ProgressBarSize or UDim2.new(0.7, 0, 0, 6)
+    local logoSize = options.LogoSize or UDim2.new(0, 100, 0, 100)
+    local logoPosition = options.LogoPosition or UDim2.new(0.5, 0, 0.4, 0)
+    local progressBarSize = options.ProgressBarSize or UDim2.new(0.5, 0, 0, 6)
+    local animationStyle = options.AnimationStyle or "Fade" -- Fade, Scale, Slide
     
-    -- Create the screen GUI
-    local screenGui = Create("ScreenGui", {
+    -- Create loading screen gui
+    local loadingGui = Create("ScreenGui", {
         Name = LIBRARY_NAME .. "_LoadingScreen",
-        DisplayOrder = 1000,
+        ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        IgnoreGuiInset = true
+        DisplayOrder = 1000
     })
     
     -- Try to parent to CoreGui
     local success, result = pcall(function()
         if syn and syn.protect_gui then
-            syn.protect_gui(screenGui)
-            screenGui.Parent = CoreGui
+            syn.protect_gui(loadingGui)
+            loadingGui.Parent = CoreGui
         else
-            screenGui.Parent = CoreGui
+            loadingGui.Parent = CoreGui
         end
         return true
     end)
     
     if not success then
-        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
     
-    -- Create background with blur effect
+    -- Create loading screen background with blur
     local background = Create("Frame", {
         Name = "Background",
-        BackgroundColor3 = CurrentTheme.Background,
-        BackgroundTransparency = 0,
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.4,
         Size = UDim2.new(1, 0, 1, 0),
-        Parent = screenGui
+        ZIndex = 1000,
+        Parent = loadingGui
     })
     
-    -- Create a blur effect (pcall to handle unsupported executors)
-    local blurEffect
+    -- Try to add blur effect (works in most but not all executors)
     pcall(function()
-        blurEffect = Create("BlurEffect", {
-            Name = "Blur",
-            Size = 6,
+        local blur = Create("BlurEffect", {
+            Name = "LoadingBlur",
+            Size = 10,
             Parent = game:GetService("Lighting")
         })
         
-        -- Store the blur effect for removal later
-        self.BlurEffect = blurEffect
+        self.BlurEffect = blur
     end)
     
-    -- Create container for elements
+    -- Create loading container
     local container = Create("Frame", {
-        Name = "Container",
-        BackgroundTransparency = 1,
+        Name = "LoadingContainer",
+        BackgroundColor3 = CurrentTheme.Background,
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(1, 0, 1, 0),
-        Parent = background
+        Size = UDim2.new(0, 300, 0, 300),
+        ZIndex = 1001,
+        Parent = loadingGui
     })
     
-    -- Create logo (if specified)
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(container, {BackgroundColor3 = "Background"})
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 16),
+        Parent = container
+    })
+    
+    local containerStroke = Create("UIStroke", {
+        Color = CurrentTheme.Accent,
+        Thickness = 2,
+        Transparency = 0.5,
+        Parent = container
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(containerStroke, {Color = "Accent"})
+    
+    -- Add logo if provided
     if logoId then
-        local logo
-        pcall(function()
-            logo = Create("ImageLabel", {
-                Name = "Logo",
-                BackgroundTransparency = 1,
-                Position = logoPosition,
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Size = logoSize,
-                Image = logoId,
-                Parent = container
-            })
-        end)
+        local logo = Create("ImageLabel", {
+            Name = "Logo",
+            BackgroundTransparency = 1,
+            Position = logoPosition,
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = logoSize,
+            Image = logoId,
+            ZIndex = 1002,
+            Parent = container
+        })
     end
     
-    -- Create title
+    -- Create title text
     local titleLabel = Create("TextLabel", {
         Name = "Title",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(0, 500, 0, 40),
+        Position = UDim2.new(0.5, 0, logoId and 0.65 or 0.4, 0),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(0.8, 0, 0, 30),
+        Font = DEFAULT_FONT,
         Text = title,
         TextColor3 = CurrentTheme.TextPrimary,
-        Font = DEFAULT_FONT,
-        TextSize = 28,
+        TextSize = 24,
+        ZIndex = 1002,
         Parent = container
     })
     
-    -- Create subtitle
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
+    
+    -- Create subtitle text
     local subtitleLabel = Create("TextLabel", {
         Name = "Subtitle",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.57, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(0, 500, 0, 24),
+        Position = UDim2.new(0.5, 0, titleLabel.Position.Y.Scale + 0.12, 0),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(0.8, 0, 0, 20),
+        Font = SECONDARY_FONT,
         Text = subtitle,
         TextColor3 = CurrentTheme.TextSecondary,
-        Font = SECONDARY_FONT,
-        TextSize = 18,
+        TextSize = 16,
+        ZIndex = 1002,
         Parent = container
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(subtitleLabel, {TextColor3 = "TextSecondary"})
     
     -- Create progress bar container
     local progressContainer = Create("Frame", {
         Name = "ProgressContainer",
         BackgroundColor3 = CurrentTheme.Secondary,
-        BackgroundTransparency = 0.6,
-        Position = UDim2.new(0.5, 0, 0.65, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 0.7,
+        Position = UDim2.new(0.5, 0, 0.85, 0),
+        AnchorPoint = Vector2.new(0.5, 0),
         Size = progressBarSize,
+        ZIndex = 1002,
         Parent = container
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(progressContainer, {BackgroundColor3 = "Secondary"})
+    
     Create("UICorner", {
-        CornerRadius = UDim.new(0, 3),
+        CornerRadius = UDim.new(1, 0),
         Parent = progressContainer
     })
     
@@ -784,1579 +916,2866 @@ function LoadingScreen:Create(options)
     local progressBar = Create("Frame", {
         Name = "ProgressBar",
         BackgroundColor3 = CurrentTheme.Accent,
-        BorderSizePixel = 0,
         Size = UDim2.new(0, 0, 1, 0),
+        ZIndex = 1003,
         Parent = progressContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(progressBar, {BackgroundColor3 = "Accent"})
+    
     Create("UICorner", {
-        CornerRadius = UDim.new(0, 3),
+        CornerRadius = UDim.new(1, 0),
         Parent = progressBar
     })
     
-    -- Create bottom credits
-    local creditsLabel = Create("TextLabel", {
-        Name = "Credits",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.95, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(0, 300, 0, 20),
-        Text = "TBD UI Library v" .. TBD.Version,
-        TextColor3 = CurrentTheme.TextSecondary,
-        Font = SECONDARY_FONT,
-        TextSize = 14,
-        TextTransparency = 0.4,
-        Parent = container
-    })
+    -- Apply initial animation based on style
+    if animationStyle == "Fade" then
+        container.BackgroundTransparency = 1
+        titleLabel.TextTransparency = 1
+        subtitleLabel.TextTransparency = 1
+        progressContainer.BackgroundTransparency = 1
+        
+        Tween(container, {BackgroundTransparency = 0}, 0.5)
+        Tween(titleLabel, {TextTransparency = 0}, 0.5)
+        Tween(subtitleLabel, {TextTransparency = 0}, 0.5)
+        Tween(progressContainer, {BackgroundTransparency = 0.7}, 0.5)
+    elseif animationStyle == "Scale" then
+        container.Size = UDim2.new(0, 0, 0, 0)
+        
+        Tween(container, {Size = UDim2.new(0, 300, 0, 300)}, 0.5, Enum.EasingStyle.Back)
+    elseif animationStyle == "Slide" then
+        container.Position = UDim2.new(0.5, 0, 1.5, 0)
+        
+        Tween(container, {Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.5, Enum.EasingStyle.Quint)
+    end
     
-    self.ScreenGui = screenGui
+    -- Store references
+    self.LoadingGui = loadingGui
     self.ProgressBar = progressBar
-    self.StartTime = os.clock()
-    self.Active = true
+    self.ProgressContainer = progressContainer
+    self.Container = container
+    self.Title = titleLabel
+    self.Subtitle = subtitleLabel
+    self.AnimationStyle = animationStyle
     
-    self:UpdateProgress(0)
     return self
 end
 
 function LoadingScreen:UpdateProgress(progress)
-    if not self.Active or not self.ProgressBar then return end
+    if not self.ProgressBar then return end
     
     progress = math.clamp(progress, 0, 1)
-    pcall(function()
-        Tween(self.ProgressBar, {Size = UDim2.new(progress, 0, 1, 0)}, 0.3)
-    end)
+    Tween(self.ProgressBar, {Size = UDim2.new(progress, 0, 1, 0)}, 0.3)
+    
+    return self
+end
+
+function LoadingScreen:SetStatus(status)
+    if not self.Subtitle then return end
+    
+    self.Subtitle.Text = status
+    
+    return self
 end
 
 function LoadingScreen:Finish(callback)
-    if not self.Active or not self.ScreenGui then return end
+    if not self.Container then return end
     
-    -- Ensure minimum loading time for better UX
-    local elapsed = os.clock() - self.StartTime
-    local remaining = math.max(0, self.MinimumDuration - elapsed)
-    
-    -- Update progress to 100%
+    -- Complete the progress bar
     self:UpdateProgress(1)
     
-    -- Wait for the minimum time to pass
-    task.delay(remaining, function()
-        -- Remove blur effect if it exists
-        if self.BlurEffect then
-            pcall(function() self.BlurEffect:Destroy() end)
-            self.BlurEffect = nil
+    -- Wait a moment before closing
+    task.delay(0.5, function()
+        -- Apply exit animation based on style
+        if self.AnimationStyle == "Fade" then
+            Tween(self.Container, {BackgroundTransparency = 1}, 0.5)
+            
+            if self.Title then
+                Tween(self.Title, {TextTransparency = 1}, 0.5)
+            end
+            
+            if self.Subtitle then
+                Tween(self.Subtitle, {TextTransparency = 1}, 0.5)
+            end
+            
+            if self.ProgressContainer then
+                Tween(self.ProgressContainer, {BackgroundTransparency = 1}, 0.5)
+            end
+        elseif self.AnimationStyle == "Scale" then
+            Tween(self.Container, {Size = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        elseif self.AnimationStyle == "Slide" then
+            Tween(self.Container, {Position = UDim2.new(0.5, 0, 1.5, 0)}, 0.5, Enum.EasingStyle.Quint)
         end
         
-        -- Fade out animation
-        pcall(function()
-            local background = self.ScreenGui.Background
-            Tween(background, {BackgroundTransparency = 1}, 0.5)
-            
-            -- Fade out all text and UI elements
-            for _, descendent in pairs(self.ScreenGui:GetDescendants()) do
-                if descendent:IsA("TextLabel") or descendent:IsA("TextButton") then
-                    Tween(descendent, {BackgroundTransparency = 1, TextTransparency = 1}, 0.5)
-                elseif descendent:IsA("ImageLabel") or descendent:IsA("ImageButton") then
-                    Tween(descendent, {BackgroundTransparency = 1, ImageTransparency = 1}, 0.5)
-                elseif descendent:IsA("Frame") and descendent.Name ~= "Background" then
-                    Tween(descendent, {BackgroundTransparency = 1}, 0.5)
-                end
-            end
-        end)
-        
-        -- Remove after animation
+        -- Clean up after animation
         task.delay(0.5, function()
-            pcall(function() self.ScreenGui:Destroy() end)
-            self.Active = false
-            self.ScreenGui = nil
+            if self.BlurEffect then
+                self.BlurEffect:Destroy()
+            end
             
-            if callback and typeof(callback) == "function" then
+            if self.LoadingGui then
+                self.LoadingGui:Destroy()
+            end
+            
+            if callback then
                 callback()
             end
         end)
     end)
+    
+    return self
 end
--- TabSystem and UI Elements
+
+TBD.LoadingScreen = LoadingScreen
+
+-- Tab System Class
 local TabSystem = {}
+TabSystem.__index = TabSystem
 
 function TabSystem:Create()
-    local tabContainer = Create("Frame", {
+    local self = setmetatable({
+        Tabs = {},
+        ActiveTab = nil
+    }, TabSystem)
+    
+    -- Create tab container
+    local tabContainer = Create("ScrollingFrame", {
         Name = "TabContainer",
-        BackgroundColor3 = CurrentTheme.Secondary,
-        Position = UDim2.new(0, 0, 0, 40), -- Below the window header
-        Size = UDim2.new(0, TAB_WIDTH, 1, -40), -- Width set in constants
-        BorderSizePixel = 0
+        BackgroundColor3 = CurrentTheme.Primary,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 40), -- Below header
+        Size = UDim2.new(0, 190, 1, -40),
+        ScrollBarThickness = 0,
+        ScrollingEnabled = true,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ClipsDescendants = true
     })
     
-    -- Tab list
-    local tabScroll = Create("ScrollingFrame", {
-        Name = "TabScroll",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 10),
-        Size = UDim2.new(1, 0, 1, -20),
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        ScrollBarThickness = 2,
-        ScrollBarImageColor3 = CurrentTheme.Accent,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        BorderSizePixel = 0,
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(tabContainer, {BackgroundColor3 = "Primary"})
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 0),
         Parent = tabContainer
     })
     
-    local tabLayout = Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4),
-        Parent = tabScroll
-    })
-    
-    local tabPadding = Create("UIPadding", {
+    -- Create padding and layout for tab container
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 10),
+        PaddingBottom = UDim.new(0, 10),
         PaddingLeft = UDim.new(0, 10),
         PaddingRight = UDim.new(0, 10),
-        PaddingTop = UDim.new(0, 5),
-        PaddingBottom = UDim.new(0, 5),
-        Parent = tabScroll
+        Parent = tabContainer
     })
     
-    local contentContainer = Create("Frame", {
-        Name = "ContentContainer",
-        BackgroundColor3 = CurrentTheme.Primary,
-        Position = UDim2.new(0, TAB_WIDTH + 1, 0, 40), -- Next to tabs, below header
-        Size = UDim2.new(1, -TAB_WIDTH - 1, 1, -40),
-        BorderSizePixel = 0
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 5),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = tabContainer
     })
     
-    -- Create the separator between tabs and content
+    -- Create separator between tabs and content
     local separator = Create("Frame", {
         Name = "Separator",
         BackgroundColor3 = CurrentTheme.Accent,
         BackgroundTransparency = 0.7,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, TAB_WIDTH, 0, 40),
+        Position = UDim2.new(0, 190, 0, 40),
         Size = UDim2.new(0, 1, 1, -40)
     })
     
-    local tabs = {}
-    local activeTab = nil
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(separator, {BackgroundColor3 = "Accent"})
     
-    local tabSystem = {
-        Container = tabContainer,
-        ContentContainer = contentContainer,
-        Separator = separator,
-        TabScroll = tabScroll,
-        Tabs = tabs,
-        ActiveTab = nil
-    }
+    -- Create content container
+    local contentContainer = Create("Frame", {
+        Name = "ContentContainer",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 190, 0, 40), -- Right of tab container, below header
+        Size = UDim2.new(1, -190, 1, -40),
+        ClipsDescendants = true
+    })
     
-    -- Update the canvas size of the scroll frame
-    tabSystem.UpdateCanvasSize = function()
-        local height = tabLayout.AbsoluteContentSize.Y + 10
-        tabScroll.CanvasSize = UDim2.new(0, 0, 0, height)
+    -- Store references
+    self.Container = tabContainer
+    self.ContentContainer = contentContainer
+    self.Separator = separator
+    
+    return self
+end
+
+function TabSystem:UpdateCanvasSize()
+    -- Adjust the canvas size of the tab container based on its children
+    local listLayout = self.Container:FindFirstChildOfClass("UIListLayout")
+    
+    if listLayout then
+        self.Container.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
     end
+end
+
+function TabSystem:AddTab(tabInfo)
+    local tabs = self.Tabs
+    local activeTab = self.ActiveTab
     
-    -- Function to add a new tab
-    tabSystem.AddTab = function(self, tabInfo)
-        -- Clone tabInfo to avoid modifying the original
-        local tab = {
-            Name = tabInfo.Name,
-            Icon = tabInfo.Icon,
-            Elements = {}
-        }
-        
-        table.insert(tabs, tab)
-        
-        -- Create the tab button
-        local tabButton = Create("TextButton", {
-            Name = "Tab_" .. tab.Name,
-            BackgroundColor3 = CurrentTheme.Primary,
-            BackgroundTransparency = 0.4,
-            Size = UDim2.new(1, 0, 0, 36),
-            Text = "",
-            AutoButtonColor = false,
-            Parent = tabScroll
-        })
-        
-        Create("UICorner", {
-            CornerRadius = UDim.new(0, 6),
+    local name = tabInfo.Name or "Tab"
+    local icon = tabInfo.Icon
+    
+    -- Create tab button
+    local tabButton = Create("Frame", {
+        Name = name .. "Button",
+        BackgroundColor3 = CurrentTheme.Primary,
+        BackgroundTransparency = 0.4,
+        Size = UDim2.new(1, 0, 0, 40),
+        Parent = self.Container
+    })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(tabButton, {BackgroundColor3 = "Primary"})
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = tabButton
+    })
+    
+    -- Add icon if provided
+    local title
+    if icon then
+        local iconImage = Create("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(0, 20, 0, 20),
+            Image = icon,
+            ImageColor3 = CurrentTheme.TextSecondary,
             Parent = tabButton
         })
         
-        local icon
-        if tab.Icon then
-            icon = Create("ImageLabel", {
-                Name = "Icon",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(0, 20, 0, 20),
-                Position = UDim2.new(0, 10, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Image = typeof(tab.Icon) == "string" and tab.Icon or Icons[tab.Icon] or Icons.Home,
-                ImageColor3 = CurrentTheme.TextSecondary,
-                Parent = tabButton
-            })
-        end
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(iconImage, {ImageColor3 = "TextSecondary"})
         
-        local title = Create("TextLabel", {
+        title = Create("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, icon and -40 or -20, 1, 0),
-            Position = UDim2.new(0, icon and 40 or 10, 0, 0),
-            Text = tab.Name,
-            Font = SECONDARY_FONT,
-            TextSize = 14,
+            Position = UDim2.new(0, 40, 0, 0),
+            Size = UDim2.new(1, -50, 1, 0),
+            Font = DEFAULT_FONT,
+            Text = name,
             TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = tabButton
         })
         
-        -- Create container for the tab's content
-        local contentFrame = Create("ScrollingFrame", {
-            Name = "Content_" .. tab.Name,
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(title, {TextColor3 = "TextSecondary"})
+    else
+        title = Create("TextLabel", {
+            Name = "Title",
             BackgroundTransparency = 1,
-            BorderSizePixel = 0,
+            Position = UDim2.new(0, 10, 0, 0),
+            Size = UDim2.new(1, -20, 1, 0),
+            Font = DEFAULT_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = tabButton
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(title, {TextColor3 = "TextSecondary"})
+    end
+    
+    -- Create tab content container
+    local tabContent = Create("ScrollingFrame", {
+        Name = name .. "Content",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        ScrollBarThickness = 6,
+        ScrollingEnabled = true,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
+        Visible = false,
+        Parent = self.ContentContainer
+    })
+    
+    -- Create padding and list layout for tab content
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 15),
+        PaddingBottom = UDim.new(0, 15),
+        PaddingLeft = UDim.new(0, 15),
+        PaddingRight = UDim.new(0, 15),
+        Parent = tabContent
+    })
+    
+    local contentListLayout = Create("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = tabContent
+    })
+    
+    -- Update canvas size when content changes
+    contentListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, contentListLayout.AbsoluteContentSize.Y + 30)
+    end)
+    
+    -- Create tab object
+    local tab = {
+        Name = name,
+        Button = tabButton,
+        Icon = icon and tabButton:FindFirstChild("Icon") or nil,
+        Title = title,
+        Content = tabContent,
+        Elements = {}
+    }
+    
+    -- Add methods to the tab
+    tab.CreateSection = function(_, sectionName)
+        local section = Create("Frame", {
+            Name = "Section_" .. sectionName,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 30),
+            Parent = tab.Content
+        })
+        
+        local sectionTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 0),
             Size = UDim2.new(1, 0, 1, 0),
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            ScrollBarThickness = 3,
-            ScrollBarImageColor3 = CurrentTheme.Accent,
-            ScrollingDirection = Enum.ScrollingDirection.Y,
-            VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
-            Visible = false,
-            Parent = contentContainer
+            Font = DEFAULT_FONT,
+            Text = sectionName,
+            TextColor3 = CurrentTheme.Accent,
+            TextSize = 16,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = section
         })
         
-        -- Add padding and layout to content frame
-        Create("UIPadding", {
-            PaddingLeft = UDim.new(0, 15),
-            PaddingRight = UDim.new(0, 15),
-            PaddingTop = UDim.new(0, 15),
-            PaddingBottom = UDim.new(0, 15),
-            Parent = contentFrame
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sectionTitle, {TextColor3 = "Accent"})
+        
+        local sectionLine = Create("Frame", {
+            Name = "Line",
+            BackgroundColor3 = CurrentTheme.Accent,
+            BackgroundTransparency = 0.5,
+            Position = UDim2.new(0, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 1),
+            Parent = section
         })
         
-        local contentLayout = Create("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
-            Parent = contentFrame
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sectionLine, {BackgroundColor3 = "Accent"})
+        
+        return section
+    end
+    
+    tab.CreateDivider = function(_)
+        local divider = Create("Frame", {
+            Name = "Divider",
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.5,
+            Size = UDim2.new(1, 0, 0, 2),
+            Parent = tab.Content
         })
         
-        -- Auto-update canvas size
-        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 30)
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(divider, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 1),
+            Parent = divider
+        })
+        
+        return divider
+    end
+    
+    -- CREATE BUTTON METHOD
+    tab.CreateButton = function(_, options)
+        options = options or {}
+        local name = options.Name or "Button"
+        local description = options.Description
+        local callback = options.Callback or function() end
+        
+        local buttonHeight = description and 60 or 46
+        
+        local button = Create("Frame", {
+            Name = "Button_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, buttonHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(button, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = button
+        })
+        
+        local buttonTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = button
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(buttonTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -20, 0, 16),
+                Font = SECONDARY_FONT,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = button
+            })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        local buttonObj = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = button
+        })
+        
+        buttonObj.MouseButton1Click:Connect(function()
+            callback()
         end)
         
-        -- Store references
-        tab.Button = tabButton
-        tab.Icon = icon
-        tab.Title = title
-        tab.Content = contentFrame
-        tab.ContentLayout = contentLayout
+        buttonObj.MouseEnter:Connect(function()
+            Tween(button, {BackgroundTransparency = 0.2}, 0.2)
+        end)
         
-        -- Add UI element creation methods to the tab
+        buttonObj.MouseLeave:Connect(function()
+            Tween(button, {BackgroundTransparency = 0.4}, 0.2)
+        end)
         
-        -- CREATE SECTION METHOD
-        tab.CreateSection = function(_, title)
-            local section = Create("Frame", {
-                Name = "Section_" .. title,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, 36),
-                BorderSizePixel = 0,
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = section
-            })
-            
-            local sectionTitle = Create("TextLabel", {
-                Name = "Title",
+        return button
+    end
+    
+    -- CREATE TOGGLE METHOD
+    tab.CreateToggle = function(_, options)
+        options = options or {}
+        local name = options.Name or "Toggle"
+        local description = options.Description
+        local currValue = options.CurrentValue or false
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        local toggleHeight = description and 60 or 46
+        
+        local toggle = Create("Frame", {
+            Name = "Toggle_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, toggleHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(toggle, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = toggle
+        })
+        
+        local toggleTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -60, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = toggle
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(toggleTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -20, 1, 0),
-                Font = DEFAULT_FONT,
-                Text = title,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = section
-            })
-            
-            return section
-        end
-        
-        -- CREATE BUTTON METHOD
-        tab.CreateButton = function(_, options)
-            options = options or {}
-            local name = options.Name or "Button"
-            local description = options.Description
-            local callback = options.Callback or function() end
-            
-            local buttonHeight = description and 50 or 36
-            
-            local button = Create("Frame", {
-                Name = "Button_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, buttonHeight),
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = button
-            })
-            
-            local buttonTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, description and 8 or 0),
-                Size = UDim2.new(1, -20, 0, 18),
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -60, 0, 16),
                 Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = button
-            })
-            
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -20, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = button
-                })
-            end
-            
-            local buttonClickArea = Create("TextButton", {
-                Name = "ClickArea",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                Parent = button
-            })
-            
-            -- Hover and click effects
-            buttonClickArea.MouseEnter:Connect(function()
-                Tween(button, {BackgroundTransparency = 0.2}, 0.2)
-            end)
-            
-            buttonClickArea.MouseLeave:Connect(function()
-                Tween(button, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            buttonClickArea.MouseButton1Down:Connect(function()
-                Tween(button, {BackgroundTransparency = 0.1}, 0.1)
-            end)
-            
-            buttonClickArea.MouseButton1Up:Connect(function()
-                Tween(button, {BackgroundTransparency = 0.2}, 0.1)
-            end)
-            
-            buttonClickArea.MouseButton1Click:Connect(function()
-                callback()
-            end)
-            
-            return button
-        end
-        
-        -- CREATE TOGGLE METHOD
-        tab.CreateToggle = function(_, options)
-            options = options or {}
-            local name = options.Name or "Toggle"
-            local description = options.Description
-            local currentValue = options.CurrentValue or false
-            local callback = options.Callback or function() end
-            local flag = options.Flag
-            
-            local toggleHeight = description and 50 or 36
-            
-            local toggle = Create("Frame", {
-                Name = "Toggle_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, toggleHeight),
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = toggle
-            })
-            
-            local toggleTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, description and 8 or 0),
-                Size = UDim2.new(1, -60, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = toggle
-            })
-            
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -60, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = toggle
-                })
-            end
-            
-            -- Create toggle switch
-            local toggleBackground = Create("Frame", {
-                Name = "ToggleBackground",
-                BackgroundColor3 = currentValue and CurrentTheme.Accent or CurrentTheme.Secondary,
-                Position = UDim2.new(1, -50, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 40, 0, 20),
-                Parent = toggle
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = toggleBackground
-            })
-            
-            local toggleCircle = Create("Frame", {
-                Name = "ToggleCircle",
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = UDim2.new(currentValue and 1 or 0, currentValue and -18 or 2, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 16, 0, 16),
-                Parent = toggleBackground
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = toggleCircle
-            })
-            
-            -- Create clickable area
-            local toggleClickArea = Create("TextButton", {
-                Name = "ClickArea",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                Parent = toggle
-            })
-            
-            -- Store the current state
-            local toggleState = currentValue
-            
-            -- Store the references and data in an object
-            local toggleObject = {
-                Toggle = toggle,
-                Background = toggleBackground,
-                Circle = toggleCircle,
-                State = toggleState,
-                Flag = flag,
-                GetState = function()
-                    return toggleState
-                end,
-                Set = function(self, state)
-                    if toggleState == state then return end
-                    toggleState = state
-                    
-                    -- Update visuals
-                    Tween(toggleBackground, {BackgroundColor3 = toggleState and CurrentTheme.Accent or CurrentTheme.Secondary}, 0.2)
-                    Tween(toggleCircle, {Position = UDim2.new(toggleState and 1 or 0, toggleState and -18 or 2, 0.5, 0)}, 0.2)
-                    
-                    -- Call the callback
-                    callback(toggleState)
-                    
-                    -- Update flag if provided
-                    if flag then
-                        TBD.Flags[flag] = toggleState
-                    end
-                end
-            }
-            
-            -- Hover and click effects
-            toggleClickArea.MouseEnter:Connect(function()
-                Tween(toggle, {BackgroundTransparency = 0.2}, 0.2)
-            end)
-            
-            toggleClickArea.MouseLeave:Connect(function()
-                Tween(toggle, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            toggleClickArea.MouseButton1Down:Connect(function()
-                Tween(toggle, {BackgroundTransparency = 0.1}, 0.1)
-            end)
-            
-            toggleClickArea.MouseButton1Up:Connect(function()
-                Tween(toggle, {BackgroundTransparency = 0.2}, 0.1)
-            end)
-            
-            toggleClickArea.MouseButton1Click:Connect(function()
-                toggleObject:Set(not toggleState)
-            end)
-            
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = toggleState
-            end
-            
-            return toggleObject
-        end
-        
-        -- CREATE SLIDER METHOD
-        tab.CreateSlider = function(_, options)
-            options = options or {}
-            local name = options.Name or "Slider"
-            local description = options.Description
-            local min, max = table.unpack(options.Range or {0, 100})
-            local increment = options.Increment or 1
-            local currentValue = options.CurrentValue or min
-            local callback = options.Callback or function() end
-            local flag = options.Flag
-            
-            local sliderHeight = description and 60 or 46
-            
-            local slider = Create("Frame", {
-                Name = "Slider_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, sliderHeight),
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = slider
-            })
-            
-            local sliderTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 8),
-                Size = UDim2.new(0.7, 0, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = slider
-            })
-            
-            local valueDisplay = Create("TextLabel", {
-                Name = "Value",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -60, 0, 8),
-                Size = UDim2.new(0, 50, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = tostring(currentValue),
+                Text = description,
                 TextColor3 = CurrentTheme.TextSecondary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Right,
-                Parent = slider
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = toggle
             })
             
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -20, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = slider
-                })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create toggle indicator
+        local toggleIndicator = Create("Frame", {
+            Name = "Indicator",
+            BackgroundColor3 = currValue and CurrentTheme.Accent or CurrentTheme.Secondary,
+            Position = UDim2.new(1, -50, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(0, 40, 0, 20),
+            Parent = toggle
+        })
+        
+        -- Register for theme updates (NEW)
+        if currValue then
+            TBD:RegisterThemeable(toggleIndicator, {BackgroundColor3 = "Accent"})
+        else
+            TBD:RegisterThemeable(toggleIndicator, {BackgroundColor3 = "Secondary"})
+        end
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = toggleIndicator
+        })
+        
+        -- Create the knob
+        local knob = Create("Frame", {
+            Name = "Knob",
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            Position = UDim2.new(currValue and 1 or 0, currValue and -18 or 2, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(0, 16, 0, 16),
+            Parent = toggleIndicator
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = knob
+        })
+        
+        -- Create button for interaction
+        local toggleButton = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = toggle
+        })
+        
+        -- Function to toggle state
+        local function updateToggle(value)
+            currValue = value
+            
+            -- Animate toggle knob
+            Tween(knob, {Position = UDim2.new(currValue and 1 or 0, currValue and -18 or 2, 0.5, 0)}, TOGGLE_SPEED)
+            
+            -- Change background color
+            if currValue then
+                Tween(toggleIndicator, {BackgroundColor3 = CurrentTheme.Accent}, TOGGLE_SPEED)
+                -- Update theme registration
+                TBD:RegisterThemeable(toggleIndicator, {BackgroundColor3 = "Accent"})
+            else
+                Tween(toggleIndicator, {BackgroundColor3 = CurrentTheme.Secondary}, TOGGLE_SPEED)
+                -- Update theme registration
+                TBD:RegisterThemeable(toggleIndicator, {BackgroundColor3 = "Secondary"})
             end
             
-            -- Create the slider track
-            local sliderTrack = Create("Frame", {
-                Name = "Track",
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.2,
-                Position = UDim2.new(0, 10, description and 0, description and (sliderHeight - 10) or 36),
-                Size = UDim2.new(1, -20, 0, 6),
-                BorderSizePixel = 0,
+            -- Call callback
+            callback(currValue)
+            
+            -- Update flag
+            if flag then
+                TBD.Flags[flag] = currValue
+            end
+        end
+        
+        toggleButton.MouseButton1Click:Connect(function()
+            updateToggle(not currValue)
+        end)
+        
+        toggleButton.MouseEnter:Connect(function()
+            Tween(toggle, {BackgroundTransparency = 0.2}, 0.2)
+        end)
+        
+        toggleButton.MouseLeave:Connect(function()
+            Tween(toggle, {BackgroundTransparency = 0.4}, 0.2)
+        end)
+        
+        -- Create toggle object for external control
+        local toggleObject = {
+            Value = currValue,
+            
+            Set = function(self, value)
+                updateToggle(value)
+            end,
+            
+            GetState = function(self)
+                return currValue
+            end
+        }
+        
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = currValue
+        end
+        
+        return toggleObject
+    end
+    
+    -- CREATE SLIDER METHOD
+    tab.CreateSlider = function(_, options)
+        options = options or {}
+        local name = options.Name or "Slider"
+        local description = options.Description
+        local range = options.Range or {0, 100}
+        local increment = options.Increment or 1
+        local currValue = options.CurrentValue or range[1]
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        local min, max = range[1], range[2]
+        currValue = math.clamp(currValue, min, max)
+        
+        -- Round to increment
+        currValue = math.floor(currValue / increment) * increment
+        
+        local sliderHeight = description and 60 or 46
+        
+        local slider = Create("Frame", {
+            Name = "Slider_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, sliderHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(slider, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = slider
+        })
+        
+        local sliderTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = slider
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sliderTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -20, 0, 16),
+                Font = SECONDARY_FONT,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = slider
             })
             
-            Create("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = sliderTrack
-            })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create slider value display
+        local valueDisplay = Create("TextLabel", {
+            Name = "Value",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -50, 0, 8),
+            Size = UDim2.new(0, 40, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = tostring(currValue),
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = slider
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(valueDisplay, {TextColor3 = "TextPrimary"})
+        
+        -- Create slider track
+        local sliderTrack = Create("Frame", {
+            Name = "Track",
+            BackgroundColor3 = CurrentTheme.Background,
+            BackgroundTransparency = 0.5,
+            Position = UDim2.new(0, 10, 0, description and 45 or 30),
+            Size = UDim2.new(1, -20, 0, 4),
+            Parent = slider
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sliderTrack, {BackgroundColor3 = "Background"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderTrack
+        })
+        
+        -- Create slider fill
+        local percentFill = (currValue - min) / (max - min)
+        
+        local sliderFill = Create("Frame", {
+            Name = "Fill",
+            BackgroundColor3 = CurrentTheme.Accent,
+            Size = UDim2.new(percentFill, 0, 1, 0),
+            Parent = sliderTrack
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sliderFill, {BackgroundColor3 = "Accent"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderFill
+        })
+        
+        -- Create slider knob
+        local sliderKnob = Create("Frame", {
+            Name = "Knob",
+            BackgroundColor3 = CurrentTheme.Accent,
+            Position = UDim2.new(percentFill, 0, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 12, 0, 12),
+            Parent = sliderTrack
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(sliderKnob, {BackgroundColor3 = "Accent"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderKnob
+        })
+        
+        -- Create the interactive area
+        local sliderArea = Create("TextButton", {
+            Name = "Area",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, description and 40 or 25),
+            Size = UDim2.new(1, 0, 0, 15),
+            Text = "",
+            Parent = slider
+        })
+        
+        -- Slider functionality
+        local isDragging = false
+        
+        -- Function to update the slider value
+        local function updateSlider(value)
+            -- Clamp and round value
+            value = math.clamp(value, min, max)
+            value = math.floor((value - min) / increment + 0.5) * increment + min
             
-            -- Create the slider fill
-            local sliderFill = Create("Frame", {
-                Name = "Fill",
-                BackgroundColor3 = CurrentTheme.Accent,
-                Size = UDim2.new((currentValue - min) / (max - min), 0, 1, 0),
-                BorderSizePixel = 0,
-                Parent = sliderTrack
-            })
+            -- Ensure value is within range after rounding
+            value = math.clamp(value, min, max)
             
-            Create("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = sliderFill
-            })
+            currValue = value
+            valueDisplay.Text = tostring(value)
             
-            -- Create the slider thumb
-            local sliderThumb = Create("Frame", {
-                Name = "Thumb",
-                BackgroundColor3 = CurrentTheme.Accent,
-                Position = UDim2.new((currentValue - min) / (max - min), 0, 0.5, 0),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Size = UDim2.new(0, 14, 0, 14),
-                Parent = sliderTrack
-            })
+            -- Update visuals
+            local newPercentFill = (value - min) / (max - min)
+            Tween(sliderFill, {Size = UDim2.new(newPercentFill, 0, 1, 0)}, 0.1)
+            Tween(sliderKnob, {Position = UDim2.new(newPercentFill, 0, 0.5, 0)}, 0.1)
             
-            Create("UICorner", {
-                CornerRadius = UDim.new(1, 0),
-                Parent = sliderThumb
-            })
+            -- Call callback
+            callback(value)
             
-            local sliderValue = currentValue
-            
-            -- Function to update slider visually
-            local function updateSlider(value)
-                sliderValue = value
+            -- Update flag
+            if flag then
+                TBD.Flags[flag] = value
+            end
+        end
+        
+        sliderArea.MouseButton1Down:Connect(function()
+            isDragging = true
+        end)
+        
+        sliderTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
                 
-                -- Update the fill and thumb position
-                local percent = (sliderValue - min) / (max - min)
-                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-                sliderThumb.Position = UDim2.new(percent, 0, 0.5, 0)
+                -- Calculate value on initial click
+                local trackAbsPos = sliderTrack.AbsolutePosition
+                local trackAbsSize = sliderTrack.AbsoluteSize
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
                 
-                -- Update value display
-                valueDisplay.Text = tostring(sliderValue)
+                local relativeX = math.clamp((mousePos.X - trackAbsPos.X) / trackAbsSize.X, 0, 1)
+                local value = min + relativeX * (max - min)
                 
-                -- Call the callback
-                callback(sliderValue)
+                updateSlider(value)
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local trackAbsPos = sliderTrack.AbsolutePosition
+                local trackAbsSize = sliderTrack.AbsoluteSize
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
                 
-                -- Update flag if provided
+                local relativeX = math.clamp((mousePos.X - trackAbsPos.X) / trackAbsSize.X, 0, 1)
+                local value = min + relativeX * (max - min)
+                
+                updateSlider(value)
+            end
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = false
+            end
+        end)
+        
+        -- Hover effect
+        sliderArea.MouseEnter:Connect(function()
+            Tween(slider, {BackgroundTransparency = 0.2}, 0.2)
+        end)
+        
+        sliderArea.MouseLeave:Connect(function()
+            Tween(slider, {BackgroundTransparency = 0.4}, 0.2)
+        end)
+        
+        -- Create slider object for external control
+        local sliderObject = {
+            Value = currValue,
+            
+            Set = function(self, value)
+                updateSlider(value)
+            end,
+            
+            GetValue = function(self)
+                return currValue
+            end
+        }
+        
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = currValue
+        end
+        
+        return sliderObject
+    end
+    
+    -- CREATE TEXTBOX METHOD
+    tab.CreateTextbox = function(_, options)
+        options = options or {}
+        local name = options.Name or "Textbox"
+        local description = options.Description
+        local placeholderText = options.PlaceholderText or "Enter text..."
+        local defaultText = options.Text or ""
+        local charLimit = options.CharacterLimit or 0
+        local clearOnFocus = options.ClearTextOnFocus
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        if clearOnFocus == nil then
+            clearOnFocus = true
+        end
+        
+        local textboxHeight = description and 60 or 46
+        
+        local textboxFrame = Create("Frame", {
+            Name = "Textbox_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, textboxHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(textboxFrame, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = textboxFrame
+        })
+        
+        local textboxTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = textboxFrame
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(textboxTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -20, 0, 16),
+                Font = SECONDARY_FONT,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = textboxFrame
+            })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create textbox container
+        local textboxContainer = Create("Frame", {
+            Name = "TextboxContainer",
+            BackgroundColor3 = CurrentTheme.Primary,
+            BackgroundTransparency = 0.2,
+            Position = UDim2.new(0, 10, 0, description and 45 or 32),
+            Size = UDim2.new(1, -20, 0, 24),
+            Parent = textboxFrame
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(textboxContainer, {BackgroundColor3 = "Primary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = textboxContainer
+        })
+        
+        -- Create actual textbox
+        local textbox = Create("TextBox", {
+            Name = "Textbox",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 8, 0, 0),
+            Size = UDim2.new(1, -16, 1, 0),
+            Font = SECONDARY_FONT,
+            Text = defaultText,
+            PlaceholderText = placeholderText,
+            TextColor3 = CurrentTheme.TextPrimary,
+            PlaceholderColor3 = CurrentTheme.TextSecondary,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ClearTextOnFocus = clearOnFocus,
+            Parent = textboxContainer
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(textbox, {
+            TextColor3 = "TextPrimary",
+            PlaceholderColor3 = "TextSecondary"
+        })
+        
+        -- Limit character input if specified
+        textbox:GetPropertyChangedSignal("Text"):Connect(function()
+            if charLimit > 0 and #textbox.Text > charLimit then
+                textbox.Text = string.sub(textbox.Text, 1, charLimit)
+            end
+        end)
+        
+        -- Fire callback on focus lost
+        textbox.FocusLost:Connect(function(enterPressed)
+            callback(textbox.Text)
+            
+            if flag then
+                TBD.Flags[flag] = textbox.Text
+            end
+        end)
+        
+        -- Hover effect
+        textboxFrame.MouseEnter:Connect(function()
+            Tween(textboxFrame, {BackgroundTransparency = 0.2}, 0.2)
+            Tween(textboxContainer, {BackgroundTransparency = 0}, 0.2)
+        end)
+        
+        textboxFrame.MouseLeave:Connect(function()
+            Tween(textboxFrame, {BackgroundTransparency = 0.4}, 0.2)
+            Tween(textboxContainer, {BackgroundTransparency = 0.2}, 0.2)
+        end)
+        
+        -- Create textbox object for external control
+        local textboxObject = {
+            Text = defaultText,
+            
+            Set = function(self, text)
+                textbox.Text = text
+                callback(text)
+                
                 if flag then
-                    TBD.Flags[flag] = sliderValue
+                    TBD.Flags[flag] = text
                 end
             end
-            
-            -- Create a slider object for external control
-            local sliderObject = {
-                GetValue = function()
-                    return sliderValue
-                end,
-                Set = function(_, value)
-                    value = math.clamp(value, min, max)
-                    
-                    -- Round to nearest increment
-                    local roundedValue = min + (math.round((value - min) / increment) * increment)
-                    
-                    -- Apply limits to the rounded value
-                    roundedValue = math.clamp(roundedValue, min, max)
-                    
-                    -- Update the slider
-                    updateSlider(roundedValue)
-                end
-            }
-            
-            -- Mouse interaction
-            local isDragging = false
-            
-            sliderTrack.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    isDragging = true
-                    
-                    -- Calculate the value from input position
-                    local inputPosition = input.Position.X
-                    local trackAbsolutePosition = sliderTrack.AbsolutePosition.X
-                    local trackAbsoluteSize = sliderTrack.AbsoluteSize.X
-                    
-                    local relativePosition = math.clamp(inputPosition - trackAbsolutePosition, 0, trackAbsoluteSize)
-                    local percent = relativePosition / trackAbsoluteSize
-                    local value = min + (percent * (max - min))
-                    
-                    -- Round to nearest increment
-                    local roundedValue = min + (math.round((value - min) / increment) * increment)
-                    
-                    -- Update the slider
-                    updateSlider(math.clamp(roundedValue, min, max))
-                end
-            end)
-            
-            sliderTrack.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    isDragging = false
-                end
-            end)
-            
-            UserInputService.InputChanged:Connect(function(input)
-                if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    -- Calculate the value from input position
-                    local inputPosition = input.Position.X
-                    local trackAbsolutePosition = sliderTrack.AbsolutePosition.X
-                    local trackAbsoluteSize = sliderTrack.AbsoluteSize.X
-                    
-                    local relativePosition = math.clamp(inputPosition - trackAbsolutePosition, 0, trackAbsoluteSize)
-                    local percent = relativePosition / trackAbsoluteSize
-                    local value = min + (percent * (max - min))
-                    
-                    -- Round to nearest increment
-                    local roundedValue = min + (math.round((value - min) / increment) * increment)
-                    
-                    -- Update the slider
-                    updateSlider(math.clamp(roundedValue, min, max))
-                end
-            end)
-            
-            -- Hover effects
-            sliderTrack.MouseEnter:Connect(function()
-                Tween(slider, {BackgroundTransparency = 0.2}, 0.2)
-            end)
-            
-            sliderTrack.MouseLeave:Connect(function()
-                Tween(slider, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = sliderValue
-            end
-            
-            return sliderObject
+        }
+        
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = defaultText
         end
-        -- CREATE DROPDOWN METHOD - Fixed dropdown functionality
-        tab.CreateDropdown = function(_, options)
-            options = options or {}
-            local name = options.Name or "Dropdown"
-            local description = options.Description
-            local items = options.Items or {}
-            local default = options.Default or ""
-            local callback = options.Callback or function() end
-            local flag = options.Flag
+        
+        return textboxObject
+    end
+-- FIXED DROPDOWN IMPLEMENTATION FOR TBD-COMPLETE-FIXED-V5.lua
+
+-- CREATE DROPDOWN METHOD - Completely revised positioning
+tab.CreateDropdown = function(_, options)
+    options = options or {}
+    local name = options.Name or "Dropdown"
+    local description = options.Description
+    local items = options.Items or {}
+    local default = options.Default
+    local callback = options.Callback or function() end
+    local flag = options.Flag
+    
+    local dropdownHeight = description and 60 or 46
+    
+    -- Find default index
+    local defaultIndex = 1
+    if default then
+        for i, item in pairs(items) do
+            if item == default then
+                defaultIndex = i
+                break
+            end
+        end
+    end
+    
+    local selected = items[defaultIndex] or "None"
+    
+    local dropdown = Create("Frame", {
+        Name = "Dropdown_" .. name,
+        BackgroundColor3 = CurrentTheme.Secondary,
+        BackgroundTransparency = 0.4,
+        Size = UDim2.new(1, 0, 0, dropdownHeight),
+        Parent = tab.Content
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = dropdown
+    })
+    
+    local dropdownTitle = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 8),
+        Size = UDim2.new(1, -20, 0, 18),
+        Font = SECONDARY_FONT,
+        Text = name,
+        TextColor3 = CurrentTheme.TextPrimary,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = dropdown
+    })
+    
+    if description then
+        local descriptionLabel = Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 26),
+            Size = UDim2.new(1, -20, 0, 16),
+            Font = SECONDARY_FONT,
+            Text = description,
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = dropdown
+        })
+    end
+    
+    -- Create dropdown display
+    local dropdownDisplay = Create("Frame", {
+        Name = "Display",
+        BackgroundColor3 = CurrentTheme.Primary,
+        BackgroundTransparency = 0.3,
+        Position = UDim2.new(1, -160, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Size = UDim2.new(0, 150, 0, 30),
+        Parent = dropdown
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = dropdownDisplay
+    })
+    
+    local selectedText = Create("TextLabel", {
+        Name = "SelectedText",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -30, 1, 0),
+        Font = SECONDARY_FONT,
+        Text = selected,
+        TextColor3 = CurrentTheme.TextPrimary,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = dropdownDisplay
+    })
+    
+    local dropdownArrow = Create("ImageLabel", {
+        Name = "Arrow",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -25, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Size = UDim2.new(0, 16, 0, 16),
+        Image = Icons.ChevronDown,
+        ImageColor3 = CurrentTheme.TextSecondary,
+        Parent = dropdownDisplay
+    })
+    
+    -- Create dropdown button
+    local dropdownButton = Create("TextButton", {
+        Name = "Button",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        Parent = dropdownDisplay
+    })
+    
+    -- Create dropdown list container - Parent to ScreenGui directly to avoid clipping
+    local screenGui = dropdown:FindFirstAncestorOfClass("ScreenGui")
+    local dropdownListOuterContainer = Create("Frame", {
+        Name = "DropdownListOuterContainer",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Visible = false,
+        ZIndex = 100,
+        Parent = screenGui
+    })
+    
+    -- Create dropdown list
+    local dropdownList = Create("Frame", {
+        Name = "DropdownList",
+        BackgroundColor3 = CurrentTheme.Primary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 150, 0, #items * 30 + 4), -- Height based on number of items
+        Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
+        ZIndex = 101,
+        Visible = true,
+        Parent = dropdownListOuterContainer
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = dropdownList
+    })
+    
+    Create("UIStroke", {
+        Color = CurrentTheme.Accent,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = dropdownList
+    })
+    
+    -- Create dropdown items
+    local maxItemWidth = 0
+    for i, item in ipairs(items) do
+        local itemButton = Create("TextButton", {
+            Name = "Item_" .. i,
+            BackgroundColor3 = (i == defaultIndex) and CurrentTheme.Accent or CurrentTheme.Primary,
+            BackgroundTransparency = (i == defaultIndex) and 0.7 or 1,
+            Size = UDim2.new(1, 0, 0, 30),
+            Position = UDim2.new(0, 0, 0, (i - 1) * 30 + 2),
+            Font = SECONDARY_FONT,
+            Text = "",
+            ZIndex = 102,
+            Parent = dropdownList
+        })
+        
+        local itemText = Create("TextLabel", {
+            Name = "Text",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, -15, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            Font = SECONDARY_FONT,
+            Text = item,
+            TextColor3 = (i == defaultIndex) and CurrentTheme.TextPrimary or CurrentTheme.TextSecondary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 103,
+            Parent = itemButton
+        })
+        
+        -- Calculate item width for dropdown sizing
+        local textSize = TextService:GetTextSize(item, 14, SECONDARY_FONT, Vector2.new(math.huge, 30))
+        maxItemWidth = math.max(maxItemWidth, textSize.X + 20) -- 20 for padding
+        
+        -- Item button events
+        itemButton.MouseEnter:Connect(function()
+            if selected ~= item then
+                Tween(itemButton, {BackgroundTransparency = 0.7}, 0.2)
+                Tween(itemText, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
+            end
+        end)
+        
+        itemButton.MouseLeave:Connect(function()
+            if selected ~= item then
+                Tween(itemButton, {BackgroundTransparency = 1}, 0.2)
+                Tween(itemText, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+            end
+        end)
+        
+        itemButton.MouseButton1Click:Connect(function()
+            selectedText.Text = item
+            selected = item
             
-            local dropdownHeight = description and 60 or 46
+            callback(item)
             
-            local dropdown = Create("Frame", {
-                Name = "Dropdown_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, dropdownHeight),
-                ClipsDescendants = false, -- FIXED: Set to false to allow dropdown to expand outside
-                Parent = tab.Content
-            })
+            if flag then
+                TBD.Flags[flag] = item
+            end
             
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = dropdown
-            })
+            -- Close dropdown
+            dropdownListOuterContainer.Visible = false
             
-            local dropdownTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 8),
-                Size = UDim2.new(1, -20, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = dropdown
-            })
+            -- Update selected item visual
+            for _, child in ipairs(dropdownList:GetChildren()) do
+                if child:IsA("TextButton") then
+                    Tween(child, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 1}, 0.2)
+                    local childText = child:FindFirstChild("Text")
+                    if childText then
+                        Tween(childText, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+                    end
+                end
+            end
             
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -20, 0, 16),
+            Tween(itemButton, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.7}, 0.2)
+            Tween(itemText, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
+        end)
+    end
+    
+    -- Adjust dropdown list width if needed
+    maxItemWidth = math.max(maxItemWidth, 150) -- Minimum width
+    dropdownList.Size = UDim2.new(0, maxItemWidth, 0, #items * 30 + 4)
+    
+    -- Add a scrolling frame for many items
+    if #items > 8 then
+        dropdownList.Size = UDim2.new(0, maxItemWidth, 0, 8 * 30 + 4)
+        
+        local scrollingFrame = Create("ScrollingFrame", {
+            Name = "ScrollingItems",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            CanvasSize = UDim2.new(0, 0, 0, #items * 30 + 4),
+            ScrollBarThickness = 4,
+            ScrollBarImageColor3 = CurrentTheme.Accent,
+            BorderSizePixel = 0,
+            ZIndex = 102,
+            Parent = dropdownList
+        })
+        
+        -- Move all items to the scrolling frame
+        for _, child in ipairs(dropdownList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.Parent = scrollingFrame
+            end
+        end
+    end
+    
+    -- Toggle dropdown visibility
+    local dropdownOpen = false
+    
+    dropdownButton.MouseButton1Click:Connect(function()
+        dropdownOpen = not dropdownOpen
+        
+        if dropdownOpen then
+            -- Position the dropdown based on the button's position
+            local buttonAbsPos = dropdownDisplay.AbsolutePosition
+            local buttonAbsSize = dropdownDisplay.AbsoluteSize
+            
+            -- IMPORTANT: Position dropdown in the screen space, not relative to the button
+            local screenSize = workspace.CurrentCamera.ViewportSize
+            local dropdownAbsSize = dropdownList.AbsoluteSize
+            
+            -- Try to position below the button
+            local posY = buttonAbsPos.Y + buttonAbsSize.Y + 5
+            
+            -- Check if it would go off the bottom of the screen
+            if posY + dropdownAbsSize.Y > screenSize.Y - 10 then
+                -- Position above the button instead
+                posY = buttonAbsPos.Y - dropdownAbsSize.Y - 5
+            end
+            
+            -- Ensure it doesn't go off screen horizontally
+            local posX = buttonAbsPos.X
+            if posX + dropdownAbsSize.X > screenSize.X - 10 then
+                posX = screenSize.X - dropdownAbsSize.X - 10
+            end
+            
+            -- Set the dropdown position
+            dropdownList.Position = UDim2.new(0, posX, 0, posY)
+            dropdownListOuterContainer.Visible = true
+            
+            -- Rotate arrow
+            Tween(dropdownArrow, {Rotation = 180}, 0.2)
+        else
+            dropdownListOuterContainer.Visible = false
+            
+            -- Reset arrow rotation
+            Tween(dropdownArrow, {Rotation = 0}, 0.2)
+        end
+    end)
+    
+    -- Close dropdown when clicking elsewhere
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dropdownOpen then
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                local dropdownAbsPos = dropdownList.AbsolutePosition
+                local dropdownAbsSize = dropdownList.AbsoluteSize
+                
+                local inDropdown = mousePos.X >= dropdownAbsPos.X and 
+                                   mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and
+                                   mousePos.Y >= dropdownAbsPos.Y and 
+                                   mousePos.Y <= dropdownAbsPos.Y + dropdownAbsSize.Y
+                
+                local buttonAbsPos = dropdownDisplay.AbsolutePosition
+                local buttonAbsSize = dropdownDisplay.AbsoluteSize
+                
+                local inButton = mousePos.X >= buttonAbsPos.X and 
+                                mousePos.X <= buttonAbsPos.X + buttonAbsSize.X and
+                                mousePos.Y >= buttonAbsPos.Y and 
+                                mousePos.Y <= buttonAbsPos.Y + buttonAbsSize.Y
+                
+                if not inDropdown and not inButton then
+                    dropdownOpen = false
+                    dropdownListOuterContainer.Visible = false
+                    Tween(dropdownArrow, {Rotation = 0}, 0.2)
+                end
+            end
+        end
+    end)
+    
+    -- Hover effect for dropdown button
+    dropdownButton.MouseEnter:Connect(function()
+        Tween(dropdown, {BackgroundTransparency = 0.2}, 0.2)
+        Tween(dropdownDisplay, {BackgroundTransparency = 0.1}, 0.2)
+    end)
+    
+    dropdownButton.MouseLeave:Connect(function()
+        Tween(dropdown, {BackgroundTransparency = 0.4}, 0.2)
+        Tween(dropdownDisplay, {BackgroundTransparency = 0.3}, 0.2)
+    end)
+    
+    -- Create dropdown object for external control
+    local dropdownObject = {
+        Selected = selected,
+        
+        Set = function(self, item)
+            -- Check if item exists
+            local exists = false
+            for _, v in ipairs(items) do
+                if v == item then
+                    exists = true
+                    break
+                end
+            end
+            
+            if not exists then return end
+            
+            selectedText.Text = item
+            selected = item
+            
+            -- Call the callback
+            callback(item)
+            
+            -- Update flag if provided
+            if flag then
+                TBD.Flags[flag] = item
+            end
+            
+            -- Update visual selection in dropdown list
+            for _, child in ipairs(dropdownList:GetChildren()) do
+                if child:IsA("TextButton") or child:IsA("ScrollingFrame") then
+                    local buttons = child:IsA("ScrollingFrame") and child:GetChildren() or {child}
+                    
+                    for _, button in ipairs(buttons) do
+                        if button:IsA("TextButton") then
+                            local btnText = button:FindFirstChild("Text")
+                            if btnText then
+                                if btnText.Text == item then
+                                    Tween(button, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.7}, 0.2)
+                                    Tween(btnText, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
+                                else
+                                    Tween(button, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 1}, 0.2)
+                                    Tween(btnText, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end,
+        
+        Refresh = function(self, newItems, newValue)
+            items = newItems or items
+            
+            -- Clear old items
+            for _, child in ipairs(dropdownList:GetChildren()) do
+                if child:IsA("TextButton") or child:IsA("ScrollingFrame") then
+                    child:Destroy()
+                end
+            end
+            
+            -- Add new items
+            local maxItemWidth = 0
+            for i, item in ipairs(items) do
+                local itemButton = Create("TextButton", {
+                    Name = "Item_" .. i,
+                    BackgroundColor3 = (item == selected) and CurrentTheme.Accent or CurrentTheme.Primary,
+                    BackgroundTransparency = (item == selected) and 0.7 or 1,
+                    Size = UDim2.new(1, 0, 0, 30),
+                    Position = UDim2.new(0, 0, 0, (i - 1) * 30 + 2),
                     Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = dropdown
+                    Text = "",
+                    ZIndex = 102,
+                    Parent = dropdownList
                 })
-            end
-            
-            -- Create the dropdown display
-            local dropdownDisplay = Create("Frame", {
-                Name = "Display",
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.6,
-                Position = UDim2.new(0, 10, description and 0, description and (dropdownHeight - 26) or 36),
-                Size = UDim2.new(1, -20, 0, 30),
-                Parent = dropdown
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = dropdownDisplay
-            })
-            
-            local displayText = Create("TextLabel", {
-                Name = "Text",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -40, 1, 0),
-                Font = SECONDARY_FONT,
-                Text = default,
-                TextColor3 = CurrentTheme.TextSecondary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = dropdownDisplay
-            })
-            
-            local dropdownArrow = Create("ImageLabel", {
-                Name = "Arrow",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -25, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 16, 0, 16),
-                Image = "rbxassetid://6031091004", -- Down arrow
-                ImageColor3 = CurrentTheme.TextSecondary,
-                Parent = dropdownDisplay
-            })
-            
-            -- Create dropdown clickable button
-            local dropdownButton = Create("TextButton", {
-                Name = "Button",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                Parent = dropdownDisplay
-            })
-            
-            -- FIXED: Create a dropdown container that's outside the main frame
-            -- This container is spawned from the TabSystem's content container, not the dropdown frame
-            local dropdownListContainer = Create("Frame", {
-                Name = "ListContainerHolder",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Visible = false,
-                ZIndex = 100, -- Higher z-index to appear above other elements
-                Parent = tabSystem.ContentContainer -- Parent to the main content container
-            })
-            
-            -- Create list container
-            local listContainer = Create("Frame", {
-                Name = "ListContainer",
-                BackgroundColor3 = CurrentTheme.Secondary,
-                Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
-                Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, 0), -- Start with no height
-                ZIndex = 101,
-                Parent = dropdownListContainer
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = listContainer
-            })
-            
-            -- Create scrolling frame for items
-            local itemList = Create("ScrollingFrame", {
-                Name = "ItemList",
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, 0, 1, 0),
-                CanvasSize = UDim2.new(0, 0, 0, 0),
-                ScrollBarThickness = 3,
-                ScrollBarImageColor3 = CurrentTheme.Accent,
-                VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
-                ZIndex = 102,
-                Parent = listContainer
-            })
-            
-            local itemLayout = Create("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 2),
-                Parent = itemList
-            })
-            
-            local itemPadding = Create("UIPadding", {
-                PaddingLeft = UDim.new(0, 5),
-                PaddingRight = UDim.new(0, 5),
-                PaddingTop = UDim.new(0, 5),
-                PaddingBottom = UDim.new(0, 5),
-                Parent = itemList
-            })
-            
-            local selectedOption = default
-            local isOpen = false
-            
-            -- Function to populate the list with items
-            local function populateList()
-                -- Clear existing items
-                for _, child in ipairs(itemList:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        child:Destroy()
+                
+                local itemText = Create("TextLabel", {
+                    Name = "Text",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, -15, 1, 0),
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Font = SECONDARY_FONT,
+                    Text = item,
+                    TextColor3 = (item == selected) and CurrentTheme.TextPrimary or CurrentTheme.TextSecondary,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 103,
+                    Parent = itemButton
+                })
+                
+                -- Calculate item width for dropdown sizing
+                local textSize = TextService:GetTextSize(item, 14, SECONDARY_FONT, Vector2.new(math.huge, 30))
+                maxItemWidth = math.max(maxItemWidth, textSize.X + 20) -- 20 for padding
+                
+                -- Item button events
+                itemButton.MouseEnter:Connect(function()
+                    if selected ~= item then
+                        Tween(itemButton, {BackgroundTransparency = 0.7}, 0.2)
+                        Tween(itemText, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
                     end
-                end
+                end)
                 
-                local totalHeight = 0
+                itemButton.MouseLeave:Connect(function()
+                    if selected ~= item then
+                        Tween(itemButton, {BackgroundTransparency = 1}, 0.2)
+                        Tween(itemText, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+                    end
+                end)
                 
-                -- Add new items
-                for _, item in ipairs(items) do
-                    local itemButton = Create("TextButton", {
-                        Name = "Item_" .. item,
-                        BackgroundColor3 = CurrentTheme.Background,
-                        BackgroundTransparency = 0.2,
-                        Size = UDim2.new(1, -10, 0, 30),
-                        Font = SECONDARY_FONT,
-                        Text = item,
-                        TextColor3 = item == selectedOption and CurrentTheme.Accent or CurrentTheme.TextPrimary,
-                        TextSize = 14,
-                        ZIndex = 103,
-                        Parent = itemList
-                    })
+                itemButton.MouseButton1Click:Connect(function()
+                    selectedText.Text = item
+                    selected = item
                     
-                    Create("UICorner", {
-                        CornerRadius = UDim.new(0, 4),
-                        Parent = itemButton
-                    })
+                    callback(item)
                     
-                    -- Highlight current selection
-                    if item == selectedOption then
-                        Create("UIStroke", {
-                            Color = CurrentTheme.Accent,
-                            Thickness = 1,
-                            Parent = itemButton
-                        })
+                    if flag then
+                        TBD.Flags[flag] = item
                     end
                     
-                    -- Item button behavior
-                    itemButton.MouseEnter:Connect(function()
-                        if item ~= selectedOption then
-                            Tween(itemButton, {BackgroundTransparency = 0}, 0.2)
-                        end
-                    end)
+                    -- Close dropdown
+                    dropdownListOuterContainer.Visible = false
+                    dropdownOpen = false
                     
-                    itemButton.MouseLeave:Connect(function()
-                        if item ~= selectedOption then
-                            Tween(itemButton, {BackgroundTransparency = 0.2}, 0.2)
-                        end
-                    end)
+                    -- Reset arrow rotation
+                    Tween(dropdownArrow, {Rotation = 0}, 0.2)
                     
-                    itemButton.MouseButton1Click:Connect(function()
-                        selectedOption = item
-                        displayText.Text = item
-                        callback(item)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = item
+                    -- Update selected item visual
+                    for _, btn in ipairs(dropdownList:GetChildren()) do
+                        if btn:IsA("TextButton") then
+                            Tween(btn, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 1}, 0.2)
+                            local childText = btn:FindFirstChild("Text")
+                            if childText then
+                                Tween(childText, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+                            end
                         end
-                        
-                        -- Close the dropdown
-                        closeDropdown()
-                        
-                        -- Re-populate to update highlighting
-                        populateList()
-                    end)
-                    
-                    totalHeight = totalHeight + itemButton.AbsoluteSize.Y + itemLayout.Padding.Offset
-                end
-                
-                -- Update canvas size
-                itemList.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-            end
-            
-            -- Function to update dropdown position
-            local function updateDropdownPosition()
-                -- Get the absolute position of the dropdown display
-                local displayAbsPos = dropdownDisplay.AbsolutePosition
-                local displayAbsSize = dropdownDisplay.AbsoluteSize
-                
-                -- Position the dropdown list right below the display
-                dropdownListContainer.Position = UDim2.new(0, displayAbsPos.X, 0, displayAbsPos.Y + displayAbsSize.Y + 5)
-                listContainer.Size = UDim2.new(0, displayAbsSize.X, 0, 0) -- Height will be animated
-            end
-            
-            -- Function to open the dropdown
-            local function openDropdown()
-                if isOpen then return end
-                isOpen = true
-                
-                -- Update position and make the list visible
-                updateDropdownPosition()
-                dropdownListContainer.Visible = true
-                
-                -- Animate opening
-                local listHeight = math.min(150, #items * 30 + (#items + 1) * 5)
-                Tween(listContainer, {Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, listHeight)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                Tween(dropdownArrow, {Rotation = 180}, 0.2)
-                
-                -- Populate items
-                populateList()
-            end
-            
-            -- Function to close the dropdown
-            function closeDropdown()
-                if not isOpen then return end
-                isOpen = false
-                
-                -- Animate closing
-                Tween(listContainer, {Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-                Tween(dropdownArrow, {Rotation = 0}, 0.2)
-                
-                -- Hide after animation
-                task.delay(0.2, function()
-                    if not isOpen then
-                        dropdownListContainer.Visible = false
                     end
+                    
+                    Tween(itemButton, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.7}, 0.2)
+                    Tween(itemText, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
                 end)
             end
             
-            -- Toggle the dropdown on button click
-            dropdownButton.MouseButton1Click:Connect(function()
-                if isOpen then
-                    closeDropdown()
-                else
-                    openDropdown()
-                end
-            end)
+            -- Adjust dropdown list size
+            maxItemWidth = math.max(maxItemWidth, 150) -- Minimum width
+            dropdownList.Size = UDim2.new(0, maxItemWidth, 0, math.min(#items, 8) * 30 + 4)
             
-            -- Close the dropdown when clicking elsewhere
-            UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
-                    
-                    -- Check if click is within dropdown display
-                    local inDropdown = false
-                    pcall(function()
-                        local dropdownAbsPos = dropdownDisplay.AbsolutePosition
-                        local dropdownAbsSize = dropdownDisplay.AbsoluteSize
-                        inDropdown = mousePos.X >= dropdownAbsPos.X and mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and
-                                     mousePos.Y >= dropdownAbsPos.Y and mousePos.Y <= dropdownAbsPos.Y + dropdownAbsSize.Y
-                    end)
-                    
-                    -- Check if click is within list
-                    local inList = false
-                    pcall(function()
-                        if dropdownListContainer.Visible then
-                            local listAbsPos = listContainer.AbsolutePosition
-                            local listAbsSize = listContainer.AbsoluteSize
-                            inList = mousePos.X >= listAbsPos.X and mousePos.X <= listAbsPos.X + listAbsSize.X and
-                                     mousePos.Y >= listAbsPos.Y and mousePos.Y <= listAbsPos.Y + listAbsSize.Y
-                        end
-                    end)
-                    
-                    if isOpen and not inDropdown and not inList then
-                        closeDropdown()
-                    end
-                end
-            end)
-            
-            -- Hover effects
-            dropdownButton.MouseEnter:Connect(function()
-                Tween(dropdown, {BackgroundTransparency = 0.2}, 0.2)
-                Tween(dropdownDisplay, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            dropdownButton.MouseLeave:Connect(function()
-                Tween(dropdown, {BackgroundTransparency = 0.4}, 0.2)
-                Tween(dropdownDisplay, {BackgroundTransparency = 0.6}, 0.2)
-            end)
-            
-            -- Create dropdown object for external control
-            local dropdownObject = {
-                Selected = selectedOption,
+            -- Add scrolling frame for many items
+            if #items > 8 then
+                local scrollingFrame = Create("ScrollingFrame", {
+                    Name = "ScrollingItems",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    CanvasSize = UDim2.new(0, 0, 0, #items * 30 + 4),
+                    ScrollBarThickness = 4,
+                    ScrollBarImageColor3 = CurrentTheme.Accent,
+                    BorderSizePixel = 0,
+                    ZIndex = 102,
+                    Parent = dropdownList
+                })
                 
-                Set = function(self, option)
-                    if table.find(items, option) then
-                        selectedOption = option
-                        displayText.Text = option
-                        
-                        -- Call the callback
-                        callback(option)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = option
-                        end
-                        
-                        -- Update list highlighting if open
-                        if isOpen then
-                            populateList()
-                        end
-                    end
-                end,
-                
-                Refresh = function(self, newItems)
-                    items = newItems
-                    
-                    -- Reset selection if it's no longer valid
-                    if not table.find(items, selectedOption) and #items > 0 then
-                        selectedOption = items[1]
-                        displayText.Text = selectedOption
-                        
-                        -- Call the callback
-                        callback(selectedOption)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = selectedOption
-                        end
-                    elseif #items == 0 then
-                        selectedOption = ""
-                        displayText.Text = "No options"
-                        
-                        -- Call the callback with nil
-                        callback(nil)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = nil
-                        end
-                    end
-                    
-                    -- Update list if open
-                    if isOpen then
-                        populateList()
+                -- Move all items to the scrolling frame
+                for _, child in ipairs(dropdownList:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child.Parent = scrollingFrame
                     end
                 end
-            }
-            
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = selectedOption
             end
             
-            return dropdownObject
+            -- Set new selected value if provided
+            if newValue then
+                self:Set(newValue)
+            else
+                -- If the previously selected item no longer exists
+                local exists = false
+                for _, item in ipairs(items) do
+                    if item == selected then
+                        exists = true
+                        break
+                    end
+                end
+                
+                if not exists and #items > 0 then
+                    self:Set(items[1])
+                end
+            end
+        end
+    }
+    
+    -- Initialize flag if provided
+    if flag then
+        TBD.Flags[flag] = selected
+    end
+    
+    return dropdownObject
+end
+-- FIXED COLOR PICKER IMPLEMENTATION FOR TBD-COMPLETE-FIXED-V5.lua
+
+-- CREATE COLOR PICKER METHOD - Fixed positioning and functionality
+tab.CreateColorPicker = function(_, options)
+    options = options or {}
+    local name = options.Name or "Color Picker"
+    local description = options.Description
+    local color = options.Color or Color3.fromRGB(255, 255, 255)
+    local callback = options.Callback or function() end
+    local flag = options.Flag
+    
+    local colorPickerHeight = description and 60 or 46
+    
+    local colorPicker = Create("Frame", {
+        Name = "ColorPicker_" .. name,
+        BackgroundColor3 = CurrentTheme.Secondary,
+        BackgroundTransparency = 0.4,
+        Size = UDim2.new(1, 0, 0, colorPickerHeight),
+        Parent = tab.Content
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = colorPicker
+    })
+    
+    local colorPickerTitle = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 8),
+        Size = UDim2.new(1, -60, 0, 18),
+        Font = SECONDARY_FONT,
+        Text = name,
+        TextColor3 = CurrentTheme.TextPrimary,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = colorPicker
+    })
+    
+    if description then
+        local descriptionLabel = Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 26),
+            Size = UDim2.new(1, -60, 0, 16),
+            Font = SECONDARY_FONT,
+            Text = description,
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = colorPicker
+        })
+    end
+    
+    -- Create the color preview
+    local colorPreview = Create("Frame", {
+        Name = "ColorPreview",
+        BackgroundColor3 = color,
+        Position = UDim2.new(1, -50, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Size = UDim2.new(0, 40, 0, 24),
+        Parent = colorPicker
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = colorPreview
+    })
+    
+    Create("UIStroke", {
+        Color = CurrentTheme.TextSecondary,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = colorPreview
+    })
+    
+    -- Create clickable button
+    local colorButton = Create("TextButton", {
+        Name = "Button",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        Parent = colorPicker
+    })
+    
+    -- Create color picker popup container - Parent to ScreenGui directly to avoid clipping
+    local screenGui = colorPicker:FindFirstAncestorOfClass("ScreenGui")
+    local colorPickerPopupContainer = Create("Frame", {
+        Name = "ColorPickerPopupContainer",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Visible = false,
+        ZIndex = 200, -- Higher z-index to appear above everything else
+        Parent = screenGui
+    })
+    
+    -- Create the actual color picker popup
+    local colorPickerPopup = Create("Frame", {
+        Name = "ColorPickerPopup",
+        BackgroundColor3 = CurrentTheme.Background,
+        Size = UDim2.new(0, 220, 0, 260),
+        Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
+        ZIndex = 201,
+        Parent = colorPickerPopupContainer
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = colorPickerPopup
+    })
+    
+    Create("UIStroke", {
+        Color = CurrentTheme.Accent,
+        Thickness = 1.5,
+        Transparency = 0.5,
+        Parent = colorPickerPopup
+    })
+    
+    -- Color picker header
+    local popupHeader = Create("Frame", {
+        Name = "Header",
+        BackgroundColor3 = CurrentTheme.Secondary,
+        Size = UDim2.new(1, 0, 0, 30),
+        ZIndex = 202,
+        Parent = colorPickerPopup
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = popupHeader
+    })
+    
+    -- Only round top corners of header
+    local popupHeaderFix = Create("Frame", {
+        Name = "HeaderFix",
+        BackgroundColor3 = CurrentTheme.Secondary,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, 0, 0.5, 0),
+        ZIndex = 202,
+        Parent = popupHeader
+    })
+    
+    local popupTitle = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -40, 1, 0),
+        Font = DEFAULT_FONT,
+        Text = "Color Picker",
+        TextColor3 = CurrentTheme.TextPrimary,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 203,
+        Parent = popupHeader
+    })
+    
+    local popupClose = Create("ImageButton", {
+        Name = "Close",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -25, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Size = UDim2.new(0, 16, 0, 16),
+        Image = Icons.Close,
+        ImageColor3 = CurrentTheme.TextSecondary,
+        ZIndex = 203,
+        Parent = popupHeader
+    })
+    
+    -- Color display
+    local currentColorDisplay = Create("Frame", {
+        Name = "CurrentColor",
+        BackgroundColor3 = color,
+        Position = UDim2.new(0.5, 0, 0, 45),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(0, 180, 0, 30),
+        ZIndex = 202,
+        Parent = colorPickerPopup
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = currentColorDisplay
+    })
+    
+    Create("UIStroke", {
+        Color = CurrentTheme.TextSecondary,
+        Thickness = 1,
+        Transparency = 0.5,
+        Parent = currentColorDisplay
+    })
+    
+    -- RGB Sliders
+    local rgbContainer = Create("Frame", {
+        Name = "RGBContainer",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 90),
+        Size = UDim2.new(1, -20, 0, 100),
+        ZIndex = 202,
+        Parent = colorPickerPopup
+    })
+    
+    -- RGB Values for sliders
+    local rValue = math.floor(color.R * 255)
+    local gValue = math.floor(color.G * 255)
+    local bValue = math.floor(color.B * 255)
+    
+    -- Create RGB sliders
+    local function createColorSlider(name, value, color, yPos)
+        local slider = Create("Frame", {
+            Name = name .. "Slider",
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Position = UDim2.new(0, 0, 0, yPos),
+            Size = UDim2.new(1, 0, 0, 20),
+            ZIndex = 203,
+            Parent = rgbContainer
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = slider
+        })
+        
+        local sliderLabel = Create("TextLabel", {
+            Name = "Label",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 5, 0, 0),
+            Size = UDim2.new(0, 15, 1, 0),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = color,
+            TextSize = 14,
+            ZIndex = 204,
+            Parent = slider
+        })
+        
+        local sliderValue = Create("TextLabel", {
+            Name = "Value",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -40, 0, 0),
+            Size = UDim2.new(0, 35, 1, 0),
+            Font = SECONDARY_FONT,
+            Text = tostring(value),
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 14,
+            ZIndex = 204,
+            Parent = slider
+        })
+        
+        local sliderTrack = Create("Frame", {
+            Name = "Track",
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.2,
+            Position = UDim2.new(0, 25, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(1, -70, 0, 6),
+            ZIndex = 204,
+            Parent = slider
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderTrack
+        })
+        
+        local sliderFill = Create("Frame", {
+            Name = "Fill",
+            BackgroundColor3 = color,
+            Size = UDim2.new(value/255, 0, 1, 0),
+            ZIndex = 205,
+            Parent = sliderTrack
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderFill
+        })
+        
+        local sliderThumb = Create("Frame", {
+            Name = "Thumb",
+            BackgroundColor3 = color,
+            Position = UDim2.new(value/255, 0, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 10, 0, 10),
+            ZIndex = 206,
+            Parent = sliderTrack
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = sliderThumb
+        })
+        
+        -- Make the thumb draggable
+        local isDragging = false
+        
+        sliderThumb.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+            end
+        end)
+        
+        sliderTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+                
+                -- Update on click
+                local trackAbsPos = sliderTrack.AbsolutePosition
+                local trackAbsSize = sliderTrack.AbsoluteSize
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                
+                local relativeX = math.clamp((mousePos.X - trackAbsPos.X) / trackAbsSize.X, 0, 1)
+                local newValue = math.floor(relativeX * 255)
+                
+                -- Update slider
+                sliderValue.Text = tostring(newValue)
+                sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+                sliderThumb.Position = UDim2.new(relativeX, 0, 0.5, 0)
+                
+                -- Update color display
+                local newColor = Color3.new(
+                    name == "R" and newValue/255 or rValue/255,
+                    name == "G" and newValue/255 or gValue/255,
+                    name == "B" and newValue/255 or bValue/255
+                )
+                currentColorDisplay.BackgroundColor3 = newColor
+                
+                -- Update color value
+                if name == "R" then rValue = newValue
+                elseif name == "G" then gValue = newValue
+                elseif name == "B" then bValue = newValue end
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local trackAbsPos = sliderTrack.AbsolutePosition
+                local trackAbsSize = sliderTrack.AbsoluteSize
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                
+                local relativeX = math.clamp((mousePos.X - trackAbsPos.X) / trackAbsSize.X, 0, 1)
+                local newValue = math.floor(relativeX * 255)
+                
+                -- Update slider
+                sliderValue.Text = tostring(newValue)
+                sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+                sliderThumb.Position = UDim2.new(relativeX, 0, 0.5, 0)
+                
+                -- Update color display
+                local newColor = Color3.new(
+                    name == "R" and newValue/255 or rValue/255,
+                    name == "G" and newValue/255 or gValue/255,
+                    name == "B" and newValue/255 or bValue/255
+                )
+                currentColorDisplay.BackgroundColor3 = newColor
+                
+                -- Update color value
+                if name == "R" then rValue = newValue
+                elseif name == "G" then gValue = newValue
+                elseif name == "B" then bValue = newValue end
+            end
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = false
+            end
+        end)
+        
+        return {
+            Slider = slider,
+            Track = sliderTrack,
+            Fill = sliderFill,
+            Thumb = sliderThumb,
+            ValueLabel = sliderValue
+        }
+    end
+    
+    local rSlider = createColorSlider("R", rValue, Color3.fromRGB(255, 50, 50), 0)
+    local gSlider = createColorSlider("G", gValue, Color3.fromRGB(50, 255, 50), 30)
+    local bSlider = createColorSlider("B", bValue, Color3.fromRGB(50, 50, 255), 60)
+    
+    -- Apply button
+    local applyButton = Create("TextButton", {
+        Name = "ApplyButton",
+        BackgroundColor3 = CurrentTheme.Accent,
+        Position = UDim2.new(0.5, 0, 1, -40),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(0, 100, 0, 30),
+        Font = DEFAULT_FONT,
+        Text = "Apply",
+        TextColor3 = CurrentTheme.TextPrimary,
+        ZIndex = 202,
+        Parent = colorPickerPopup
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = applyButton
+    })
+    
+    -- Function to update color display
+    local function updateColorDisplay(newColor)
+        currentColorDisplay.BackgroundColor3 = newColor
+    end
+    
+    -- Function to update color preview
+    local function updateColorPreview(newColor)
+        colorPreview.BackgroundColor3 = newColor
+    end
+    
+    -- Function to open color picker
+    local isColorPickerOpen = false
+    local function openColorPicker()
+        isColorPickerOpen = true
+        
+        -- IMPORTANT: Position in the screen space, not relative to the preview
+        local previewAbsPos = colorPreview.AbsolutePosition
+        local previewAbsSize = colorPreview.AbsoluteSize
+        local screenSize = workspace.CurrentCamera.ViewportSize
+        local popupWidth = colorPickerPopup.AbsoluteSize.X
+        local popupHeight = colorPickerPopup.AbsoluteSize.Y
+        
+        -- Try to position it to the right of the preview first
+        local posX = previewAbsPos.X + previewAbsSize.X + 10
+        
+        -- If it would go off the right side of the screen, position it to the left
+        if posX + popupWidth > screenSize.X - 10 then
+            posX = previewAbsPos.X - popupWidth - 10
         end
         
-        -- CREATE DIVIDER METHOD
-        tab.CreateDivider = function(_)
-            local divider = Create("Frame", {
-                Name = "Divider",
-                BackgroundColor3 = CurrentTheme.Accent,
-                BackgroundTransparency = 0.7,
-                Size = UDim2.new(1, 0, 0, 1),
+        -- Ensure it doesn't go off the left side either
+        posX = math.clamp(posX, 10, screenSize.X - popupWidth - 10)
+        
+        -- Vertical position - try to align with the middle of the preview
+        local posY = previewAbsPos.Y - (popupHeight - previewAbsSize.Y) / 2
+        
+        -- Make sure it doesn't go off the top or bottom
+        posY = math.clamp(posY, 10, screenSize.Y - popupHeight - 10)
+        
+        -- Set the position and show the popup
+        colorPickerPopup.Position = UDim2.new(0, posX, 0, posY)
+        colorPickerPopupContainer.Visible = true
+        
+        -- Update the color display with current color
+        updateColorDisplay(color)
+        
+        -- Set RGB slider values from current color
+        rValue = math.floor(color.R * 255)
+        gValue = math.floor(color.G * 255)
+        bValue = math.floor(color.B * 255)
+        
+        rSlider.ValueLabel.Text = tostring(rValue)
+        rSlider.Fill.Size = UDim2.new(rValue/255, 0, 1, 0)
+        rSlider.Thumb.Position = UDim2.new(rValue/255, 0, 0.5, 0)
+        
+        gSlider.ValueLabel.Text = tostring(gValue)
+        gSlider.Fill.Size = UDim2.new(gValue/255, 0, 1, 0)
+        gSlider.Thumb.Position = UDim2.new(gValue/255, 0, 0.5, 0)
+        
+        bSlider.ValueLabel.Text = tostring(bValue)
+        bSlider.Fill.Size = UDim2.new(bValue/255, 0, 1, 0)
+        bSlider.Thumb.Position = UDim2.new(bValue/255, 0, 0.5, 0)
+    end
+    
+    -- Function to close color picker
+    local function closeColorPicker()
+        isColorPickerOpen = false
+        colorPickerPopupContainer.Visible = false
+    end
+    
+    -- Apply button functionality
+    applyButton.MouseButton1Click:Connect(function()
+        -- Get the color from RGB values
+        local newColor = Color3.new(rValue/255, gValue/255, bValue/255)
+        color = newColor
+        
+        updateColorPreview(color)
+        callback(color)
+        
+        if flag then
+            TBD.Flags[flag] = color
+        end
+        
+        closeColorPicker()
+    end)
+    
+    -- Button hover effect
+    applyButton.MouseEnter:Connect(function()
+        Tween(applyButton, {BackgroundColor3 = CurrentTheme.DarkAccent}, 0.2)
+    end)
+    
+    applyButton.MouseLeave:Connect(function()
+        Tween(applyButton, {BackgroundColor3 = CurrentTheme.Accent}, 0.2)
+    end)
+    
+    -- Close button functionality
+    popupClose.MouseButton1Click:Connect(closeColorPicker)
+    
+    -- Open color picker on click
+    colorButton.MouseButton1Click:Connect(function()
+        if isColorPickerOpen then
+            closeColorPicker()
+        else
+            openColorPicker()
+        end
+    end)
+    
+    -- Hover effects
+    colorButton.MouseEnter:Connect(function()
+        Tween(colorPicker, {BackgroundTransparency = 0.2}, 0.2)
+    end)
+    
+    colorButton.MouseLeave:Connect(function()
+        Tween(colorPicker, {BackgroundTransparency = 0.4}, 0.2)
+    end)
+    
+    -- Close color picker when clicking elsewhere
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if isColorPickerOpen then
+                local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                
+                -- Check if click is within color picker popup
+                local inPopup = false
+                local popupAbsPos = colorPickerPopup.AbsolutePosition
+                local popupAbsSize = colorPickerPopup.AbsoluteSize
+                
+                inPopup = mousePos.X >= popupAbsPos.X and 
+                          mousePos.X <= popupAbsPos.X + popupAbsSize.X and
+                          mousePos.Y >= popupAbsPos.Y and 
+                          mousePos.Y <= popupAbsPos.Y + popupAbsSize.Y
+                
+                -- Check if click is within color preview
+                local inPreview = false
+                local previewAbsPos = colorPreview.AbsolutePosition
+                local previewAbsSize = colorPreview.AbsoluteSize
+                
+                inPreview = mousePos.X >= previewAbsPos.X and 
+                           mousePos.X <= previewAbsPos.X + previewAbsSize.X and
+                           mousePos.Y >= previewAbsPos.Y and 
+                           mousePos.Y <= previewAbsPos.Y + previewAbsSize.Y
+                
+                if not inPopup and not inPreview then
+                    closeColorPicker()
+                end
+            end
+        end
+    end)
+    
+    -- Create the color picker object
+    local colorPickerObject = {
+        Color = color,
+        
+        Set = function(self, newColor)
+            color = newColor
+            updateColorPreview(color)
+            
+            -- Update RGB values for sliders
+            rValue = math.floor(color.R * 255)
+            gValue = math.floor(color.G * 255)
+            bValue = math.floor(color.B * 255)
+            
+            -- If the color picker is open, update the display and sliders
+            if isColorPickerOpen then
+                updateColorDisplay(color)
+                
+                rSlider.ValueLabel.Text = tostring(rValue)
+                rSlider.Fill.Size = UDim2.new(color.R, 0, 1, 0)
+                rSlider.Thumb.Position = UDim2.new(color.R, 0, 0.5, 0)
+                
+                gSlider.ValueLabel.Text = tostring(gValue)
+                gSlider.Fill.Size = UDim2.new(color.G, 0, 1, 0)
+                gSlider.Thumb.Position = UDim2.new(color.G, 0, 0.5, 0)
+                
+                bSlider.ValueLabel.Text = tostring(bValue)
+                bSlider.Fill.Size = UDim2.new(color.B, 0, 1, 0)
+                bSlider.Thumb.Position = UDim2.new(color.B, 0, 0.5, 0)
+            end
+            
+            -- Call the callback
+            callback(color)
+            
+            -- Update flag if provided
+            if flag then
+                TBD.Flags[flag] = color
+            end
+        end
+    }
+    
+    -- Initialize flag if provided
+    if flag then
+        TBD.Flags[flag] = color
+    end
+    
+    return colorPickerObject
+end
+    -- CREATE DROPDOWN METHOD
+    tab.CreateDropdown = function(_, options)
+        options = options or {}
+        local name = options.Name or "Dropdown"
+        local description = options.Description
+        local items = options.Items or {}
+        local defaultItem = options.Default or items[1] or "Select..."
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        local dropdownHeight = description and 60 or 46
+        
+        local dropdown = Create("Frame", {
+            Name = "Dropdown_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, dropdownHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(dropdown, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = dropdown
+        })
+        
+        local dropdownTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = dropdown
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(dropdownTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -20, 0, 16),
+                Font = SECONDARY_FONT,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = dropdown
+            })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create dropdown display
+        local dropdownDisplay = Create("Frame", {
+            Name = "DropdownDisplay",
+            BackgroundColor3 = CurrentTheme.Background,
+            BackgroundTransparency = 0.6,
+            Position = UDim2.new(0, 10, 0, description and 45 or 30),
+            Size = UDim2.new(1, -20, 0, 30),
+            Parent = dropdown
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(dropdownDisplay, {BackgroundColor3 = "Background"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = dropdownDisplay
+        })
+        
+        local selectedItem = Create("TextLabel", {
+            Name = "SelectedItem",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 0),
+            Size = UDim2.new(1, -40, 1, 0),
+            Font = SECONDARY_FONT,
+            Text = defaultItem,
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = dropdownDisplay
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(selectedItem, {TextColor3 = "TextSecondary"})
+        
+        local dropdownArrow = Create("ImageLabel", {
+            Name = "Arrow",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -25, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 16, 0, 16),
+            Image = Icons.ChevronDown,
+            ImageColor3 = CurrentTheme.TextSecondary,
+            Parent = dropdownDisplay
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(dropdownArrow, {ImageColor3 = "TextSecondary"})
+        
+        -- Create dropdown button
+        local dropdownButton = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = dropdownDisplay
+        })
+        
+        -- FIXED DROPDOWN IMPLEMENTATION
+        local isOpen = false
+        local dropdownMenu -- Will store the dropdown menu frame
+        local currentSelectedItem = defaultItem
+        
+        -- Function to update selected item
+        local function updateSelection(item)
+            selectedItem.Text = item
+            currentSelectedItem = item
+            
+            -- Call callback
+            callback(item)
+            
+            -- Update flag if provided
+            if flag then
+                TBD.Flags[flag] = item
+            end
+        end
+        
+        -- Function to find the ScreenGui parent to properly position dropdown
+        local function findScreenGuiParent()
+            local currentParent = dropdown.Parent
+            while currentParent and not (currentParent:IsA("ScreenGui") or currentParent:IsA("PlayerGui")) do
+                currentParent = currentParent.Parent
+            end
+            return currentParent
+        end
+        
+        -- Function to close dropdown menu
+        local function closeDropdown()
+            if isOpen and dropdownMenu then
+                isOpen = false
+                
+                -- Reset arrow rotation
+                Tween(dropdownArrow, {Rotation = 0}, 0.2)
+                
+                -- Destroy dropdown menu
+                if dropdownMenu and dropdownMenu.Parent then
+                    dropdownMenu:Destroy()
+                    dropdownMenu = nil
+                end
+            end
+        end
+        
+        -- Function to open dropdown menu
+        local function openDropdown()
+            -- Close if already open
+            if isOpen then
+                closeDropdown()
+                return
+            end
+            
+            isOpen = true
+            
+            -- Rotate arrow
+            Tween(dropdownArrow, {Rotation = 180}, 0.2)
+            
+            -- Find the ScreenGui to parent the dropdown menu to
+            local screenGui = findScreenGuiParent()
+            if not screenGui then
+                warn("TBD UI: Could not find ScreenGui parent for dropdown menu")
+                screenGui = game:GetService("CoreGui")
+                
+                -- If we still can't get a parent, try player's PlayerGui
+                if not pcall(function() local _ = screenGui.Parent end) then
+                    screenGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+                end
+            end
+            
+            -- If there's still no valid parent, use the dropdown's parent
+            if not screenGui then
+                screenGui = dropdown.Parent
+            end
+            
+            -- Get absolute position for dropdown menu
+            local dropdownAbsPos = dropdownDisplay.AbsolutePosition
+            local dropdownAbsSize = dropdownDisplay.AbsoluteSize
+            
+            -- Calculate maximum height based on screen size and position
+            local maxItems = math.min(7, #items) -- Show max 7 items at once
+            local itemHeight = 28
+            local menuHeight = math.min(maxItems * itemHeight, #items * itemHeight)
+            
+            -- Create dropdown menu container
+            dropdownMenu = Create("Frame", {
+                Name = "DropdownMenu",
+                BackgroundColor3 = CurrentTheme.Secondary,
+                BackgroundTransparency = 0.1,
                 BorderSizePixel = 0,
-                Parent = tab.Content
+                Position = UDim2.new(0, dropdownAbsPos.X, 0, dropdownAbsPos.Y + dropdownAbsSize.Y + 5),
+                Size = UDim2.new(0, dropdownAbsSize.X, 0, menuHeight),
+                ZIndex = 100,
+                Visible = true,
+                Parent = screenGui
             })
             
-            return divider
-        end
-        
-        -- CREATE TEXTBOX METHOD
-        tab.CreateTextbox = function(_, options)
-            options = options or {}
-            local name = options.Name or "Textbox"
-            local description = options.Description
-            local placeholderText = options.PlaceholderText or "Enter text..."
-            local text = options.Text or ""
-            local charLimit = options.CharacterLimit or 100
-            local callback = options.Callback or function() end
-            local flag = options.Flag
-            
-            local textboxHeight = description and 70 or 56
-            
-            local textbox = Create("Frame", {
-                Name = "Textbox_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, textboxHeight),
-                Parent = tab.Content
-            })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(dropdownMenu, {BackgroundColor3 = "Secondary"})
             
             Create("UICorner", {
                 CornerRadius = UDim.new(0, 6),
-                Parent = textbox
+                Parent = dropdownMenu
             })
             
-            local textboxTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 8),
-                Size = UDim2.new(1, -20, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = textbox
-            })
-            
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -20, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = textbox
-                })
-            end
-            
-            -- Create the textbox input
-            local inputContainer = Create("Frame", {
-                Name = "InputContainer",
-                BackgroundColor3 = CurrentTheme.Background,
-                BackgroundTransparency = 0.6,
-                Position = UDim2.new(0, 10, description and 0, description and (textboxHeight - 30) or 34),
-                Size = UDim2.new(1, -20, 0, 30),
-                Parent = textbox
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = inputContainer
-            })
-            
-            local inputBox = Create("TextBox", {
-                Name = "InputBox",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -20, 1, 0),
-                Font = SECONDARY_FONT,
-                Text = text,
-                PlaceholderText = placeholderText,
-                TextColor3 = CurrentTheme.TextPrimary,
-                PlaceholderColor3 = CurrentTheme.TextSecondary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                ClearTextOnFocus = false,
-                Parent = inputContainer
-            })
-            
-            -- Textbox functionality
-            local currentText = text
-            
-            inputBox.Focused:Connect(function()
-                Tween(inputContainer, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            inputBox.FocusLost:Connect(function(enterPressed)
-                Tween(inputContainer, {BackgroundTransparency = 0.6}, 0.2)
-                
-                if currentText ~= inputBox.Text then
-                    currentText = inputBox.Text
-                    callback(currentText)
-                    
-                    -- Update flag if provided
-                    if flag then
-                        TBD.Flags[flag] = currentText
-                    end
-                end
-            end)
-            
-            inputBox:GetPropertyChangedSignal("Text"):Connect(function()
-                -- Apply character limit
-                if #inputBox.Text > charLimit then
-                    inputBox.Text = string.sub(inputBox.Text, 1, charLimit)
-                end
-            end)
-            
-            -- Hover effects
-            inputContainer.MouseEnter:Connect(function()
-                Tween(textbox, {BackgroundTransparency = 0.2}, 0.2)
-                Tween(inputContainer, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            inputContainer.MouseLeave:Connect(function()
-                Tween(textbox, {BackgroundTransparency = 0.4}, 0.2)
-                if inputBox:IsFocused() then
-                    Tween(inputContainer, {BackgroundTransparency = 0.4}, 0.2)
-                else
-                    Tween(inputContainer, {BackgroundTransparency = 0.6}, 0.2)
-                end
-            end)
-            
-            -- Create textbox object for external control
-            local textboxObject = {
-                Text = currentText,
-                
-                Set = function(self, newText)
-                    if #newText > charLimit then
-                        newText = string.sub(newText, 1, charLimit)
-                    end
-                    
-                    currentText = newText
-                    inputBox.Text = newText
-                    
-                    -- Call the callback
-                    callback(currentText)
-                    
-                    -- Update flag if provided
-                    if flag then
-                        TBD.Flags[flag] = currentText
-                    end
-                end
-            }
-            
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = currentText
-            end
-            
-            return textboxObject
-        end
-        -- CREATE COLOR PICKER METHOD - Fixed positioning issues
-        tab.CreateColorPicker = function(_, options)
-            options = options or {}
-            local name = options.Name or "Color Picker"
-            local description = options.Description
-            local color = options.Color or Color3.fromRGB(255, 255, 255)
-            local callback = options.Callback or function() end
-            local flag = options.Flag
-            
-            local colorPickerHeight = description and 60 or 46
-            
-            local colorPicker = Create("Frame", {
-                Name = "ColorPicker_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, colorPickerHeight),
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = colorPicker
-            })
-            
-            local colorPickerTitle = Create("TextLabel", {
-                Name = "Title",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 8),
-                Size = UDim2.new(1, -60, 0, 18),
-                Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = colorPicker
-            })
-            
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -60, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = colorPicker
-                })
-            end
-            
-            -- Create the color preview
-            local colorPreview = Create("Frame", {
-                Name = "ColorPreview",
-                BackgroundColor3 = color,
-                Position = UDim2.new(1, -50, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 40, 0, 24),
-                Parent = colorPicker
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = colorPreview
-            })
-            
-            Create("UIStroke", {
-                Color = CurrentTheme.TextSecondary,
+            -- Add a stroke
+            local menuStroke = Create("UIStroke", {
+                Color = CurrentTheme.Accent,
                 Thickness = 1,
                 Transparency = 0.5,
-                Parent = colorPreview
+                Parent = dropdownMenu
             })
             
-            -- Create clickable button
-            local colorButton = Create("TextButton", {
-                Name = "Button",
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(menuStroke, {Color = "Accent"})
+            
+            -- Create scrolling frame for items
+            local menuScroll = Create("ScrollingFrame", {
+                Name = "MenuScroll",
                 BackgroundTransparency = 1,
+                BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
+                CanvasSize = UDim2.new(0, 0, 0, #items * itemHeight),
+                ScrollBarThickness = 4,
+                ScrollBarImageColor3 = CurrentTheme.Accent,
+                VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
+                ZIndex = 101,
+                Parent = dropdownMenu
+            })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(menuScroll, {ScrollBarImageColor3 = "Accent"})
+            
+            Create("UIPadding", {
+                PaddingTop = UDim.new(0, 5),
+                PaddingBottom = UDim.new(0, 5),
+                PaddingLeft = UDim.new(0, 5),
+                PaddingRight = UDim.new(0, 5),
+                Parent = menuScroll
+            })
+            
+            Create("UIListLayout", {
+                Padding = UDim.new(0, 2),
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Parent = menuScroll
+            })
+            
+            -- Add items to the dropdown menu
+            for i, item in ipairs(items) do
+                local itemBtn = Create("TextButton", {
+                    Name = "Item_" .. i,
+                    BackgroundColor3 = (item == currentSelectedItem) and CurrentTheme.Accent or CurrentTheme.Background,
+                    BackgroundTransparency = (item == currentSelectedItem) and 0.5 or 0.8,
+                    Size = UDim2.new(1, -10, 0, itemHeight - 4),
+                    Font = SECONDARY_FONT,
+                    Text = item,
+                    TextColor3 = (item == currentSelectedItem) and CurrentTheme.TextPrimary or CurrentTheme.TextSecondary,
+                    TextSize = 14,
+                    ZIndex = 102,
+                    Parent = menuScroll
+                })
+                
+                -- Determine which theme colors to register based on selection state
+                if item == currentSelectedItem then
+                    -- Register for theme updates (NEW)
+                    TBD:RegisterThemeable(itemBtn, {
+                        BackgroundColor3 = "Accent",
+                        TextColor3 = "TextPrimary"
+                    })
+                else
+                    -- Register for theme updates (NEW)
+                    TBD:RegisterThemeable(itemBtn, {
+                        BackgroundColor3 = "Background",
+                        TextColor3 = "TextSecondary"
+                    })
+                end
+                
+                Create("UICorner", {
+                    CornerRadius = UDim.new(0, 4),
+                    Parent = itemBtn
+                })
+                
+                -- Hover effect
+                itemBtn.MouseEnter:Connect(function()
+                    if item ~= currentSelectedItem then
+                        Tween(itemBtn, {BackgroundTransparency = 0.6}, 0.2)
+                    end
+                end)
+                
+                itemBtn.MouseLeave:Connect(function()
+                    if item ~= currentSelectedItem then
+                        Tween(itemBtn, {BackgroundTransparency = 0.8}, 0.2)
+                    end
+                end)
+                
+                -- Selection
+                itemBtn.MouseButton1Click:Connect(function()
+                    updateSelection(item)
+                    closeDropdown()
+                end)
+            end
+            
+            -- Close dropdown when clicking outside
+            local function closeOnOutsideClick(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if dropdownMenu and isOpen then
+                        local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                        local menuPos = dropdownMenu.AbsolutePosition
+                        local menuSize = dropdownMenu.AbsoluteSize
+                        
+                        -- Check if click is outside the dropdown menu
+                        if mousePos.X < menuPos.X or 
+                           mousePos.X > menuPos.X + menuSize.X or 
+                           mousePos.Y < menuPos.Y or 
+                           mousePos.Y > menuPos.Y + menuSize.Y then
+                            closeDropdown()
+                            maid:Remove("dropdownConnection")
+                        end
+                    end
+                end
+            end
+            
+            -- Create a simple maid for cleanup
+            local maid = {
+                _tasks = {}
+            }
+            
+            function maid:Add(key, task)
+                if self._tasks[key] then
+                    self:Remove(key)
+                end
+                self._tasks[key] = task
+                return task
+            end
+            
+            function maid:Remove(key)
+                if self._tasks[key] then
+                    local connection = self._tasks[key]
+                    if typeof(connection) == "RBXScriptConnection" then
+                        connection:Disconnect()
+                    elseif typeof(connection) == "function" then
+                        connection()
+                    end
+                    self._tasks[key] = nil
+                end
+            end
+            
+            function maid:Destroy()
+                for key, _ in pairs(self._tasks) do
+                    self:Remove(key)
+                end
+                self._tasks = {}
+            end
+            
+            maid:Add("dropdownConnection", UserInputService.InputBegan:Connect(closeOnOutsideClick))
+            
+            -- Make dropdown menu destroy itself when dropdown is destroyed
+            if dropdown and dropdown.AncestryChanged then
+                maid:Add("ancestryChanged", dropdown.AncestryChanged:Connect(function(_, parent)
+                    if not parent then
+                        closeDropdown()
+                        maid:Destroy()
+                    end
+                end))
+            end
+        end
+        
+        dropdownButton.MouseButton1Click:Connect(function()
+            dropdownButton:Blur() -- Remove focus from button
+            openDropdown()
+        end)
+        
+        -- Hover effects
+        dropdownButton.MouseEnter:Connect(function()
+            Tween(dropdown, {BackgroundTransparency = 0.2}, 0.2)
+            Tween(dropdownDisplay, {BackgroundTransparency = 0.4}, 0.2)
+        end)
+        
+        dropdownButton.MouseLeave:Connect(function()
+            Tween(dropdown, {BackgroundTransparency = 0.4}, 0.2)
+            Tween(dropdownDisplay, {BackgroundTransparency = 0.6}, 0.2)
+        end)
+        
+        -- Create dropdown object for external control
+        local dropdownObject = {
+            Value = currentSelectedItem,
+            
+            Set = function(self, item)
+                if table.find(items, item) then
+                    updateSelection(item)
+                end
+            end,
+            
+            Refresh = function(self, newItems, newDefault)
+                items = newItems or items
+                
+                -- Update default if provided
+                if newDefault and table.find(items, newDefault) then
+                    updateSelection(newDefault)
+                elseif not table.find(items, currentSelectedItem) and #items > 0 then
+                    -- If current selection is no longer in the items list, reset to first item
+                    updateSelection(items[1])
+                end
+                
+                -- Close dropdown if open
+                closeDropdown()
+            end,
+            
+            GetItems = function(self)
+                return items
+            end
+        }
+        
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = currentSelectedItem
+        end
+        
+        return dropdownObject
+    end
+    -- CREATE COLOR PICKER METHOD
+    tab.CreateColorPicker = function(_, options)
+        options = options or {}
+        local name = options.Name or "Color Picker"
+        local description = options.Description
+        local defaultColor = options.Color or Color3.fromRGB(255, 0, 0)
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        local colorPickerHeight = description and 60 or 46
+        
+        local colorPicker = Create("Frame", {
+            Name = "ColorPicker_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, colorPickerHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(colorPicker, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = colorPicker
+        })
+        
+        local colorPickerTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -60, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = colorPicker
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(colorPickerTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -60, 0, 16),
+                Font = SECONDARY_FONT,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = colorPicker
             })
             
-            -- FIXED: Create color picker popup container directly in the main content container
-            local colorPickerPopupContainer = Create("Frame", {
-                Name = "ColorPickerPopupContainer",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Visible = false,
-                ZIndex = 200, -- Higher z-index to appear above everything else
-                Parent = tabSystem.ContentContainer
-            })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create color preview
+        local colorPreview = Create("Frame", {
+            Name = "ColorPreview",
+            BackgroundColor3 = defaultColor,
+            Position = UDim2.new(1, -50, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 30, 0, 30),
+            Parent = colorPicker
+        })
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = colorPreview
+        })
+        
+        local previewStroke = Create("UIStroke", {
+            Color = Color3.fromRGB(100, 100, 100),
+            Thickness = 1,
+            Transparency = 0.5,
+            Parent = colorPreview
+        })
+        
+        -- Create button for interaction
+        local colorPickerButton = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = colorPicker
+        })
+        
+        -- Variables for color picker
+        local currentColor = defaultColor
+        local colorPickerGui -- Will store the color picker frame
+        local isOpen = false
+        
+        -- Function to update color
+        local function updateColor(color)
+            currentColor = color
+            colorPreview.BackgroundColor3 = color
             
-            -- Create the actual color picker popup
-            local colorPickerPopup = Create("Frame", {
-                Name = "ColorPickerPopup",
+            -- Call callback
+            callback(color)
+            
+            -- Update flag if provided
+            if flag then
+                TBD.Flags[flag] = color
+            end
+        end
+        
+        -- Function to find the ScreenGui parent
+        local function findScreenGuiParent()
+            local current = colorPicker.Parent
+            while current and not (current:IsA("ScreenGui") or current:IsA("PlayerGui")) do
+                current = current.Parent
+            end
+            return current
+        end
+        
+        -- Function to close color picker
+        local function closeColorPicker()
+            if isOpen and colorPickerGui then
+                isOpen = false
+                
+                if colorPickerGui and colorPickerGui.Parent then
+                    colorPickerGui:Destroy()
+                    colorPickerGui = nil
+                end
+            end
+        end
+        
+        -- Function to open color picker
+        local function openColorPicker()
+            -- Close if already open
+            if isOpen then
+                closeColorPicker()
+                return
+            end
+            
+            isOpen = true
+            
+            -- Find the ScreenGui to parent the color picker to
+            local screenGui = findScreenGuiParent()
+            if not screenGui then
+                warn("TBD UI: Could not find ScreenGui parent for color picker")
+                screenGui = game:GetService("CoreGui")
+                
+                -- If we still can't get a parent, try player's PlayerGui
+                if not pcall(function() local _ = screenGui.Parent end) then
+                    screenGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+                end
+            end
+            
+            -- If there's still no valid parent, use the color picker's parent
+            if not screenGui then
+                screenGui = colorPicker.Parent
+            end
+            
+            -- Get absolute position for color picker
+            local pickerAbsPos = colorPreview.AbsolutePosition
+            local pickerAbsSize = colorPreview.AbsoluteSize
+            local screenSize = screenGui.AbsoluteSize
+            
+            -- Decide whether to show to the left or right of the color preview
+            local showLeft = (pickerAbsPos.X + pickerAbsSize.X + 180 > screenSize.X)
+            
+            -- Create color picker container
+            colorPickerGui = Create("Frame", {
+                Name = "ColorPickerGui",
                 BackgroundColor3 = CurrentTheme.Background,
-                Size = UDim2.new(0, 220, 0, 260),
-                Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
-                ZIndex = 201,
-                Parent = colorPickerPopupContainer
+                BackgroundTransparency = 0.1,
+                BorderSizePixel = 0,
+                Position = UDim2.new(
+                    0, 
+                    showLeft and (pickerAbsPos.X - 180 - 10) or (pickerAbsPos.X + pickerAbsSize.X + 10), 
+                    0, 
+                    pickerAbsPos.Y - 100
+                ),
+                Size = UDim2.new(0, 180, 0, 200),
+                ZIndex = 100,
+                Visible = true,
+                Parent = screenGui
             })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(colorPickerGui, {BackgroundColor3 = "Background"})
             
             Create("UICorner", {
-                CornerRadius = UDim.new(0, 8),
-                Parent = colorPickerPopup
+                CornerRadius = UDim.new(0, 6),
+                Parent = colorPickerGui
             })
             
-            Create("UIStroke", {
+            local pickerStroke = Create("UIStroke", {
                 Color = CurrentTheme.Accent,
-                Thickness = 1.5,
+                Thickness = 1,
                 Transparency = 0.5,
-                Parent = colorPickerPopup
+                Parent = colorPickerGui
             })
             
-            -- Color picker header
-            local popupHeader = Create("Frame", {
-                Name = "Header",
-                BackgroundColor3 = CurrentTheme.Secondary,
-                Size = UDim2.new(1, 0, 0, 30),
-                ZIndex = 202,
-                Parent = colorPickerPopup
-            })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(pickerStroke, {Color = "Accent"})
             
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 8),
-                Parent = popupHeader
-            })
-            
-            -- Only round top corners of header
-            local popupHeaderFix = Create("Frame", {
-                Name = "HeaderFix",
-                BackgroundColor3 = CurrentTheme.Secondary,
-                Position = UDim2.new(0, 0, 0.5, 0),
-                Size = UDim2.new(1, 0, 0.5, 0),
-                ZIndex = 202,
-                Parent = popupHeader
-            })
-            
-            local popupTitle = Create("TextLabel", {
+            -- Create title for color picker
+            local pickerTitle = Create("TextLabel", {
                 Name = "Title",
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -40, 1, 0),
+                Position = UDim2.new(0, 10, 0, 5),
+                Size = UDim2.new(1, -20, 0, 20),
                 Font = DEFAULT_FONT,
                 Text = "Color Picker",
                 TextColor3 = CurrentTheme.TextPrimary,
                 TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                ZIndex = 203,
-                Parent = popupHeader
+                ZIndex = 101,
+                Parent = colorPickerGui
             })
             
-            local popupClose = Create("ImageButton", {
-                Name = "Close",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -25, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 16, 0, 16),
-                Image = Icons.Close,
-                ImageColor3 = CurrentTheme.TextSecondary,
-                ZIndex = 203,
-                Parent = popupHeader
-            })
-            
-            -- Color display
-            local currentColorDisplay = Create("Frame", {
-                Name = "CurrentColor",
-                BackgroundColor3 = color,
-                Position = UDim2.new(0.5, 0, 0, 45),
-                AnchorPoint = Vector2.new(0.5, 0),
-                Size = UDim2.new(0, 180, 0, 30),
-                ZIndex = 202,
-                Parent = colorPickerPopup
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = currentColorDisplay
-            })
-            
-            Create("UIStroke", {
-                Color = CurrentTheme.TextSecondary,
-                Thickness = 1,
-                Transparency = 0.5,
-                Parent = currentColorDisplay
-            })
-            
-            -- Color picker components (simplified for example)
-            -- In a real implementation, you'd create HSV color picker components
-            
-            -- RGB Sliders
-            local rgbContainer = Create("Frame", {
-                Name = "RGBContainer",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 90),
-                Size = UDim2.new(1, -20, 0, 100),
-                ZIndex = 202,
-                Parent = colorPickerPopup
-            })
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(pickerTitle, {TextColor3 = "TextPrimary"})
             
             -- Create RGB sliders
-            local function createColorSlider(name, value, color, yPos)
-                local slider = Create("Frame", {
-                    Name = name .. "Slider",
-                    BackgroundColor3 = CurrentTheme.Secondary,
-                    BackgroundTransparency = 0.4,
-                    Position = UDim2.new(0, 0, 0, yPos),
-                    Size = UDim2.new(1, 0, 0, 20),
-                    ZIndex = 203,
-                    Parent = rgbContainer
-                })
-                
-                Create("UICorner", {
-                    CornerRadius = UDim.new(0, 4),
-                    Parent = slider
-                })
-                
-                local sliderLabel = Create("TextLabel", {
-                    Name = "Label",
+            local function createSlider(title, color, value, yPos)
+                local sliderContainer = Create("Frame", {
+                    Name = title .. "Slider",
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 5, 0, 0),
+                    Position = UDim2.new(0, 10, 0, yPos),
+                    Size = UDim2.new(1, -20, 0, 30),
+                    ZIndex = 101,
+                    Parent = colorPickerGui
+                })
+                
+                local sliderTitle = Create("TextLabel", {
+                    Name = "Title",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, 0),
                     Size = UDim2.new(0, 15, 1, 0),
                     Font = SECONDARY_FONT,
-                    Text = name,
-                    TextColor3 = color,
-                    TextSize = 14,
-                    ZIndex = 204,
-                    Parent = slider
-                })
-                
-                local sliderValue = Create("TextLabel", {
-                    Name = "Value",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(1, -40, 0, 0),
-                    Size = UDim2.new(0, 35, 1, 0),
-                    Font = SECONDARY_FONT,
-                    Text = tostring(value),
+                    Text = title,
                     TextColor3 = CurrentTheme.TextSecondary,
                     TextSize = 14,
-                    ZIndex = 204,
-                    Parent = slider
+                    ZIndex = 102,
+                    Parent = sliderContainer
                 })
+                
+                -- Register for theme updates (NEW)
+                TBD:RegisterThemeable(sliderTitle, {TextColor3 = "TextSecondary"})
                 
                 local sliderTrack = Create("Frame", {
                     Name = "Track",
                     BackgroundColor3 = CurrentTheme.Secondary,
-                    BackgroundTransparency = 0.2,
-                    Position = UDim2.new(0, 25, 0.5, 0),
+                    Position = UDim2.new(0, 20, 0.5, 0),
                     AnchorPoint = Vector2.new(0, 0.5),
-                    Size = UDim2.new(1, -70, 0, 6),
-                    ZIndex = 204,
-                    Parent = slider
+                    Size = UDim2.new(1, -50, 0, 4),
+                    ZIndex = 102,
+                    Parent = sliderContainer
                 })
+                
+                -- Register for theme updates (NEW)
+                TBD:RegisterThemeable(sliderTrack, {BackgroundColor3 = "Secondary"})
                 
                 Create("UICorner", {
                     CornerRadius = UDim.new(1, 0),
@@ -2367,7 +3786,7 @@ function TabSystem:Create()
                     Name = "Fill",
                     BackgroundColor3 = color,
                     Size = UDim2.new(value/255, 0, 1, 0),
-                    ZIndex = 205,
+                    ZIndex = 103,
                     Parent = sliderTrack
                 })
                 
@@ -2376,46 +3795,152 @@ function TabSystem:Create()
                     Parent = sliderFill
                 })
                 
-                local sliderThumb = Create("Frame", {
-                    Name = "Thumb",
+                local sliderKnob = Create("Frame", {
+                    Name = "Knob",
                     BackgroundColor3 = color,
                     Position = UDim2.new(value/255, 0, 0.5, 0),
                     AnchorPoint = Vector2.new(0.5, 0.5),
-                    Size = UDim2.new(0, 10, 0, 10),
-                    ZIndex = 206,
+                    Size = UDim2.new(0, 12, 0, 12),
+                    ZIndex = 104,
                     Parent = sliderTrack
                 })
                 
                 Create("UICorner", {
                     CornerRadius = UDim.new(1, 0),
-                    Parent = sliderThumb
+                    Parent = sliderKnob
                 })
                 
+                local valueDisplay = Create("TextLabel", {
+                    Name = "Value",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(1, -25, 0, 0),
+                    Size = UDim2.new(0, 25, 1, 0),
+                    Font = SECONDARY_FONT,
+                    Text = tostring(value),
+                    TextColor3 = CurrentTheme.TextSecondary,
+                    TextSize = 14,
+                    ZIndex = 102,
+                    Parent = sliderContainer
+                })
+                
+                -- Register for theme updates (NEW)
+                TBD:RegisterThemeable(valueDisplay, {TextColor3 = "TextSecondary"})
+                
+                -- Create slider button
+                local sliderButton = Create("TextButton", {
+                    Name = "Button",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Text = "",
+                    ZIndex = 105,
+                    Parent = sliderTrack
+                })
+                
+                -- Variable to track if we're dragging this slider
+                local isDragging = false
+                
+                -- Function to update slider value
+                local function updateSlider(newValue)
+                    -- Clamp between 0 and 255
+                    newValue = math.clamp(newValue, 0, 255)
+                    
+                    -- Update slider visuals
+                    Tween(sliderFill, {Size = UDim2.new(newValue/255, 0, 1, 0)}, 0.1)
+                    Tween(sliderKnob, {Position = UDim2.new(newValue/255, 0, 0.5, 0)}, 0.1)
+                    
+                    -- Update value display
+                    valueDisplay.Text = tostring(math.floor(newValue))
+                    
+                    return newValue
+                end
+                
+                sliderButton.MouseButton1Down:Connect(function()
+                    isDragging = true
+                    
+                    -- Update on initial click
+                    local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                    local relativeX = (mousePos.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X
+                    local newValue = math.clamp(relativeX * 255, 0, 255)
+                    
+                    -- Return the updated value
+                    return updateSlider(newValue)
+                end)
+                
+                UserInputService.InputChanged:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseMovement and isDragging then
+                        local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                        local relativeX = (mousePos.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X
+                        local newValue = math.clamp(relativeX * 255, 0, 255)
+                        
+                        -- Return the updated value
+                        return updateSlider(newValue)
+                    end
+                end)
+                
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        isDragging = false
+                    end
+                end)
+                
                 return {
-                    Slider = slider,
+                    Container = sliderContainer,
                     Track = sliderTrack,
                     Fill = sliderFill,
-                    Thumb = sliderThumb,
-                    ValueLabel = sliderValue
+                    Knob = sliderKnob,
+                    Value = valueDisplay,
+                    UpdateSlider = updateSlider,
+                    IsDragging = function() return isDragging end
                 }
             end
             
-            local rSlider = createColorSlider("R", math.floor(color.R * 255), Color3.fromRGB(255, 50, 50), 0)
-            local gSlider = createColorSlider("G", math.floor(color.G * 255), Color3.fromRGB(50, 255, 50), 30)
-            local bSlider = createColorSlider("B", math.floor(color.B * 255), Color3.fromRGB(50, 50, 255), 60)
+            -- Create RGB sliders
+            local rSlider = createSlider("R", Color3.fromRGB(255, 0, 0), math.floor(currentColor.R * 255), 30)
+            local gSlider = createSlider("G", Color3.fromRGB(0, 255, 0), math.floor(currentColor.G * 255), 70)
+            local bSlider = createSlider("B", Color3.fromRGB(0, 0, 255), math.floor(currentColor.B * 255), 110)
             
-            -- Apply button
+            -- Create preview of the color
+            local colorPreviewBig = Create("Frame", {
+                Name = "ColorPreview",
+                BackgroundColor3 = currentColor,
+                Position = UDim2.new(0.5, 0, 0, 150),
+                AnchorPoint = Vector2.new(0.5, 0),
+                Size = UDim2.new(0, 50, 0, 30),
+                ZIndex = 101,
+                Parent = colorPickerGui
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = colorPreviewBig
+            })
+            
+            local previewBigStroke = Create("UIStroke", {
+                Color = Color3.fromRGB(100, 100, 100),
+                Thickness = 1,
+                Transparency = 0.5,
+                Parent = colorPreviewBig
+            })
+            
+            -- Create Apply button
             local applyButton = Create("TextButton", {
                 Name = "ApplyButton",
                 BackgroundColor3 = CurrentTheme.Accent,
-                Position = UDim2.new(0.5, 0, 1, -40),
+                Position = UDim2.new(0.5, 0, 0, 190),
                 AnchorPoint = Vector2.new(0.5, 0),
-                Size = UDim2.new(0, 100, 0, 30),
+                Size = UDim2.new(0, 80, 0, 25),
                 Font = DEFAULT_FONT,
                 Text = "Apply",
                 TextColor3 = CurrentTheme.TextPrimary,
-                ZIndex = 202,
-                Parent = colorPickerPopup
+                TextSize = 14,
+                ZIndex = 101,
+                Parent = colorPickerGui
+            })
+            
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(applyButton, {
+                BackgroundColor3 = "Accent",
+                TextColor3 = "TextPrimary"
             })
             
             Create("UICorner", {
@@ -2423,345 +3948,293 @@ function TabSystem:Create()
                 Parent = applyButton
             })
             
-            -- Function to update color display
-            local function updateColorDisplay(newColor)
-                currentColorDisplay.BackgroundColor3 = newColor
+            -- Function to update color when sliders change
+            local function updateFromSliders()
+                local r = tonumber(rSlider.Value.Text) / 255
+                local g = tonumber(gSlider.Value.Text) / 255
+                local b = tonumber(bSlider.Value.Text) / 255
+                
+                local color = Color3.new(r, g, b)
+                colorPreviewBig.BackgroundColor3 = color
+                
+                return color
             end
             
-            -- Function to update color preview
-            local function updateColorPreview(newColor)
-                colorPreview.BackgroundColor3 = newColor
-            end
+            -- Update color preview when sliders change
+            local isUpdating = false
             
-            -- Function to open color picker
-            local function openColorPicker()
-                -- Update position based on color picker preview
-                local previewAbsPos = colorPreview.AbsolutePosition
-                local previewAbsSize = colorPreview.AbsoluteSize
+            UserInputService.InputChanged:Connect(function()
+                if not colorPickerGui or not colorPickerGui.Parent then return end
+                if isUpdating then return end
                 
-                -- Position to the right of the preview if possible, otherwise to the left
-                local screenSize = workspace.CurrentCamera.ViewportSize
-                local popupWidth = colorPickerPopup.AbsoluteSize.X
-                
-                -- Try to place it to the right
-                local posX = previewAbsPos.X + previewAbsSize.X + 10
-                
-                -- If it would go off-screen, place it to the left
-                if posX + popupWidth > screenSize.X - 10 then
-                    posX = previewAbsPos.X - popupWidth - 10
+                -- Check if any slider is being dragged
+                if rSlider.IsDragging() or gSlider.IsDragging() or bSlider.IsDragging() then
+                    isUpdating = true
+                    local color = updateFromSliders()
+                    colorPreviewBig.BackgroundColor3 = color
+                    isUpdating = false
                 end
-                
-                -- Make sure it's not off-screen to the left either
-                posX = math.max(10, posX)
-                
-                -- Vertical position - try to center with the preview
-                local posY = previewAbsPos.Y - (colorPickerPopup.AbsoluteSize.Y - previewAbsSize.Y) / 2
-                
-                -- Make sure it doesn't go off the top or bottom of the screen
-                posY = math.max(10, math.min(screenSize.Y - colorPickerPopup.AbsoluteSize.Y - 10, posY))
-                
-                colorPickerPopup.Position = UDim2.new(0, posX, 0, posY)
-                colorPickerPopupContainer.Visible = true
-                
-                updateColorDisplay(color)
-            end
+            end)
             
-            -- Function to close color picker
-            local function closeColorPicker()
-                colorPickerPopupContainer.Visible = false
-            end
-            
-            -- Apply button functionality
+            -- Apply button
             applyButton.MouseButton1Click:Connect(function()
-                -- Get the color from RGB values
-                local r = tonumber(rSlider.ValueLabel.Text) / 255
-                local g = tonumber(gSlider.ValueLabel.Text) / 255
-                local b = tonumber(bSlider.ValueLabel.Text) / 255
-                
-                local newColor = Color3.new(r, g, b)
-                color = newColor
-                
-                updateColorPreview(color)
-                callback(color)
-                
-                if flag then
-                    TBD.Flags[flag] = color
-                end
-                
+                local color = updateFromSliders()
+                updateColor(color)
                 closeColorPicker()
             end)
             
-            -- Close button functionality
-            popupClose.MouseButton1Click:Connect(closeColorPicker)
-            
-            -- Open color picker on click
-            colorButton.MouseButton1Click:Connect(function()
-                if colorPickerPopupContainer.Visible then
-                    closeColorPicker()
-                else
-                    openColorPicker()
-                end
-            end)
-            
-            -- Hover effects
-            colorButton.MouseEnter:Connect(function()
-                Tween(colorPicker, {BackgroundTransparency = 0.2}, 0.2)
-            end)
-            
-            colorButton.MouseLeave:Connect(function()
-                Tween(colorPicker, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            -- Close color picker when clicking elsewhere
-            UserInputService.InputBegan:Connect(function(input)
+            -- Close when clicking outside
+            local function closeOnOutsideClick(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    if colorPickerPopupContainer.Visible then
+                    if colorPickerGui and isOpen then
                         local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                        local guiPos = colorPickerGui.AbsolutePosition
+                        local guiSize = colorPickerGui.AbsoluteSize
                         
-                        -- Check if click is within color picker popup
-                        local inPopup = false
-                        pcall(function()
-                            local popupAbsPos = colorPickerPopup.AbsolutePosition
-                            local popupAbsSize = colorPickerPopup.AbsoluteSize
-                            inPopup = mousePos.X >= popupAbsPos.X and mousePos.X <= popupAbsPos.X + popupAbsSize.X and
-                                      mousePos.Y >= popupAbsPos.Y and mousePos.Y <= popupAbsPos.Y + popupAbsSize.Y
-                        end)
-                        
-                        -- Check if click is within color preview
-                        local inPreview = false
-                        pcall(function()
-                            local previewAbsPos = colorPreview.AbsolutePosition
-                            local previewAbsSize = colorPreview.AbsoluteSize
-                            inPreview = mousePos.X >= previewAbsPos.X and mousePos.X <= previewAbsPos.X + previewAbsSize.X and
-                                       mousePos.Y >= previewAbsPos.Y and mousePos.Y <= previewAbsPos.Y + previewAbsSize.Y
-                        end)
-                        
-                        if not inPopup and not inPreview then
-                            closeColorPicker()
+                        -- Check if click is outside the picker
+                        if mousePos.X < guiPos.X or 
+                           mousePos.X > guiPos.X + guiSize.X or 
+                           mousePos.Y < guiPos.Y or 
+                           mousePos.Y > guiPos.Y + guiSize.Y then
+                            
+                            -- Also check if it's not on the color preview
+                            local previewPos = colorPreview.AbsolutePosition
+                            local previewSize = colorPreview.AbsoluteSize
+                            
+                            if mousePos.X < previewPos.X or
+                               mousePos.X > previewPos.X + previewSize.X or
+                               mousePos.Y < previewPos.Y or
+                               mousePos.Y > previewPos.Y + previewSize.Y then
+                                closeColorPicker()
+                                maid:Remove("pickerConnection")
+                            end
                         end
                     end
                 end
-            end)
-            
-            -- Create the color picker object
-            local colorPickerObject = {
-                Color = color,
-                
-                Set = function(self, newColor)
-                    color = newColor
-                    updateColorPreview(color)
-                    updateColorDisplay(color)
-                    
-                    -- Update RGB sliders
-                    rSlider.ValueLabel.Text = tostring(math.floor(color.R * 255))
-                    rSlider.Fill.Size = UDim2.new(color.R, 0, 1, 0)
-                    rSlider.Thumb.Position = UDim2.new(color.R, 0, 0.5, 0)
-                    
-                    gSlider.ValueLabel.Text = tostring(math.floor(color.G * 255))
-                    gSlider.Fill.Size = UDim2.new(color.G, 0, 1, 0)
-                    gSlider.Thumb.Position = UDim2.new(color.G, 0, 0.5, 0)
-                    
-                    bSlider.ValueLabel.Text = tostring(math.floor(color.B * 255))
-                    bSlider.Fill.Size = UDim2.new(color.B, 0, 1, 0)
-                    bSlider.Thumb.Position = UDim2.new(color.B, 0, 0.5, 0)
-                    
-                    -- Call the callback
-                    callback(color)
-                    
-                    -- Update flag if provided
-                    if flag then
-                        TBD.Flags[flag] = color
-                    end
-                end
-            }
-            
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = color
             end
             
-            return colorPickerObject
+            -- Create a simple maid for cleanup
+            local maid = {
+                _tasks = {}
+            }
+            
+            function maid:Add(key, task)
+                if self._tasks[key] then
+                    self:Remove(key)
+                end
+                self._tasks[key] = task
+                return task
+            end
+            
+            function maid:Remove(key)
+                if self._tasks[key] then
+                    local connection = self._tasks[key]
+                    if typeof(connection) == "RBXScriptConnection" then
+                        connection:Disconnect()
+                    elseif typeof(connection) == "function" then
+                        connection()
+                    end
+                    self._tasks[key] = nil
+                end
+            end
+            
+            function maid:Destroy()
+                for key, _ in pairs(self._tasks) do
+                    self:Remove(key)
+                end
+                self._tasks = {}
+            end
+            
+            maid:Add("pickerConnection", UserInputService.InputBegan:Connect(closeOnOutsideClick))
+            
+            -- Make picker destroy itself when color picker is destroyed
+            if colorPicker and colorPicker.AncestryChanged then
+                maid:Add("ancestryChanged", colorPicker.AncestryChanged:Connect(function(_, parent)
+                    if not parent then
+                        closeColorPicker()
+                        maid:Destroy()
+                    end
+                end))
+            end
         end
         
-        -- CREATE KEYBIND METHOD
-        tab.CreateKeybind = function(_, options)
-            options = options or {}
-            local name = options.Name or "Keybind"
-            local description = options.Description
-            local defaultKeybind = options.CurrentKeybind or "None"
-            local callback = options.Callback or function() end
-            local flag = options.Flag
+        -- Open color picker on button click
+        colorPickerButton.MouseButton1Click:Connect(function()
+            openColorPicker()
+        end)
+        
+        -- Hover effects
+        colorPickerButton.MouseEnter:Connect(function()
+            Tween(colorPicker, {BackgroundTransparency = 0.2}, 0.2)
+            Tween(previewStroke, {Transparency = 0.2}, 0.2)
+        end)
+        
+        colorPickerButton.MouseLeave:Connect(function()
+            Tween(colorPicker, {BackgroundTransparency = 0.4}, 0.2)
+            Tween(previewStroke, {Transparency = 0.5}, 0.2)
+        end)
+        
+        -- Create color picker object for external control
+        local colorPickerObject = {
+            Color = currentColor,
             
-            local keybindHeight = description and 60 or 46
+            Set = function(self, color)
+                updateColor(color)
+            end,
             
-            local keybind = Create("Frame", {
-                Name = "Keybind_" .. name,
-                BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0.4,
-                Size = UDim2.new(1, 0, 0, keybindHeight),
-                Parent = tab.Content
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = keybind
-            })
-            
-            local keybindTitle = Create("TextLabel", {
-                Name = "Title",
+            GetColor = function(self)
+                return currentColor
+            end
+        }
+        
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = currentColor
+        end
+        
+        return colorPickerObject
+    end
+    -- CREATE KEYBIND METHOD
+    tab.CreateKeybind = function(_, options)
+        options = options or {}
+        local name = options.Name or "Keybind"
+        local description = options.Description
+        local defaultKeybind = options.CurrentKeybind or "None"
+        local callback = options.Callback or function() end
+        local flag = options.Flag
+        
+        local keybindHeight = description and 60 or 46
+        
+        local keybind = Create("Frame", {
+            Name = "Keybind_" .. name,
+            BackgroundColor3 = CurrentTheme.Secondary,
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, 0, 0, keybindHeight),
+            Parent = tab.Content
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(keybind, {BackgroundColor3 = "Secondary"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 6),
+            Parent = keybind
+        })
+        
+        local keybindTitle = Create("TextLabel", {
+            Name = "Title",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -110, 0, 18),
+            Font = SECONDARY_FONT,
+            Text = name,
+            TextColor3 = CurrentTheme.TextPrimary,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = keybind
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(keybindTitle, {TextColor3 = "TextPrimary"})
+        
+        if description then
+            local descriptionLabel = Create("TextLabel", {
+                Name = "Description",
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 8),
-                Size = UDim2.new(1, -110, 0, 18),
+                Position = UDim2.new(0, 10, 0, 26),
+                Size = UDim2.new(1, -110, 0, 16),
                 Font = SECONDARY_FONT,
-                Text = name,
-                TextColor3 = CurrentTheme.TextPrimary,
-                TextSize = 14,
+                Text = description,
+                TextColor3 = CurrentTheme.TextSecondary,
+                TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = keybind
             })
             
-            if description then
-                local descriptionLabel = Create("TextLabel", {
-                    Name = "Description",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 26),
-                    Size = UDim2.new(1, -110, 0, 16),
-                    Font = SECONDARY_FONT,
-                    Text = description,
-                    TextColor3 = CurrentTheme.TextSecondary,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = keybind
-                })
-            end
+            -- Register for theme updates (NEW)
+            TBD:RegisterThemeable(descriptionLabel, {TextColor3 = "TextSecondary"})
+        end
+        
+        -- Create the keybind display
+        local keybindDisplay = Create("Frame", {
+            Name = "KeybindDisplay",
+            BackgroundColor3 = CurrentTheme.Background,
+            BackgroundTransparency = 0.6,
+            Position = UDim2.new(1, -100, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(0, 90, 0, 28),
+            Parent = keybind
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(keybindDisplay, {BackgroundColor3 = "Background"})
+        
+        Create("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = keybindDisplay
+        })
+        
+        local keybindText = Create("TextLabel", {
+            Name = "Text",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Font = SECONDARY_FONT,
+            Text = defaultKeybind,
+            TextColor3 = CurrentTheme.TextSecondary,
+            TextSize = 14,
+            Parent = keybindDisplay
+        })
+        
+        -- Register for theme updates (NEW)
+        TBD:RegisterThemeable(keybindText, {TextColor3 = "TextSecondary"})
+        
+        -- Create clickable button
+        local keybindButton = Create("TextButton", {
+            Name = "Button",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = "",
+            Parent = keybindDisplay
+        })
+        
+        -- Keybind functionality
+        local currentKeybind = defaultKeybind
+        local listeningForKey = false
+        
+        local function updateKeybindDisplay()
+            keybindText.Text = currentKeybind
+        end
+        
+        keybindButton.MouseButton1Click:Connect(function()
+            listeningForKey = true
+            keybindText.Text = "..."
             
-            -- Create the keybind display
-            local keybindDisplay = Create("Frame", {
-                Name = "KeybindDisplay",
-                BackgroundColor3 = CurrentTheme.Background,
-                BackgroundTransparency = 0.6,
-                Position = UDim2.new(1, -100, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 90, 0, 28),
-                Parent = keybind
-            })
-            
-            Create("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = keybindDisplay
-            })
-            
-            local keybindText = Create("TextLabel", {
-                Name = "Text",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = SECONDARY_FONT,
-                Text = defaultKeybind,
-                TextColor3 = CurrentTheme.TextSecondary,
-                TextSize = 14,
-                Parent = keybindDisplay
-            })
-            
-            -- Create clickable button
-            local keybindButton = Create("TextButton", {
-                Name = "Button",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                Parent = keybindDisplay
-            })
-            
-            -- Keybind functionality
-            local currentKeybind = defaultKeybind
-            local listeningForKey = false
-            
-            local function updateKeybindDisplay()
-                keybindText.Text = currentKeybind
-            end
-            
-            keybindButton.MouseButton1Click:Connect(function()
-                listeningForKey = true
-                keybindText.Text = "..."
+            -- Highlight the button
+            Tween(keybindDisplay, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.4}, 0.2)
+        end)
+        
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if listeningForKey then
+                -- Get the key name
+                local keyName = "None"
                 
-                -- Highlight the button
-                Tween(keybindDisplay, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if listeningForKey then
-                    -- Get the key name
-                    local keyName = "None"
-                    
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        keyName = string.sub(tostring(input.KeyCode), 14)
-                        listeningForKey = false
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        keyName = "MB1"
-                        listeningForKey = false
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-                        keyName = "MB2"
-                        listeningForKey = false
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
-                        keyName = "MB3"
-                        listeningForKey = false
-                    end
-                    
-                    -- Update the keybind
-                    if not listeningForKey then
-                        currentKeybind = keyName
-                        updateKeybindDisplay()
-                        
-                        -- Call the callback
-                        callback(currentKeybind)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = currentKeybind
-                        end
-                        
-                        -- Reset the button
-                        Tween(keybindDisplay, {BackgroundColor3 = CurrentTheme.Background, BackgroundTransparency = 0.6}, 0.2)
-                    end
-                elseif not gameProcessed and not listeningForKey and currentKeybind ~= "None" then
-                    -- Check if the key is pressed when not listening
-                    local keyName = "None"
-                    
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        keyName = string.sub(tostring(input.KeyCode), 14)
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        keyName = "MB1"
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-                        keyName = "MB2"
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
-                        keyName = "MB3"
-                    end
-                    
-                    -- If the key matches, call the callback
-                    if keyName == currentKeybind then
-                        callback(currentKeybind)
-                    end
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    keyName = string.sub(tostring(input.KeyCode), 14)
+                    listeningForKey = false
+                elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    keyName = "MB1"
+                    listeningForKey = false
+                elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    keyName = "MB2"
+                    listeningForKey = false
+                elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
+                    keyName = "MB3"
+                    listeningForKey = false
                 end
-            end)
-            
-            -- Hover effects
-            keybindButton.MouseEnter:Connect(function()
-                Tween(keybind, {BackgroundTransparency = 0.2}, 0.2)
-                Tween(keybindDisplay, {BackgroundTransparency = 0.4}, 0.2)
-            end)
-            
-            keybindButton.MouseLeave:Connect(function()
-                Tween(keybind, {BackgroundTransparency = 0.4}, 0.2)
+                
+                -- Update the keybind
                 if not listeningForKey then
-                    Tween(keybindDisplay, {BackgroundTransparency = 0.6}, 0.2)
-                end
-            end)
-            
-            -- Create keybind object for external control
-            local keybindObject = {
-                Keybind = currentKeybind,
-                
-                Set = function(self, newKeybind)
-                    currentKeybind = newKeybind
+                    currentKeybind = keyName
                     updateKeybindDisplay()
                     
                     -- Call the callback
@@ -2771,81 +4244,136 @@ function TabSystem:Create()
                     if flag then
                         TBD.Flags[flag] = currentKeybind
                     end
+                    
+                    -- Reset the button
+                    Tween(keybindDisplay, {BackgroundColor3 = CurrentTheme.Background, BackgroundTransparency = 0.6}, 0.2)
                 end
-            }
+            elseif not gameProcessed and not listeningForKey and currentKeybind ~= "None" then
+                -- Check if the key is pressed when not listening
+                local keyName = "None"
+                
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    keyName = string.sub(tostring(input.KeyCode), 14)
+                elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    keyName = "MB1"
+                elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    keyName = "MB2"
+                elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
+                    keyName = "MB3"
+                end
+                
+                -- If the key matches, call the callback
+                if keyName == currentKeybind then
+                    callback(currentKeybind)
+                end
+            end
+        end)
+        
+        -- Hover effects
+        keybindButton.MouseEnter:Connect(function()
+            Tween(keybind, {BackgroundTransparency = 0.2}, 0.2)
+            Tween(keybindDisplay, {BackgroundTransparency = 0.4}, 0.2)
+        end)
+        
+        keybindButton.MouseLeave:Connect(function()
+            Tween(keybind, {BackgroundTransparency = 0.4}, 0.2)
+            if not listeningForKey then
+                Tween(keybindDisplay, {BackgroundTransparency = 0.6}, 0.2)
+            end
+        end)
+        
+        -- Create keybind object for external control
+        local keybindObject = {
+            Keybind = currentKeybind,
             
-            -- Initialize flag if provided
-            if flag then
-                TBD.Flags[flag] = currentKeybind
-            end
-            
-            return keybindObject
-        end
-        
-        -- Tab button behavior
-        tabButton.MouseEnter:Connect(function()
-            if activeTab ~= tab then
-                Tween(tabButton, {BackgroundTransparency = 0.2}, 0.2)
-                if icon then
-                    Tween(icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
+            Set = function(self, newKeybind)
+                currentKeybind = newKeybind
+                updateKeybindDisplay()
+                
+                -- Call the callback
+                callback(currentKeybind)
+                
+                -- Update flag if provided
+                if flag then
+                    TBD.Flags[flag] = currentKeybind
                 end
-                Tween(title, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
             end
-        end)
+        }
         
-        tabButton.MouseLeave:Connect(function()
-            if activeTab ~= tab then
-                Tween(tabButton, {BackgroundTransparency = 0.4}, 0.2)
-                if icon then
-                    Tween(icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
-                end
-                Tween(title, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
-            end
-        end)
-        
-        tabButton.MouseButton1Click:Connect(function()
-            self:SelectTab(tab)
-        end)
-        
-        -- Update tab scroll canvas size
-        self:UpdateCanvasSize()
-        
-        return tab
-    end
-    -- Function to select a tab
-    tabSystem.SelectTab = function(self, tab)
-        if activeTab == tab then return end
-        
-        -- Deselect current active tab
-        if activeTab then
-            Tween(activeTab.Button, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 0.4}, 0.2)
-            if activeTab.Icon then
-                Tween(activeTab.Icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
-            end
-            Tween(activeTab.Title, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
-            activeTab.Content.Visible = false
+        -- Initialize flag if provided
+        if flag then
+            TBD.Flags[flag] = currentKeybind
         end
         
-        -- Select the new tab
-        activeTab = tab
-        tabSystem.ActiveTab = tab
-        
-        Tween(tab.Button, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.2}, 0.2)
-        if tab.Icon then
-            Tween(tab.Icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
-        end
-        Tween(tab.Title, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
-        tab.Content.Visible = true
+        return keybindObject
     end
     
-    -- Function to select first tab
-    tabSystem.SelectFirstTab = function(self)
-        if #tabs > 0 then
-            self:SelectTab(tabs[1])
+    -- Tab button behavior
+    tabButton.MouseEnter:Connect(function()
+        if self.ActiveTab ~= tab then
+            Tween(tabButton, {BackgroundTransparency = 0.2}, 0.2)
+            if icon then
+                Tween(icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
+            end
+            Tween(title, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
         end
+    end)
+    
+    tabButton.MouseLeave:Connect(function()
+        if self.ActiveTab ~= tab then
+            Tween(tabButton, {BackgroundTransparency = 0.4}, 0.2)
+            if icon then
+                Tween(icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
+            end
+            Tween(title, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+        end
+    end)
+    
+    tabButton.MouseButton1Click:Connect(function()
+        self:SelectTab(tab)
+    end)
+    
+    -- Update tab scroll canvas size
+    self:UpdateCanvasSize()
+    
+    -- Store the tab in our list
+    table.insert(self.Tabs, tab)
+    
+    return tab
+end
+
+-- Function to select a tab
+function TabSystem:SelectTab(tab)
+    local activeTab = self.ActiveTab
+    
+    if activeTab == tab then return end
+    
+    -- Deselect current active tab
+    if activeTab then
+        Tween(activeTab.Button, {BackgroundColor3 = CurrentTheme.Primary, BackgroundTransparency = 0.4}, 0.2)
+        if activeTab.Icon then
+            Tween(activeTab.Icon, {ImageColor3 = CurrentTheme.TextSecondary}, 0.2)
+        end
+        Tween(activeTab.Title, {TextColor3 = CurrentTheme.TextSecondary}, 0.2)
+        activeTab.Content.Visible = false
     end
     
-    return tabSystem
+    -- Select the new tab
+    self.ActiveTab = tab
+    
+    Tween(tab.Button, {BackgroundColor3 = CurrentTheme.Accent, BackgroundTransparency = 0.2}, 0.2)
+    if tab.Icon then
+        Tween(tab.Icon, {ImageColor3 = CurrentTheme.TextPrimary}, 0.2)
+    end
+    Tween(tab.Title, {TextColor3 = CurrentTheme.TextPrimary}, 0.2)
+    tab.Content.Visible = true
+end
+
+-- Function to select first tab
+function TabSystem:SelectFirstTab()
+    if #self.Tabs > 0 then
+        self:SelectTab(self.Tabs[1])
+    end
 end
 
 -- Class for creating a window
@@ -2926,17 +4454,23 @@ function TBD:CreateWindow(options)
         Parent = screenGui
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(mainFrame, {BackgroundColor3 = "Background"})
+    
     Create("UICorner", {
         CornerRadius = UDim.new(0, 10),
         Parent = mainFrame
     })
     
-    Create("UIStroke", {
+    local mainStroke = Create("UIStroke", {
         Color = CurrentTheme.Accent,
         Thickness = 1.5,
         Transparency = 0.5,
         Parent = mainFrame
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(mainStroke, {Color = "Accent"})
     
     -- Add a shadow
     local shadow = Create("ImageLabel", {
@@ -2962,6 +4496,9 @@ function TBD:CreateWindow(options)
         Parent = mainFrame
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(header, {BackgroundColor3 = "Accent"})
+    
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
         Parent = header
@@ -2979,6 +4516,9 @@ function TBD:CreateWindow(options)
         Parent = header
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(headerCornerFix, {BackgroundColor3 = "Accent"})
+    
     -- Create title and subtitle
     local titleLabel = Create("TextLabel", {
         Name = "Title",
@@ -2993,6 +4533,9 @@ function TBD:CreateWindow(options)
         Parent = header
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
+    
     local subtitleLabel = Create("TextLabel", {
         Name = "Subtitle",
         BackgroundTransparency = 1,
@@ -3006,6 +4549,9 @@ function TBD:CreateWindow(options)
         Parent = header
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(subtitleLabel, {TextColor3 = "TextSecondary"})
+    
     -- Create window controls (minimize, close)
     local closeButton = Create("ImageButton", {
         Name = "CloseButton",
@@ -3018,6 +4564,9 @@ function TBD:CreateWindow(options)
         Parent = header
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(closeButton, {ImageColor3 = "TextSecondary"})
+    
     local minimizeButton = Create("ImageButton", {
         Name = "MinimizeButton",
         BackgroundTransparency = 1,
@@ -3028,6 +4577,9 @@ function TBD:CreateWindow(options)
         ImageColor3 = CurrentTheme.TextSecondary,
         Parent = header
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(minimizeButton, {ImageColor3 = "TextSecondary"})
     
     -- Button hover effects
     local function setupButtonHover(button)
@@ -3063,17 +4615,23 @@ function TBD:CreateWindow(options)
         Parent = screenGui
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(minimizedContainer, {BackgroundColor3 = "Background"})
+    
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
         Parent = minimizedContainer
     })
     
-    Create("UIStroke", {
+    local minimizedStroke = Create("UIStroke", {
         Color = CurrentTheme.Accent,
         Thickness = 1.5,
         Transparency = 0.5,
         Parent = minimizedContainer
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(minimizedStroke, {Color = "Accent"})
     
     local minimizedHeader = Create("Frame", {
         Name = "Header",
@@ -3083,6 +4641,9 @@ function TBD:CreateWindow(options)
         BorderSizePixel = 0,
         Parent = minimizedContainer
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(minimizedHeader, {BackgroundColor3 = "Accent"})
     
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
@@ -3102,6 +4663,9 @@ function TBD:CreateWindow(options)
         Parent = minimizedHeader
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(minimizedTitle, {TextColor3 = "TextPrimary"})
+    
     local expandButton = Create("ImageButton", {
         Name = "ExpandButton",
         BackgroundTransparency = 1,
@@ -3112,6 +4676,9 @@ function TBD:CreateWindow(options)
         ImageColor3 = CurrentTheme.TextSecondary,
         Parent = minimizedHeader
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(expandButton, {ImageColor3 = "TextSecondary"})
     
     setupButtonHover(expandButton)
     MakeDraggable(minimizedContainer, minimizedHeader)
@@ -3175,6 +4742,9 @@ function TBD:CreateWindow(options)
         self:CreateHomePage()
     end
     
+    -- Store window for reference
+    table.insert(TBD.Windows, self)
+    
     return self
 end
 
@@ -3185,6 +4755,8 @@ function Window:CreateTab(options)
     
     if options.ImageSource and options.ImageSource == "Phosphor" then
         icon = Icons[icon] or Icons.Home
+    elseif icon and typeof(icon) == "string" and Icons[icon] then
+        icon = Icons[icon]
     end
     
     local tabInfo = {
@@ -3195,10 +4767,9 @@ function Window:CreateTab(options)
     
     -- Add the tab to the UI
     local tab = self.TabSystem:AddTab(tabInfo)
-    table.insert(self.Tabs, tab)
     
     -- Initialize by selecting the tab if it's the first one
-    if #self.Tabs == 1 then
+    if #self.TabSystem.Tabs == 1 then
         self.TabSystem:SelectTab(tab)
     end
     
@@ -3255,7 +4826,7 @@ function Window:CreateHomePage()
     
     -- Add the tab to the UI
     homeTab = self.TabSystem:AddTab(homeTab)
-    table.insert(self.Tabs, 1, homeTab) -- Insert at the beginning
+    table.insert(self.TabSystem.Tabs, 1, homeTab) -- Insert at the beginning
     self.HomeTab = homeTab
     
     -- Container for the welcome message and player info with logo
@@ -3266,6 +4837,9 @@ function Window:CreateHomePage()
         Size = UDim2.new(1, 0, 0, 120),
         Parent = homeTab.Content
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(welcomeContainer, {BackgroundColor3 = "Secondary"})
     
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
@@ -3286,6 +4860,9 @@ function Window:CreateHomePage()
         Parent = welcomeContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(welcomeTitle, {TextColor3 = "TextPrimary"})
+    
     -- Player info
     local playerInfo = Create("TextLabel", {
         Name = "PlayerInfo",
@@ -3300,6 +4877,9 @@ function Window:CreateHomePage()
         Parent = welcomeContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(playerInfo, {TextColor3 = "TextSecondary"})
+    
     local playerID = Create("TextLabel", {
         Name = "PlayerID",
         BackgroundTransparency = 1,
@@ -3312,6 +4892,9 @@ function Window:CreateHomePage()
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = welcomeContainer
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(playerID, {TextColor3 = "TextSecondary"})
     
     -- Add player avatar
     local avatarContainer = Create("Frame", {
@@ -3350,6 +4933,9 @@ function Window:CreateHomePage()
         Parent = homeTab.Content
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(gameContainer, {BackgroundColor3 = "Secondary"})
+    
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
         Parent = gameContainer
@@ -3382,6 +4968,9 @@ function Window:CreateHomePage()
         Parent = gameContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(gameTitle, {TextColor3 = "TextPrimary"})
+    
     -- Game details
     local gamePlaceID = Create("TextLabel", {
         Name = "GamePlaceID",
@@ -3396,6 +4985,9 @@ function Window:CreateHomePage()
         Parent = gameContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(gamePlaceID, {TextColor3 = "TextSecondary"})
+    
     local gamePlayerCount = Create("TextLabel", {
         Name = "GamePlayerCount",
         BackgroundTransparency = 1,
@@ -3409,6 +5001,9 @@ function Window:CreateHomePage()
         Parent = gameContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(gamePlayerCount, {TextColor3 = "TextSecondary"})
+    
     -- Credits
     local creditsContainer = Create("Frame", {
         Name = "CreditsContainer",
@@ -3417,6 +5012,9 @@ function Window:CreateHomePage()
         Size = UDim2.new(1, 0, 0, 80),
         Parent = homeTab.Content
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(creditsContainer, {BackgroundColor3 = "Secondary"})
     
     Create("UICorner", {
         CornerRadius = UDim.new(0, 8),
@@ -3436,6 +5034,9 @@ function Window:CreateHomePage()
         Parent = creditsContainer
     })
     
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(creditsTitle, {TextColor3 = "TextPrimary"})
+    
     local creditsVersion = Create("TextLabel", {
         Name = "CreditsVersion",
         BackgroundTransparency = 1,
@@ -3448,6 +5049,9 @@ function Window:CreateHomePage()
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = creditsContainer
     })
+    
+    -- Register for theme updates (NEW)
+    TBD:RegisterThemeable(creditsVersion, {TextColor3 = "Accent"})
     
     -- Select the home tab
     self.TabSystem:SelectTab(homeTab)
@@ -3464,43 +5068,5 @@ function TBD:Notification(options)
     return self.NotificationSystem:CreateNotification(options)
 end
 
--- Function to set a theme
-function TBD:SetTheme(theme)
-    if Themes[theme] then
-        CurrentTheme = Themes[theme]
-        return true
-    end
-    return false
-end
-
--- Function to create a custom theme
-function TBD:CustomTheme(options)
-    options = options or {}
-    
-    local customTheme = {
-        Primary = options.Primary or CurrentTheme.Primary,
-        Secondary = options.Secondary or CurrentTheme.Secondary,
-        Background = options.Background or CurrentTheme.Background,
-        TextPrimary = options.TextPrimary or CurrentTheme.TextPrimary,
-        TextSecondary = options.TextSecondary or CurrentTheme.TextSecondary,
-        Accent = options.Accent or CurrentTheme.Accent,
-        DarkAccent = options.DarkAccent or CurrentTheme.DarkAccent,
-        Error = options.Error or CurrentTheme.Error,
-        Success = options.Success or CurrentTheme.Success,
-        Warning = options.Warning or CurrentTheme.Warning
-    }
-    
-    CurrentTheme = customTheme
-    
-    return true
-end
-
--- Configuration System
-TBD.Flags = {}
-TBD.ConfigSystem = {}
-local ConfigSystem = TBD.ConfigSystem
-
--- Initialize TBD
-TBD.NotificationSystem:Setup()
-
+-- Return the library
 return TBD
