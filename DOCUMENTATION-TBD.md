@@ -1,41 +1,56 @@
-# TBD UI Library Documentation
+# TBD UI Library - HoHo Edition Documentation
 
-## Overview
+A comprehensive guide to using the TBD UI Library HoHo Edition - a modern, feature-rich Roblox UI library designed for script hubs and executors.
 
-TBD UI Library is a modern, feature-rich UI library for Roblox script hubs and executors. It provides a clean, customizable interface with various UI elements and features to enhance user experience.
+**Version: 2.0.0**
 
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [Getting Started](#getting-started)
-3. [Window Creation](#window-creation)
-4. [Tabs](#tabs)
-5. [UI Elements](#ui-elements)
-   - [Section](#section)
-   - [Button](#button)
-   - [Toggle](#toggle)
-   - [Slider](#slider)
-   - [Dropdown](#dropdown)
-   - [Colorpicker](#colorpicker)
-   - [Textbox](#textbox)
-   - [Keybind](#keybind)
-   - [Divider](#divider)
-6. [Notifications](#notifications)
-7. [Themes](#themes)
-8. [Configuration System](#configuration-system)
-9. [Homepage Feature](#homepage-feature)
-10. [Executor Compatibility](#executor-compatibility)
-11. [Mobile Support](#mobile-support)
-12. [Troubleshooting](#troubleshooting)
-13. [Advanced Customization](#advanced-customization)
-14. [Migration Guide](#migration-guide)
+- [Overview](#overview)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Window Creation](#window-creation)
+- [Tabs](#tabs)
+- [UI Elements](#ui-elements)
+  - [Section](#section)
+  - [Button](#button)
+  - [Toggle](#toggle)
+  - [Slider](#slider)
+  - [Dropdown](#dropdown)
+  - [Textbox](#textbox)
+  - [Color Picker](#color-picker)
+  - [Keybind](#keybind)
+  - [Divider](#divider)
+- [Notifications](#notifications)
+- [Themes](#themes)
+- [Configuration System](#configuration-system)
+- [Homepage Feature](#homepage-feature)
+- [Loading Screen](#loading-screen)
+- [Executor Compatibility](#executor-compatibility)
+- [Mobile Support](#mobile-support)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Customization](#advanced-customization)
+- [Migration Guide](#migration-guide)
+
+## Overview
+
+TBD UI Library HoHo Edition is a complete redesign of the original TBD UI Library, featuring:
+
+- Modern, wider layout design inspired by popular Roblox hubs
+- Customizable loading screen
+- Enhanced window controls (minimize, close)
+- Fixed notification positioning
+- Fully functional toggles, sliders, and other UI elements
+- New HoHo theme with sleek, dark aesthetics
+- Full mobile support with improved touch controls
+- Extensive customization options
 
 ## Installation
 
-Add the following code to your script to load the TBD UI Library:
+Add the following code to your script to load the TBD UI Library HoHo Edition:
 
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
 ```
 
 ## Getting Started
@@ -44,12 +59,12 @@ Here's a basic example to get you started:
 
 ```lua
 -- Load the library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
 
 -- Create a window
 local Window = TBD:CreateWindow({
     Title = "My Script Hub",
-    Theme = "Default",
+    Theme = "HoHo",
     ShowHomePage = true -- Enable the home page feature
 })
 
@@ -76,8 +91,8 @@ Create a window using the `CreateWindow` function:
 local Window = TBD:CreateWindow({
     Title = "My Script Hub",            -- Window title
     Subtitle = "v1.0.0",                -- Optional subtitle
-    Theme = "Default",                  -- Default, Midnight, Neon, Aqua or custom
-    Size = {500, 400},                  -- Window size {width, height}
+    Theme = "HoHo",                     -- HoHo, Default, Midnight, Neon, Aqua or custom
+    Size = {780, 460},                  -- Window size {width, height}
     Position = "Center",                -- "Center" or {x, y} position
     LogoId = "rbxassetid://12345678",   -- Optional logo image ID
     LoadingEnabled = true,              -- Show loading screen
@@ -90,12 +105,7 @@ local Window = TBD:CreateWindow({
         AnimationStyle = "Slide",       -- "Fade", "Slide", "Scale"
         LogoSize = UDim2.new(0, 120, 0, 120),
         LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
-        ProgressBarSize = UDim2.new(0.8, 0, 0, 8)
-    },
-    
-    -- Config system settings
-    ConfigSettings = {
-        ConfigFolder = "MyScriptHub"
+        ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
     }
 })
 ```
@@ -108,8 +118,7 @@ Create tabs to organize your UI elements:
 local Tab = Window:CreateTab({
     Name = "Tab Name",                -- Tab name
     Icon = "home",                    -- Icon name from the icon pack
-    ImageSource = "Phosphor",         -- Icon pack: "Material" or "Phosphor"
-    ShowTitle = true                  -- Show tab title next to icon
+    ImageSource = "Phosphor"          -- Icon pack: "Phosphor" is default
 })
 ```
 
@@ -206,25 +215,6 @@ Dropdown:Refresh({
 Dropdown:Set("New Option 2")
 ```
 
-### Colorpicker
-
-Create a color picker:
-
-```lua
-local ColorPicker = Tab:CreateColorPicker({
-    Name = "Color Picker",               -- Color picker name
-    Description = "Pick a color",        -- Optional description
-    Color = Color3.fromRGB(255, 0, 0),   -- Default color
-    Flag = "ColorPickerName",            -- Flag for configuration saving
-    Callback = function(Color)           -- Function to call when color changes
-        print("Selected color:", Color)
-    end
-})
-
--- Set the color
-ColorPicker:Set(Color3.fromRGB(0, 255, 0))
-```
-
 ### Textbox
 
 Create a text input box:
@@ -244,6 +234,25 @@ local Textbox = Tab:CreateTextbox({
 
 -- Set the text
 Textbox:Set("New text")
+```
+
+### Color Picker
+
+Create a color picker:
+
+```lua
+local ColorPicker = Tab:CreateColorPicker({
+    Name = "Color Picker",               -- Color picker name
+    Description = "Pick a color",        -- Optional description
+    Color = Color3.fromRGB(255, 0, 0),   -- Default color
+    Flag = "ColorPickerName",            -- Flag for configuration saving
+    Callback = function(Color)           -- Function to call when color changes
+        print("Selected color:", Color)
+    end
+})
+
+-- Set the color
+ColorPicker:Set(Color3.fromRGB(0, 255, 0))
 ```
 
 ### Keybind
@@ -298,35 +307,43 @@ TBD.NotificationSystem:SetPosition("TopRight")
 
 ## Themes
 
-TBD UI Library includes several built-in themes:
+TBD UI Library HoHo Edition includes several built-in themes:
 
 ```lua
 -- Set a pre-built theme
-TBD:SetTheme("Default")  -- Options: "Default", "Midnight", "Neon", "Aqua"
+TBD:SetTheme("HoHo")  -- Options: "HoHo", "Default", "Midnight", "Neon", "Aqua"
 
 -- Or create a custom theme
 TBD:CustomTheme({
-    Primary = Color3.fromRGB(0, 120, 255),
-    Background = Color3.fromRGB(30, 30, 30),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(180, 180, 180),
-    DropShadowEnabled = true
+    Primary = Color3.fromRGB(20, 20, 20),
+    Background = Color3.fromRGB(10, 10, 10),
+    TextPrimary = Color3.fromRGB(240, 240, 240),
+    TextSecondary = Color3.fromRGB(190, 190, 190),
+    Accent = Color3.fromRGB(255, 30, 50),
+    DarkAccent = Color3.fromRGB(200, 25, 45)
 })
 ```
 
-## Configuration System
+## Loading Screen
 
-Save and load user configurations:
+The library includes a customizable loading screen that displays before your UI:
 
 ```lua
--- Save the current configuration
-TBD:SaveConfig("MyConfig")
-
--- Load a saved configuration
-TBD:LoadConfig("MyConfig")
-
--- List all saved configurations
-local Configs = TBD:ListConfigs()
+-- Enable the loading screen in your window creation
+local Window = TBD:CreateWindow({
+    Title = "My Script Hub",
+    LoadingEnabled = true,
+    LoadingTitle = "My Script Hub",
+    LoadingSubtitle = "Loading awesome features...",
+    
+    -- Customize the loading screen appearance
+    LoadingScreenCustomization = {
+        AnimationStyle = "Slide",  -- "Fade", "Slide", "Scale"
+        LogoSize = UDim2.new(0, 120, 0, 120),
+        LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
+        ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
+    }
+})
 ```
 
 ## Homepage Feature
@@ -341,9 +358,8 @@ local Window = TBD:CreateWindow({
 ```
 
 The homepage includes:
-- Player information (name, display name, user ID, account age)
-- Game information (game name, place ID)
-- Server information (player count)
+- Player information (name, display name, user ID, avatar)
+- Game information (game name, place ID, player count)
 - UI library credits
 
 You can access the home tab to add additional elements:
@@ -360,7 +376,7 @@ Window.HomeTab:CreateButton({
 
 ## Executor Compatibility
 
-TBD UI Library is designed to work across different Roblox executors. It includes several compatibility features to ensure consistent behavior:
+TBD UI Library HoHo Edition is designed to work across different Roblox executors. It includes several compatibility features to ensure consistent behavior:
 
 ### Safe Area Insets
 
@@ -374,19 +390,7 @@ local safeAreaTop = TBD.SafeArea.Top
 
 ### Error Handling
 
-All critical functions include error handling to prevent script termination on executor-specific limitations:
-
-```lua
--- Example of applying protected calls in your own code
-local success, result = pcall(function()
-    -- Your potentially incompatible code here
-    return someResult
-end)
-
-if not success then
-    -- Fallback behavior
-end
-```
+All critical functions include error handling to prevent script termination on executor-specific limitations.
 
 ## Mobile Support
 
@@ -447,8 +451,8 @@ local toggle = Tab:CreateToggle({
 If the UI doesn't appear on certain executors, ensure you're using the fixed version of the library with executor compatibility:
 
 ```lua
--- Make sure to use the fixed version
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+-- Make sure to use the HoHo Edition
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
 ```
 
 #### Scripts Errors on Mobile Devices
@@ -459,8 +463,7 @@ If your script encounters errors specifically on mobile devices, ensure mobile c
 -- Create a window with mobile compatibility in mind
 local Window = TBD:CreateWindow({
     Title = "My Script Hub",
-    -- Avoid fixed sizes that might be too large for mobile
-    Size = IS_MOBILE and {350, 450} or {500, 600}
+    -- The library automatically adjusts for mobile
 })
 ```
 
@@ -480,26 +483,6 @@ local Window = TBD:CreateWindow({
 
 ## Advanced Customization
 
-### Custom Icon Integration
-
-You can use custom icons in your UI elements:
-
-```lua
--- Using a custom icon by asset ID
-Tab:CreateButton({
-    Name = "Custom Icon Button",
-    Icon = 12345678, -- Direct asset ID as a number
-    Callback = function() end
-})
-
--- Or with a full asset path
-Tab:CreateButton({
-    Name = "Custom Icon Button",
-    Icon = "rbxassetid://12345678", -- Full asset path
-    Callback = function() end
-})
-```
-
 ### Deep Theme Customization
 
 For advanced theme customization, you can modify all theme properties:
@@ -507,92 +490,79 @@ For advanced theme customization, you can modify all theme properties:
 ```lua
 TBD:CustomTheme({
     -- Main colors
-    Primary = Color3.fromRGB(0, 120, 255),
-    PrimaryDark = Color3.fromRGB(0, 100, 220),
-    Background = Color3.fromRGB(30, 30, 35),
-    ContainerBackground = Color3.fromRGB(35, 35, 40),
-    SecondaryBackground = Color3.fromRGB(40, 40, 45),
-    ElementBackground = Color3.fromRGB(45, 45, 50),
+    Primary = Color3.fromRGB(20, 20, 20),
+    Secondary = Color3.fromRGB(15, 15, 15),
+    Background = Color3.fromRGB(10, 10, 10),
     
     -- Text colors
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(180, 180, 180),
+    TextPrimary = Color3.fromRGB(240, 240, 240),
+    TextSecondary = Color3.fromRGB(190, 190, 190),
     
-    -- Input element colors
-    InputBackground = Color3.fromRGB(55, 55, 60),
-    PlaceholderText = Color3.fromRGB(120, 120, 120),
+    -- Accent colors
+    Accent = Color3.fromRGB(255, 30, 50),
+    DarkAccent = Color3.fromRGB(200, 25, 45),
     
     -- Status colors
-    Success = Color3.fromRGB(0, 200, 0),
-    Warning = Color3.fromRGB(255, 180, 0),
-    Error = Color3.fromRGB(255, 0, 60),
-    Info = Color3.fromRGB(0, 180, 250),
-    
-    -- UI properties
-    CornerRadius = UDim.new(0, 8),
-    Font = Enum.Font.GothamSemibold,
-    TextSize = 14,
-    HeaderSize = 16,
-    
-    -- Animations and effects
-    AnimationSpeed = 0.2,
-    DropShadowEnabled = true,
-    Transparency = 0.95,
-    
-    -- Icon settings
-    IconPack = "Phosphor"
+    Success = Color3.fromRGB(40, 200, 90),
+    Warning = Color3.fromRGB(255, 170, 30),
+    Error = Color3.fromRGB(255, 60, 80)
 })
-```
-
-### Custom Element Templates
-
-Create reusable element templates for consistent styling:
-
-```lua
--- Create a template for action buttons
-function CreateActionButton(tab, name, callback)
-    return tab:CreateButton({
-        Name = name,
-        Description = "Action Button Template",
-        Callback = callback
-    })
-end
-
--- Usage
-local myButton = CreateActionButton(MainTab, "Perform Action", function()
-    print("Action performed!")
-end)
 ```
 
 ## Migration Guide
 
-### Migrating from Legacy Version
+### Migrating from Previous Versions
 
 If you're updating from a previous version of TBD UI Library, follow these steps to ensure compatibility:
 
 1. **Update the library import**:
    ```lua
    -- Old version
-   local TBD = loadstring(game:HttpGet("https://old-url/tbd.lua"))()
+   local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua"))()
    
-   -- New version (fixed)
-   local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+   -- New HoHo Edition
+   local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
    ```
 
-2. **Update toggle elements**:
+2. **Update window creation**:
    ```lua
    -- Old version
-   local toggle = Tab:CreateToggle("Toggle Name", false, function(Value) end)
+   local Window = TBD:CreateWindow("Window Title", "Window Subtitle")
    
    -- New version
-   local toggle = Tab:CreateToggle({
-       Name = "Toggle Name",
-       CurrentValue = false,
-       Callback = function(Value) end
+   local Window = TBD:CreateWindow({
+       Title = "Window Title",
+       Subtitle = "Window Subtitle",
+       Theme = "HoHo",
+       ShowHomePage = true
    })
    ```
 
-3. **Update notification calls**:
+3. **Update tab creation**:
+   ```lua
+   -- Old version
+   local Tab = Window:CreateTab("Tab Name", "tab_icon")
+   
+   -- New version
+   local Tab = Window:CreateTab({
+       Name = "Tab Name",
+       Icon = "home"
+   })
+   ```
+
+4. **Update UI elements**:
+   ```lua
+   -- Old version
+   local button = Tab:CreateButton("Button Name", function() end)
+   
+   -- New version
+   local button = Tab:CreateButton({
+       Name = "Button Name",
+       Callback = function() end
+   })
+   ```
+
+5. **Update notification calls**:
    ```lua
    -- Old version
    TBD:Notify("Title", "Message", "Info")
@@ -605,28 +575,12 @@ If you're updating from a previous version of TBD UI Library, follow these steps
    })
    ```
 
-4. **Enable home page**:
-   ```lua
-   -- Add this option to your window creation
-   local Window = TBD:CreateWindow({
-       Title = "My Script Hub",
-       ShowHomePage = true -- New feature
-   })
-   ```
-
-5. **Update theme settings**:
-   ```lua
-   -- Old version
-   TBD:SetTheme("Default")
-   
-   -- New version (supports more themes)
-   TBD:SetTheme("Aqua") -- Try the new Aqua theme
-   ```
-
 ### Breaking Changes
 
 Be aware of these breaking changes when updating:
 
 1. All UI element creation now uses a table-based parameter system instead of individual parameters
-2. Notification system has a new interface and positioning system
-3. Theme customization requires a table of properties instead of individual color arguments
+2. Window creation requires a table of options
+3. Notification system has a new interface and positioning system
+4. Theme customization requires a table of properties instead of individual color arguments
+5. The window dimensions have changed to a wider layout (780×460 by default)
