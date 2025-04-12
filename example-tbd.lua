@@ -1,6 +1,7 @@
 --[[
-    TBD UI Library - HoHo Edition Example (v4)
-    This example demonstrates all features of the fully fixed TBD UI Library
+    TBD UI Library - HoHo Edition Example (v5)
+    This example demonstrates all features of the redesigned TBD UI Library
+    with fixes for dropdown and color picker issues
 ]]
 
 -- Load the TBD UI Library
@@ -9,7 +10,7 @@ local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyo
 -- Create a Window with enhanced options
 local Window = TBD:CreateWindow({
     Title = "TBD Script Hub",
-    Subtitle = "v2.0.0 Edition",
+    Subtitle = "v2.0.0 HoHo Edition",
     Theme = "HoHo", -- Try the new HoHo theme (options: Default, Midnight, Neon, Aqua, HoHo)
     Size = {780, 460}, -- Wider layout as requested
     Position = "Center",
@@ -249,7 +250,7 @@ PlayerTab:CreateToggle({
     end
 })
 
--- Demonstrate dropdown feature
+-- Demonstrate fixed dropdown feature
 PlayerTab:CreateDropdown({
     Name = "Select Team",
     Description = "Choose which team to join",
@@ -311,6 +312,7 @@ VisualsTab:CreateToggle({
     end
 })
 
+-- Demonstrating fixed color picker
 VisualsTab:CreateColorPicker({
     Name = "ESP Color",
     Description = "Change the color of ESP elements",
@@ -343,6 +345,7 @@ VisualsTab:CreateDropdown({
 -- Themes Tab Elements - Showcasing the theme system
 ThemesTab:CreateSection("UI Themes")
 
+-- Fixed dropdown for theme selection
 ThemesTab:CreateDropdown({
     Name = "Select Theme",
     Description = "Choose a pre-built theme for the UI",
@@ -360,6 +363,7 @@ ThemesTab:CreateDropdown({
     end
 })
 
+-- Fixed color picker for custom accent color
 ThemesTab:CreateColorPicker({
     Name = "Custom Accent Color",
     Description = "Set a custom accent color for the UI",
@@ -385,6 +389,7 @@ ThemesTab:CreateColorPicker({
 -- Settings Tab Elements
 SettingsTab:CreateSection("UI Settings")
 
+-- Fixed dropdown for notification position
 SettingsTab:CreateDropdown({
     Name = "Notification Position",
     Description = "Where notifications appear on screen",
@@ -458,4 +463,4 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gameProce
 end)
 
 -- Print a message to confirm the UI has loaded completely
-print("TBD UI Library v4 loaded successfully!")
+print("TBD UI Library v5 loaded successfully!")
