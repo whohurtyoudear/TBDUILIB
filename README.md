@@ -1,388 +1,95 @@
-# TBD UI Library (Enhanced)
+# TBD UI Library - Enhanced & Fixed
 
-A modern, feature-rich Roblox UI library for script hubs and executors with improved mobile support and enhanced features.
+A modern, feature-rich Roblox UI library for script hubs and executors with comprehensive documentation and numerous improvements.
 
-![TBD UI Library](https://i.ibb.co/MkwVJpJt/giphy-5.gif)
+## Overview
 
-## New Features in v1.1.0
-
-- **Improved Mobile Support** - Fully responsive design with optimized layouts for touch screens
-- **Fixed Notification System** - Properly positioned notifications on all screen sizes
-- **Enhanced Window Controls** - Better close/minimize buttons and improved dragging
-- **Customizable Loading Screen** - Choose from multiple animation styles and customize appearance
-- **New Theme (Aqua)** - Beautiful new aqua-themed preset
-- **Better Error Handling** - More robust error checking and graceful fallbacks
-- **Performance Improvements** - Optimized for better performance across all devices
+TBD UI Library is designed to provide an elegant, customizable interface for Roblox script hubs and executors. This enhanced version includes fixes for compatibility issues and adds new features to improve user experience.
 
 ## Features
 
-- **Modern Design** - Clean, sleek interface with smooth animations and rounded corners
-- **Intuitive API** - Simple and straightforward API for creating beautiful UIs
-- **Customization** - Multiple themes included with support for custom themes
-- **Component Library** - Rich set of UI components including buttons, toggles, sliders, and more
-- **Configuration System** - Save and load settings across sessions
-- **Key System** - Protect your scripts with a built-in key authentication system
-- **Notifications** - Elegant notification system with multiple types and customization options
-- **Icon Packs** - Built-in support for Material Design and Phosphor icon sets
-- **Optimized Performance** - Designed for minimal performance impact
-- **Robust Error Handling** - Graceful handling of potential issues
+- **Modern Design**: Clean, glass-like interface with smooth animations and transitions
+- **Responsive Layout**: Automatically adapts to different screen sizes and devices, including mobile support
+- **Comprehensive Element Set**: Includes buttons, toggles, sliders, dropdowns, colorpickers, and more
+- **Customizable Themes**: Choose from pre-built themes or create your own custom theme
+- **Notification System**: Display elegant notifications with different types (success, info, warning, error)
+- **Configuration System**: Save and load user configurations automatically
+- **Home Page Feature**: Display player information, game details, and library credits
+- **Executor Compatibility**: Fixed to work properly across different Roblox executors
+
+## Recent Fixes & Improvements
+
+1. **GetSafeInsets Compatibility**: Implemented fallback for executors that don't support GuiService:GetSafeInsets()
+2. **CreateToggle Fix**: Added missing CreateToggle method 
+3. **Notification Positioning**: Fixed notification positioning to correctly appear in the specified corner of the screen
+4. **Home Page Feature**: Added a new home page that displays player information, game details, and UI library credits
+5. **Mobile Support**: Improved mobile support with touch-friendly controls and responsive layouts
+6. **Loading Screen**: Enhanced customizable loading screen with animation options
+7. **Aqua Theme**: Added a new "Aqua" theme option
 
 ## Installation
 
-To use TBD UI Library in your Roblox script, simply use the loadstring function to load the library:
-
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
 ```
 
-## Getting Started
-
-### Creating a Window
+## Quick Start Example
 
 ```lua
+-- Load the library
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+
+-- Create a window with the home page feature enabled
 local Window = TBD:CreateWindow({
-    Title = "My Script Hub",                      -- Title of the window
-    Subtitle = "v1.0.0",                          -- Optional subtitle
-    Theme = "Aqua",                               -- "Default", "Midnight", "Neon", or "Aqua"
-    Size = {450, 550},                            -- Width, Height (auto-adjusts for mobile)
-    Position = "Center",                          -- "Center" or {X, Y} coordinates
-    LogoId = "12345678",                          -- Optional logo (AssetId)
-    LoadingEnabled = true,                        -- Enable/disable loading screen
-    LoadingTitle = "My Script Hub",               -- Loading screen title
-    LoadingSubtitle = "Preparing...",             -- Loading screen subtitle
-    
-    -- New: Loading screen customization
-    LoadingScreenCustomization = {
-        AnimationStyle = "Fade",                  -- "Fade", "Slide", or "Scale"
-        LogoSize = UDim2.new(0, 100, 0, 100),     -- Size of the logo
-        LogoPosition = UDim2.new(0.5, 0, 0.35, 0) -- Position of the logo
-    },
-    
-    ConfigSettings = {                            -- Optional configuration settings
-        ConfigFolder = "MyScriptHub"
-    },
-    KeySystem = false                             -- Enable/disable key system
+    Title = "TBD Script Hub",
+    Subtitle = "v1.1.0",
+    Theme = "Aqua",
+    ShowHomePage = true,
+    LoadingEnabled = true
 })
-```
 
-### Key System (Optional)
-
-If you want to protect your script with a key system, set `KeySystem` to `true` and configure it:
-
-```lua
-local Window = TBD:CreateWindow({
-    -- ... other window settings ...
-    KeySystem = true,
-    KeySettings = {
-        Title = "Authentication Required",
-        Subtitle = "Enter your key",
-        Note = "Get your key from our Discord server",
-        SaveKey = true,                             -- Save key for future sessions
-        Keys = {"key1", "key2", "HWID_based_key"},  -- List of valid keys
-        SecondaryAction = {
-            Enabled = true,
-            Type = "Discord",                       -- "Discord" or "Link"
-            Parameter = "discord-invite-code"       -- Discord invite code or full URL
-        }
-    }
-})
-```
-
-### Creating Tabs
-
-```lua
+-- Create a tab
 local MainTab = Window:CreateTab({
-    Name = "Main",                -- Tab name
-    Icon = "home",                -- Optional icon name
-    ImageSource = "Phosphor",     -- "Material" or "Phosphor"
-    ShowTitle = true              -- Show/hide title in the tab content
-})
-
-local SettingsTab = Window:CreateTab({
-    Name = "Settings",
-    Icon = "settings",
+    Name = "Main",
+    Icon = "home",
     ImageSource = "Phosphor"
 })
-```
 
-### Adding UI Elements
-
-#### Sections
-
-```lua
-local Section = MainTab:CreateSection("Combat Settings")
-```
-
-#### Dividers
-
-```lua
-MainTab:CreateDivider() -- Creates a horizontal line divider
-```
-
-#### Buttons
-
-```lua
-local Button = MainTab:CreateButton({
-    Name = "Click Me",
-    Description = "This is a button with a description",  -- Optional
-    Callback = function()
-        print("Button clicked!")
-    end
-})
-
--- Update button callback
-Button:Set(function()
-    print("New callback!")
-end)
-
--- Update button text
-Button:SetName("New Button Text")
-```
-
-#### Toggles
-
-```lua
-local Toggle = MainTab:CreateToggle({
-    Name = "Enable Feature",
-    Description = "This toggle controls a feature",  -- Optional
+-- Add a toggle (using the fixed CreateToggle method)
+MainTab:CreateToggle({
+    Name = "Test Feature",
+    Description = "Enable or disable this feature",
     CurrentValue = false,
     Callback = function(Value)
-        print("Toggle state:", Value)
+        print("Toggle is now set to:", Value)
     end
-}, "ToggleFlag")  -- Config flag name for saving state
+})
 
--- Set toggle state
-Toggle:Set(true)
+-- Fix notification positioning
+TBD.NotificationSystem:SetPosition("TopRight")
 
--- Toggle the current state
-Toggle:Toggle()
-
--- Get current state
-local state = Toggle:GetState()
-```
-
-#### Sliders
-
-```lua
-local Slider = MainTab:CreateSlider({
-    Name = "Walk Speed",
-    Description = "Adjust your character's walk speed",  -- Optional
-    Range = {16, 100},            -- Min and Max values
-    Increment = 1,                -- Step size
-    CurrentValue = 16,            -- Default value
-    Callback = function(Value)
-        print("Slider value:", Value)
-    end
-}, "WalkSpeedSlider")  -- Config flag name
-
--- Set slider value
-Slider:Set(50)
-
--- Get current value
-local value = Slider:GetValue()
-
--- Change slider range
-Slider:SetRange(10, 150)
-```
-
-#### Input Fields
-
-```lua
-local Input = MainTab:CreateInput({
-    Name = "Player Name",
-    Description = "Enter a player's name",      -- Optional
-    PlaceholderText = "Enter name...",          -- Optional placeholder
-    Default = "",                               -- Default value
-    Callback = function(Text, EnterPressed)
-        print("Input text:", Text)
-        print("Enter pressed:", EnterPressed)
-    end
-}, "PlayerNameInput")  -- Config flag name
-
--- Set input text
-Input:Set("NewValue")
-
--- Get current text
-local text = Input:GetValue()
-```
-
-#### Dropdowns
-
-```lua
-local Dropdown = MainTab:CreateDropdown({
-    Name = "Select Option",
-    Description = "Choose from available options",  -- Optional
-    Items = {"Option 1", "Option 2", "Option 3"},
-    Default = "Option 1",                           -- Optional default selection
-    Callback = function(Selection)
-        print("Selected:", Selection)
-    end
-}, "OptionDropdown")  -- Config flag name
-
--- Set selected item
-Dropdown:Set("Option 2")
-
--- Get current selection
-local selection = Dropdown:GetValue()
-
--- Update dropdown items
-Dropdown:SetItems({"New Option 1", "New Option 2"})
-
--- Add a single item
-Dropdown:AddItem("New Option 3")
-
--- Remove an item
-Dropdown:RemoveItem("New Option 2")
-```
-
-#### Color Pickers
-
-```lua
-local ColorPicker = MainTab:CreateColorPicker({
-    Name = "UI Color",
-    Description = "Change the UI accent color",  -- Optional
-    Color = Color3.fromRGB(64, 90, 255),         -- Default color
-    Callback = function(Color)
-        print("Selected color:", Color)
-    end
-}, "UIColorPicker")  -- Config flag name
-
--- Set color
-ColorPicker:Set(Color3.fromRGB(255, 0, 0))
-
--- Get current color
-local color = ColorPicker:GetColor()
-```
-
-### Notifications
-
-```lua
 -- Show a notification
 TBD:Notification({
-    Title = "Operation Complete",
-    Message = "Your task has been successfully completed!",
-    Duration = 5,                            -- Optional: Time in seconds to show (default: 5)
-    Type = "Success",                        -- Optional: "Info", "Success", "Warning", "Error"
-    Icon = "check",                          -- Optional: Icon name or AssetId
-    Callback = function()                    -- Optional: Called when notification is clicked
-        print("Notification clicked!")
-    end
+    Title = "Welcome",
+    Message = "TBD UI Library has been loaded successfully!",
+    Type = "Success",
+    Duration = 5
 })
 ```
 
-### Configuration Management
+## Documentation
 
-```lua
--- Save current settings
-TBD:SaveConfig("MyConfig")
+For complete documentation on all features and API methods, please see the [DOCUMENTATION.md](DOCUMENTATION.md) file.
 
--- Load saved settings
-TBD:LoadConfig("MyConfig")
+## Executor Compatibility
 
--- Get list of available configs
-local configs = TBD:ListConfigs()
+The enhanced library has been fixed to work with various Roblox executors through the following improvements:
 
--- Automatically load the most recent config
-TBD:LoadAutoloadConfig()  -- Call this at the end of your script!
-```
-
-### Theming
-
-```lua
--- Change active theme
-TBD:SetTheme("Aqua")  -- "Default", "Midnight", "Neon", "Aqua"
-
--- Get current theme
-local currentTheme = TBD:GetTheme()
-
--- Create custom theme
-TBD:CustomTheme({
-    Primary = Color3.fromRGB(255, 0, 0),
-    PrimaryDark = Color3.fromRGB(200, 0, 0),
-    Background = Color3.fromRGB(20, 20, 20),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    -- Override any theme properties
-})
-```
-
-### New: Advanced Theme Customization
-
-```lua
--- Create a completely custom theme
-TBD:CustomTheme({
-    -- Colors
-    Primary = Color3.fromRGB(255, 75, 75),
-    PrimaryDark = Color3.fromRGB(220, 55, 55),
-    Background = Color3.fromRGB(25, 25, 35),
-    ContainerBackground = Color3.fromRGB(35, 35, 45),
-    SecondaryBackground = Color3.fromRGB(45, 45, 55),
-    ElementBackground = Color3.fromRGB(55, 55, 65),
-    TextPrimary = Color3.fromRGB(240, 240, 250),
-    TextSecondary = Color3.fromRGB(180, 180, 190),
-    
-    -- Appearance
-    CornerRadius = UDim.new(0, 10),
-    DropShadowEnabled = true,
-    AnimationSpeed = 0.25,
-    Transparency = 0.95,
-    
-    -- Fonts
-    Font = Enum.Font.SourceSansBold,
-    HeaderSize = 20,
-    TextSize = 15,
-    
-    -- Other
-    IconPack = "Material",
-    
-    -- New: Loading screen customization
-    LoadingScreenCustomization = {
-        AnimationStyle = "Scale", -- "Fade", "Slide", "Scale"
-        LogoSize = UDim2.new(0, 120, 0, 120),
-        TitlePosition = UDim2.new(0.5, 0, 0.6, 0)
-    }
-})
-```
-
-### New: Customizing Notification Position
-
-```lua
--- Change notification position
-TBD.NotificationSystem:SetPosition("BottomRight")  -- "TopRight", "TopLeft", "BottomRight", "BottomLeft"
-```
-
-### Cleanup
-
-```lua
--- Destroy the UI when no longer needed
-TBD:Destroy()
-```
-
-## Complete Example
-
-See the included [example-tbd-enhanced.lua](example-tbd-enhanced.lua) file for a complete demo of all features.
-
-## Mobile Support
-
-The enhanced TBD UI Library automatically detects and optimizes for mobile devices:
-
-- Larger touch targets for better interaction
-- Adjusted spacing and sizing for mobile screens
-- On-screen controls optimized for touch
-- Fixed notification positioning accounting for safe areas
-- Improved scrolling behavior
-
-## Troubleshooting
-
-If you encounter any issues:
-
-1. **UI not appearing**: Make sure you're using the correct URL in your loadstring
-2. **Notifications appearing off-screen**: This should be fixed in the enhanced version; if issues persist, try setting the notification position manually with `TBD.NotificationSystem:SetPosition("TopRight")`
-3. **Error messages**: The enhanced library includes better error handling with specific warning messages
-
-## License
-
-[MIT License](LICENSE) - Feel free to use, modify and distribute as needed.
+1. Fallback implementation for GetSafeInsets method
+2. Mobile device detection that works across executors
+3. Error handling for executor-specific limitations
 
 ## Credits
 
-Developed by TBD Development Team
+- Original concept inspired by various Roblox UI libraries
+- Enhanced and fixed by [Your Name/Team]
