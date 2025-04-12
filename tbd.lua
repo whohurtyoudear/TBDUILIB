@@ -27,6 +27,7 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TextService = game:GetService("TextService")
 local GuiService = game:GetService("GuiService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Constants and Settings
@@ -151,6 +152,16 @@ local function Tween(instance, properties, duration, style, direction)
         direction or Enum.EasingDirection.Out
     )
     
+    -- Fix for the TextTransparency property
+    if properties.TextTransparency ~= nil and not instance:IsA("TextLabel") and not instance:IsA("TextButton") and not instance:IsA("TextBox") then
+        properties.TextTransparency = nil
+    end
+    
+    -- Fix for the ImageTransparency property
+    if properties.ImageTransparency ~= nil and not instance:IsA("ImageLabel") and not instance:IsA("ImageButton") then
+        properties.ImageTransparency = nil
+    end
+    
     local tween = TweenService:Create(instance, tweenInfo, properties)
     tween:Play()
     return tween
@@ -225,7 +236,9 @@ local Icons = {
     Success = "rbxassetid://6031071054",
     Plus = "rbxassetid://6035047409",
     Minus = "rbxassetid://6035067832",
-    Grid = "rbxassetid://6035047377"
+    Grid = "rbxassetid://6035047377",
+    Person = "rbxassetid://7191850748",
+    Eye = "rbxassetid://7191845882"
 }
 
 -- Notification System
@@ -645,11 +658,17 @@ function LoadingScreen:Create(options)
         Parent = screenGui
     })
     
-    local blurEffect = Create("BlurEffect", {
-        Name = "Blur",
-        Size = 6,
-        Parent = background
-    })
+    -- Create a blur effect (pcall to handle unsupported executors)
+    pcall(function()
+        local blurEffect = Create("BlurEffect", {
+            Name = "Blur",
+            Size = 6,
+            Parent = game:GetService("Lighting")
+        })
+        
+        -- Store the blur effect for removal later
+        self.BlurEffect = blurEffect
+    end)
     
     -- Create container for elements
     local container = Create("Frame", {
@@ -775,14 +794,22 @@ function LoadingScreen:Finish(callback)
     
     -- Wait for the minimum time to pass
     task.delay(remaining, function()
+        -- Remove blur effect if it exists
+        if self.BlurEffect then
+            self.BlurEffect:Destroy()
+            self.BlurEffect = nil
+        end
+        
         -- Fade out animation
         local background = self.ScreenGui.Background
         Tween(background, {BackgroundTransparency = 1}, 0.5)
         
         -- Fade out all text and UI elements
         for _, descendent in pairs(self.ScreenGui:GetDescendants()) do
-            if descendent:IsA("TextLabel") or descendent:IsA("TextButton") or descendent:IsA("ImageLabel") then
-                Tween(descendent, {BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1}, 0.5)
+            if descendent:IsA("TextLabel") or descendent:IsA("TextButton") then
+                Tween(descendent, {BackgroundTransparency = 1, TextTransparency = 1}, 0.5)
+            elseif descendent:IsA("ImageLabel") or descendent:IsA("ImageButton") then
+                Tween(descendent, {BackgroundTransparency = 1, ImageTransparency = 1}, 0.5)
             elseif descendent:IsA("Frame") and descendent.Name ~= "Background" then
                 Tween(descendent, {BackgroundTransparency = 1}, 0.5)
             end
@@ -804,7 +831,7 @@ end
 -- TabSystem and UI Elements
 local TabSystem = {}
 
-function TabSystem:Create(options)
+function TabSystem:Create()
     local tabContainer = Create("Frame", {
         Name = "TabContainer",
         BackgroundColor3 = CurrentTheme.Secondary,
@@ -1864,7 +1891,7 @@ function Window:CreateTab(options)
         
         return sliderObject
     end
-
+    
     tab.CreateDropdown = function(_, options)
         options = options or {}
         local name = options.Name or "Dropdown"
@@ -2813,6 +2840,13 @@ function Window:Expand()
     end)
 end
 
+-- Function to destroy the window
+function Window:Destroy()
+    if self.ScreenGui then
+        self.ScreenGui:Destroy()
+    end
+end
+
 -- Function to create home page with player info
 function Window:CreateHomePage()
     local homeTab = {
@@ -2891,11 +2925,18 @@ function Window:CreateHomePage()
         Parent = welcomeContainer
     })
     
+    -- Try to get user thumbnail
+    local success, result = pcall(function()
+        return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+    end)
+    
+    local avatarImage = success and result or ""
+    
     local avatar = Create("ImageLabel", {
         Name = "Avatar",
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
-        Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100),
+        Image = avatarImage,
         Parent = avatarContainer
     })
     
@@ -2918,6 +2959,15 @@ function Window:CreateHomePage()
         Parent = gameContainer
     })
     
+    -- Try to get game name
+    local gameName = "Unknown Game"
+    pcall(function()
+        if MarketplaceService then
+            local info = MarketplaceService:GetProductInfo(game.PlaceId)
+            gameName = info.Name
+        end
+    end)
+    
     -- Game title
     local gameTitle = Create("TextLabel", {
         Name = "GameTitle",
@@ -2925,7 +2975,7 @@ function Window:CreateHomePage()
         Position = UDim2.new(0, 20, 0, 15),
         Size = UDim2.new(1, -40, 0, 25),
         Font = DEFAULT_FONT,
-        Text = "Game: " .. (MarketplaceService and MarketplaceService:GetProductInfo(game.PlaceId).Name or "Unknown"),
+        Text = "Game: " .. gameName,
         TextColor3 = CurrentTheme.TextPrimary,
         TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -3033,19 +3083,18 @@ function TBD:CustomTheme(options)
     options = options or {}
     
     local customTheme = {
-        Primary = options.Primary or Color3.fromRGB(41, 53, 68),
-        Secondary = options.Secondary or Color3.fromRGB(35, 47, 62),
-        Background = options.Background or Color3.fromRGB(25, 33, 46),
-        TextPrimary = options.TextPrimary or Color3.fromRGB(240, 240, 240),
-        TextSecondary = options.TextSecondary or Color3.fromRGB(190, 190, 190),
-        Accent = options.Accent or Color3.fromRGB(65, 149, 242),
-        DarkAccent = options.DarkAccent or Color3.fromRGB(55, 120, 220),
-        Error = options.Error or Color3.fromRGB(245, 73, 96),
-        Success = options.Success or Color3.fromRGB(68, 214, 125),
-        Warning = options.Warning or Color3.fromRGB(255, 170, 30)
+        Primary = options.Primary or CurrentTheme.Primary,
+        Secondary = options.Secondary or CurrentTheme.Secondary,
+        Background = options.Background or CurrentTheme.Background,
+        TextPrimary = options.TextPrimary or CurrentTheme.TextPrimary,
+        TextSecondary = options.TextSecondary or CurrentTheme.TextSecondary,
+        Accent = options.Accent or CurrentTheme.Accent,
+        DarkAccent = options.DarkAccent or CurrentTheme.DarkAccent,
+        Error = options.Error or CurrentTheme.Error,
+        Success = options.Success or CurrentTheme.Success,
+        Warning = options.Warning or CurrentTheme.Warning
     }
     
-    Themes.Custom = customTheme
     CurrentTheme = customTheme
     
     return true
