@@ -13,7 +13,7 @@ local Window = TBD:CreateWindow({
     Theme = "HoHo", -- Try the new HoHo theme (options: Default, Midnight, Neon, Aqua, HoHo)
     Size = {780, 460}, -- Wider layout as requested
     Position = "Center",
-    LogoId = "rbxassetid://12345678", -- Replace with your logo asset ID
+    LogoId = "rbxassetid://10588367664", -- Example logo asset ID
     LoadingEnabled = true,
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
@@ -36,7 +36,7 @@ Window.HomeTab:CreateButton({
     Name = "Join Discord",
     Description = "Join our community for updates and support",
     Callback = function()
-        setclipboard("https://discord.gg/yourdiscord")
+        pcall(function() setclipboard("https://discord.gg/yourdiscord") end)
         TBD:Notification({
             Title = "Discord Invite",
             Message = "Discord invite link copied to clipboard!",
