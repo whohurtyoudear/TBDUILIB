@@ -1,12 +1,16 @@
 --[[
-    TBD UI Library - New Edition (v2.0.0)
-    Completely rewritten version with fixed errors, including TextTransparency and CreateButton issues
-    Fully tested across different executors
+    TBD UI Library - New Edition (v2.0.0) V5
+    Completely rebuilt version with fixes for all known issues:
+    - Fixed CreateButton method issue
+    - Fixed TextTransparency property issue
+    - Fixed dropdown functionality
+    - Fixed color picker positioning
+    - Improved design and robustness
 ]]
 
 -- Main Library Table
 local TBD = {}
-TBD.Version = "2.0.0"
+TBD.Version = "2.0.0-V5"
 TBD.DebugMode = false
 
 -- Services
@@ -136,6 +140,7 @@ local function Create(instanceType, properties)
     return instance
 end
 
+-- Safe property check
 local function CanHaveProperty(instance, property)
     local success = pcall(function()
         local test = instance[property]
@@ -143,7 +148,18 @@ local function CanHaveProperty(instance, property)
     return success
 end
 
+local function IsTextInstance(instance)
+    return instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox")
+end
+
+local function IsImageInstance(instance)
+    return instance:IsA("ImageLabel") or instance:IsA("ImageButton")
+end
+
+-- Improved Tween function with safety checks
 local function Tween(instance, properties, duration, style, direction)
+    if not instance or not properties then return nil end
+    
     local tweenInfo = TweenInfo.new(
         duration or ANIMATION_DURATION,
         style or Enum.EasingStyle.Quad,
@@ -151,19 +167,26 @@ local function Tween(instance, properties, duration, style, direction)
     )
     
     -- Create a safe copy of properties to tween
-    local safeProps = {}
+    local safeProperties = {}
+    
     for prop, value in pairs(properties) do
-        if CanHaveProperty(instance, prop) then
-            safeProps[prop] = value
+        -- Special handling for transparency properties
+        if prop == "TextTransparency" and not IsTextInstance(instance) then
+            -- Skip text transparency for non-text objects
+        elseif prop == "ImageTransparency" and not IsImageInstance(instance) then
+            -- Skip image transparency for non-image objects
+        elseif CanHaveProperty(instance, prop) then
+            safeProperties[prop] = value
         end
     end
     
     -- Only create and play the tween if there are properties to tween
-    if next(safeProps) then
-        local tween = TweenService:Create(instance, tweenInfo, safeProps)
+    if next(safeProperties) then
+        local tween = TweenService:Create(instance, tweenInfo, safeProperties)
         tween:Play()
         return tween
     end
+    
     return nil
 end
 
@@ -241,7 +264,6 @@ local Icons = {
     Eye = "rbxassetid://7191845882",
     Favorite = "rbxassetid://6034231524"
 }
-
 -- Notification System
 TBD.NotificationSystem = {}
 local NotificationSystem = TBD.NotificationSystem
@@ -411,9 +433,25 @@ function NotificationSystem:SetPosition(position)
         self.Position = position
         if self.Container then
             local containerPosition = self:GetContainerPosition()
-            Tween(self.Container, {Position = containerPosition, AnchorPoint = 
-                (position:find("Top") and Vector2.new(position:find("Right") and 1 or 0, 0)) or
-                Vector2.new(position:find("Right") and 1 or 0, 1)
+            local anchorPoint
+            
+            if position:find("Bottom") then
+                if position:find("Right") then
+                    anchorPoint = Vector2.new(1, 1)
+                else
+                    anchorPoint = Vector2.new(0, 1)
+                end
+            else
+                if position:find("Right") then
+                    anchorPoint = Vector2.new(1, 0)
+                else
+                    anchorPoint = Vector2.new(0, 0)
+                end
+            end
+            
+            Tween(self.Container, {
+                Position = containerPosition,
+                AnchorPoint = anchorPoint
             }, 0.3)
             
             -- Adjust all active notifications
@@ -836,8 +874,7 @@ function LoadingScreen:Finish(callback)
         end)
     end)
 end
-
--- Tab and UI Elements creation functions
+-- TabSystem and UI Elements
 local TabSystem = {}
 
 function TabSystem:Create()
@@ -1009,7 +1046,9 @@ function TabSystem:Create()
         tab.Content = contentFrame
         tab.ContentLayout = contentLayout
         
-        -- Create section function
+        -- Add UI element creation methods to the tab
+        
+        -- CREATE SECTION METHOD
         tab.CreateSection = function(_, title)
             local section = Create("Frame", {
                 Name = "Section_" .. title,
@@ -1041,7 +1080,7 @@ function TabSystem:Create()
             return section
         end
         
-        -- Create button function
+        -- CREATE BUTTON METHOD
         tab.CreateButton = function(_, options)
             options = options or {}
             local name = options.Name or "Button"
@@ -1123,7 +1162,7 @@ function TabSystem:Create()
             return button
         end
         
-        -- Create toggle function
+        -- CREATE TOGGLE METHOD
         tab.CreateToggle = function(_, options)
             options = options or {}
             local name = options.Name or "Toggle"
@@ -1273,7 +1312,7 @@ function TabSystem:Create()
             return toggleObject
         end
         
-        -- Create slider function
+        -- CREATE SLIDER METHOD
         tab.CreateSlider = function(_, options)
             options = options or {}
             local name = options.Name or "Slider"
@@ -1492,8 +1531,7 @@ function TabSystem:Create()
             
             return sliderObject
         end
-        
-        -- Add remaining element creation methods
+        -- CREATE DROPDOWN METHOD - Fixed dropdown functionality
         tab.CreateDropdown = function(_, options)
             options = options or {}
             local name = options.Name or "Dropdown"
@@ -1510,7 +1548,7 @@ function TabSystem:Create()
                 BackgroundColor3 = CurrentTheme.Secondary,
                 BackgroundTransparency = 0.4,
                 Size = UDim2.new(1, 0, 0, dropdownHeight),
-                ClipsDescendants = true,
+                ClipsDescendants = false, -- FIXED: Set to false to allow dropdown to expand outside
                 Parent = tab.Content
             })
             
@@ -1595,16 +1633,25 @@ function TabSystem:Create()
                 Parent = dropdownDisplay
             })
             
-            -- Create dropdown list container (hidden by default)
+            -- FIXED: Create a dropdown container that's outside the main frame
+            -- This container is spawned from the TabSystem's content container, not the dropdown frame
+            local dropdownListContainer = Create("Frame", {
+                Name = "ListContainerHolder",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Visible = false,
+                ZIndex = 100, -- Higher z-index to appear above other elements
+                Parent = tabSystem.ContentContainer -- Parent to the main content container
+            })
+            
+            -- Create list container
             local listContainer = Create("Frame", {
                 Name = "ListContainer",
                 BackgroundColor3 = CurrentTheme.Secondary,
-                BackgroundTransparency = 0,
-                Position = UDim2.new(0, 0, 1, 5),
-                Size = UDim2.new(1, 0, 0, 0), -- Start with no height
-                Visible = false,
-                ZIndex = 10,
-                Parent = dropdownDisplay
+                Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
+                Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, 0), -- Start with no height
+                ZIndex = 101,
+                Parent = dropdownListContainer
             })
             
             Create("UICorner", {
@@ -1623,7 +1670,7 @@ function TabSystem:Create()
                 ScrollBarThickness = 3,
                 ScrollBarImageColor3 = CurrentTheme.Accent,
                 VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right,
-                ZIndex = 11,
+                ZIndex = 102,
                 Parent = listContainer
             })
             
@@ -1666,7 +1713,7 @@ function TabSystem:Create()
                         Text = item,
                         TextColor3 = item == selectedOption and CurrentTheme.Accent or CurrentTheme.TextPrimary,
                         TextSize = 14,
-                        ZIndex = 12,
+                        ZIndex = 103,
                         Parent = itemList
                     })
                     
@@ -1721,17 +1768,29 @@ function TabSystem:Create()
                 itemList.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
             end
             
+            -- Function to update dropdown position
+            local function updateDropdownPosition()
+                -- Get the absolute position of the dropdown display
+                local displayAbsPos = dropdownDisplay.AbsolutePosition
+                local displayAbsSize = dropdownDisplay.AbsoluteSize
+                
+                -- Position the dropdown list right below the display
+                dropdownListContainer.Position = UDim2.new(0, displayAbsPos.X, 0, displayAbsPos.Y + displayAbsSize.Y + 5)
+                listContainer.Size = UDim2.new(0, displayAbsSize.X, 0, 0) -- Height will be animated
+            end
+            
             -- Function to open the dropdown
             local function openDropdown()
                 if isOpen then return end
                 isOpen = true
                 
-                -- Make the list visible
-                listContainer.Visible = true
+                -- Update position and make the list visible
+                updateDropdownPosition()
+                dropdownListContainer.Visible = true
                 
                 -- Animate opening
                 local listHeight = math.min(150, #items * 30 + (#items + 1) * 5)
-                Tween(listContainer, {Size = UDim2.new(1, 0, 0, listHeight)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                Tween(listContainer, {Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, listHeight)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
                 Tween(dropdownArrow, {Rotation = 180}, 0.2)
                 
                 -- Populate items
@@ -1744,13 +1803,13 @@ function TabSystem:Create()
                 isOpen = false
                 
                 -- Animate closing
-                Tween(listContainer, {Size = UDim2.new(1, 0, 0, 0)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+                Tween(listContainer, {Size = UDim2.new(0, dropdownDisplay.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
                 Tween(dropdownArrow, {Rotation = 0}, 0.2)
                 
                 -- Hide after animation
                 task.delay(0.2, function()
                     if not isOpen then
-                        listContainer.Visible = false
+                        dropdownListContainer.Visible = false
                     end
                 end)
             end
@@ -1767,19 +1826,28 @@ function TabSystem:Create()
             -- Close the dropdown when clicking elsewhere
             UserInputService.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    local dropdownAbsPos = dropdownDisplay.AbsolutePosition
-                    local dropdownAbsSize = dropdownDisplay.AbsoluteSize
-                    local listAbsPos = listContainer.AbsolutePosition
-                    local listAbsSize = listContainer.AbsoluteSize
-                    
                     local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
                     
-                    local inDropdown = mousePos.X >= dropdownAbsPos.X and mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and
+                    -- Check if click is within dropdown display
+                    local inDropdown = false
+                    pcall(function()
+                        local dropdownAbsPos = dropdownDisplay.AbsolutePosition
+                        local dropdownAbsSize = dropdownDisplay.AbsoluteSize
+                        inDropdown = mousePos.X >= dropdownAbsPos.X and mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and
                                      mousePos.Y >= dropdownAbsPos.Y and mousePos.Y <= dropdownAbsPos.Y + dropdownAbsSize.Y
-                                     
-                    local inList = mousePos.X >= listAbsPos.X and mousePos.X <= listAbsPos.X + listAbsSize.X and
-                                mousePos.Y >= listAbsPos.Y and mousePos.Y <= listAbsPos.Y + listAbsSize.Y
-                                
+                    end)
+                    
+                    -- Check if click is within list
+                    local inList = false
+                    pcall(function()
+                        if dropdownListContainer.Visible then
+                            local listAbsPos = listContainer.AbsolutePosition
+                            local listAbsSize = listContainer.AbsoluteSize
+                            inList = mousePos.X >= listAbsPos.X and mousePos.X <= listAbsPos.X + listAbsSize.X and
+                                     mousePos.Y >= listAbsPos.Y and mousePos.Y <= listAbsPos.Y + listAbsSize.Y
+                        end
+                    end)
+                    
                     if isOpen and not inDropdown and not inList then
                         closeDropdown()
                     end
@@ -1864,6 +1932,7 @@ function TabSystem:Create()
             return dropdownObject
         end
         
+        -- CREATE DIVIDER METHOD
         tab.CreateDivider = function(_)
             local divider = Create("Frame", {
                 Name = "Divider",
@@ -1877,6 +1946,7 @@ function TabSystem:Create()
             return divider
         end
         
+        -- CREATE TEXTBOX METHOD
         tab.CreateTextbox = function(_, options)
             options = options or {}
             local name = options.Name or "Textbox"
@@ -2033,7 +2103,7 @@ function TabSystem:Create()
             
             return textboxObject
         end
-        
+        -- CREATE COLOR PICKER METHOD - Fixed positioning issues
         tab.CreateColorPicker = function(_, options)
             options = options or {}
             local name = options.Name or "Color Picker"
@@ -2116,56 +2186,321 @@ function TabSystem:Create()
                 Parent = colorPicker
             })
             
-            -- Color picker functionality (simplified for example)
-            local colorPickerPopup, pickerObject
+            -- FIXED: Create color picker popup container directly in the main content container
+            local colorPickerPopupContainer = Create("Frame", {
+                Name = "ColorPickerPopupContainer",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Visible = false,
+                ZIndex = 200, -- Higher z-index to appear above everything else
+                Parent = tabSystem.ContentContainer
+            })
             
-            local function createColorPickerPopup()
-                -- More complex with HSV selector, RGB inputs, etc.
-                -- Simplified version for this example
-                local popup = Create("Frame", {
-                    Name = "ColorPickerPopup",
-                    BackgroundColor3 = CurrentTheme.Background,
-                    Position = UDim2.new(1, 10, 0, 0),
-                    Size = UDim2.new(0, 200, 0, 200),
-                    Visible = false,
-                    ZIndex = 100,
-                    Parent = colorPicker
+            -- Create the actual color picker popup
+            local colorPickerPopup = Create("Frame", {
+                Name = "ColorPickerPopup",
+                BackgroundColor3 = CurrentTheme.Background,
+                Size = UDim2.new(0, 220, 0, 260),
+                Position = UDim2.new(0, 0, 0, 0), -- Will be set when opened
+                ZIndex = 201,
+                Parent = colorPickerPopupContainer
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 8),
+                Parent = colorPickerPopup
+            })
+            
+            Create("UIStroke", {
+                Color = CurrentTheme.Accent,
+                Thickness = 1.5,
+                Transparency = 0.5,
+                Parent = colorPickerPopup
+            })
+            
+            -- Color picker header
+            local popupHeader = Create("Frame", {
+                Name = "Header",
+                BackgroundColor3 = CurrentTheme.Secondary,
+                Size = UDim2.new(1, 0, 0, 30),
+                ZIndex = 202,
+                Parent = colorPickerPopup
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 8),
+                Parent = popupHeader
+            })
+            
+            -- Only round top corners of header
+            local popupHeaderFix = Create("Frame", {
+                Name = "HeaderFix",
+                BackgroundColor3 = CurrentTheme.Secondary,
+                Position = UDim2.new(0, 0, 0.5, 0),
+                Size = UDim2.new(1, 0, 0.5, 0),
+                ZIndex = 202,
+                Parent = popupHeader
+            })
+            
+            local popupTitle = Create("TextLabel", {
+                Name = "Title",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 0),
+                Size = UDim2.new(1, -40, 1, 0),
+                Font = DEFAULT_FONT,
+                Text = "Color Picker",
+                TextColor3 = CurrentTheme.TextPrimary,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 203,
+                Parent = popupHeader
+            })
+            
+            local popupClose = Create("ImageButton", {
+                Name = "Close",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -25, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                Size = UDim2.new(0, 16, 0, 16),
+                Image = Icons.Close,
+                ImageColor3 = CurrentTheme.TextSecondary,
+                ZIndex = 203,
+                Parent = popupHeader
+            })
+            
+            -- Color display
+            local currentColorDisplay = Create("Frame", {
+                Name = "CurrentColor",
+                BackgroundColor3 = color,
+                Position = UDim2.new(0.5, 0, 0, 45),
+                AnchorPoint = Vector2.new(0.5, 0),
+                Size = UDim2.new(0, 180, 0, 30),
+                ZIndex = 202,
+                Parent = colorPickerPopup
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = currentColorDisplay
+            })
+            
+            Create("UIStroke", {
+                Color = CurrentTheme.TextSecondary,
+                Thickness = 1,
+                Transparency = 0.5,
+                Parent = currentColorDisplay
+            })
+            
+            -- Color picker components (simplified for example)
+            -- In a real implementation, you'd create HSV color picker components
+            
+            -- RGB Sliders
+            local rgbContainer = Create("Frame", {
+                Name = "RGBContainer",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 90),
+                Size = UDim2.new(1, -20, 0, 100),
+                ZIndex = 202,
+                Parent = colorPickerPopup
+            })
+            
+            -- Create RGB sliders
+            local function createColorSlider(name, value, color, yPos)
+                local slider = Create("Frame", {
+                    Name = name .. "Slider",
+                    BackgroundColor3 = CurrentTheme.Secondary,
+                    BackgroundTransparency = 0.4,
+                    Position = UDim2.new(0, 0, 0, yPos),
+                    Size = UDim2.new(1, 0, 0, 20),
+                    ZIndex = 203,
+                    Parent = rgbContainer
                 })
                 
                 Create("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = popup
+                    CornerRadius = UDim.new(0, 4),
+                    Parent = slider
                 })
                 
-                -- Color object for external control
-                local colorObj = {
-                    Color = color,
-                    
-                    Set = function(self, newColor)
-                        color = newColor
-                        colorPreview.BackgroundColor3 = color
-                        
-                        -- Call the callback
-                        callback(color)
-                        
-                        -- Update flag if provided
-                        if flag then
-                            TBD.Flags[flag] = color
-                        end
-                    end
-                }
+                local sliderLabel = Create("TextLabel", {
+                    Name = "Label",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 5, 0, 0),
+                    Size = UDim2.new(0, 15, 1, 0),
+                    Font = SECONDARY_FONT,
+                    Text = name,
+                    TextColor3 = color,
+                    TextSize = 14,
+                    ZIndex = 204,
+                    Parent = slider
+                })
                 
-                return popup, colorObj
+                local sliderValue = Create("TextLabel", {
+                    Name = "Value",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(1, -40, 0, 0),
+                    Size = UDim2.new(0, 35, 1, 0),
+                    Font = SECONDARY_FONT,
+                    Text = tostring(value),
+                    TextColor3 = CurrentTheme.TextSecondary,
+                    TextSize = 14,
+                    ZIndex = 204,
+                    Parent = slider
+                })
+                
+                local sliderTrack = Create("Frame", {
+                    Name = "Track",
+                    BackgroundColor3 = CurrentTheme.Secondary,
+                    BackgroundTransparency = 0.2,
+                    Position = UDim2.new(0, 25, 0.5, 0),
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Size = UDim2.new(1, -70, 0, 6),
+                    ZIndex = 204,
+                    Parent = slider
+                })
+                
+                Create("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = sliderTrack
+                })
+                
+                local sliderFill = Create("Frame", {
+                    Name = "Fill",
+                    BackgroundColor3 = color,
+                    Size = UDim2.new(value/255, 0, 1, 0),
+                    ZIndex = 205,
+                    Parent = sliderTrack
+                })
+                
+                Create("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = sliderFill
+                })
+                
+                local sliderThumb = Create("Frame", {
+                    Name = "Thumb",
+                    BackgroundColor3 = color,
+                    Position = UDim2.new(value/255, 0, 0.5, 0),
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Size = UDim2.new(0, 10, 0, 10),
+                    ZIndex = 206,
+                    Parent = sliderTrack
+                })
+                
+                Create("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = sliderThumb
+                })
+                
+                return {
+                    Slider = slider,
+                    Track = sliderTrack,
+                    Fill = sliderFill,
+                    Thumb = sliderThumb,
+                    ValueLabel = sliderValue
+                }
             end
             
-            -- Create color picker on click
-            colorButton.MouseButton1Click:Connect(function()
-                if not colorPickerPopup then
-                    colorPickerPopup, pickerObject = createColorPickerPopup()
+            local rSlider = createColorSlider("R", math.floor(color.R * 255), Color3.fromRGB(255, 50, 50), 0)
+            local gSlider = createColorSlider("G", math.floor(color.G * 255), Color3.fromRGB(50, 255, 50), 30)
+            local bSlider = createColorSlider("B", math.floor(color.B * 255), Color3.fromRGB(50, 50, 255), 60)
+            
+            -- Apply button
+            local applyButton = Create("TextButton", {
+                Name = "ApplyButton",
+                BackgroundColor3 = CurrentTheme.Accent,
+                Position = UDim2.new(0.5, 0, 1, -40),
+                AnchorPoint = Vector2.new(0.5, 0),
+                Size = UDim2.new(0, 100, 0, 30),
+                Font = DEFAULT_FONT,
+                Text = "Apply",
+                TextColor3 = CurrentTheme.TextPrimary,
+                ZIndex = 202,
+                Parent = colorPickerPopup
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = applyButton
+            })
+            
+            -- Function to update color display
+            local function updateColorDisplay(newColor)
+                currentColorDisplay.BackgroundColor3 = newColor
+            end
+            
+            -- Function to update color preview
+            local function updateColorPreview(newColor)
+                colorPreview.BackgroundColor3 = newColor
+            end
+            
+            -- Function to open color picker
+            local function openColorPicker()
+                -- Update position based on color picker preview
+                local previewAbsPos = colorPreview.AbsolutePosition
+                local previewAbsSize = colorPreview.AbsoluteSize
+                
+                -- Position to the right of the preview if possible, otherwise to the left
+                local screenSize = workspace.CurrentCamera.ViewportSize
+                local popupWidth = colorPickerPopup.AbsoluteSize.X
+                
+                -- Try to place it to the right
+                local posX = previewAbsPos.X + previewAbsSize.X + 10
+                
+                -- If it would go off-screen, place it to the left
+                if posX + popupWidth > screenSize.X - 10 then
+                    posX = previewAbsPos.X - popupWidth - 10
                 end
                 
-                -- Toggle visibility (simplified for example)
-                colorPickerPopup.Visible = not colorPickerPopup.Visible
+                -- Make sure it's not off-screen to the left either
+                posX = math.max(10, posX)
+                
+                -- Vertical position - try to center with the preview
+                local posY = previewAbsPos.Y - (colorPickerPopup.AbsoluteSize.Y - previewAbsSize.Y) / 2
+                
+                -- Make sure it doesn't go off the top or bottom of the screen
+                posY = math.max(10, math.min(screenSize.Y - colorPickerPopup.AbsoluteSize.Y - 10, posY))
+                
+                colorPickerPopup.Position = UDim2.new(0, posX, 0, posY)
+                colorPickerPopupContainer.Visible = true
+                
+                updateColorDisplay(color)
+            end
+            
+            -- Function to close color picker
+            local function closeColorPicker()
+                colorPickerPopupContainer.Visible = false
+            end
+            
+            -- Apply button functionality
+            applyButton.MouseButton1Click:Connect(function()
+                -- Get the color from RGB values
+                local r = tonumber(rSlider.ValueLabel.Text) / 255
+                local g = tonumber(gSlider.ValueLabel.Text) / 255
+                local b = tonumber(bSlider.ValueLabel.Text) / 255
+                
+                local newColor = Color3.new(r, g, b)
+                color = newColor
+                
+                updateColorPreview(color)
+                callback(color)
+                
+                if flag then
+                    TBD.Flags[flag] = color
+                end
+                
+                closeColorPicker()
+            end)
+            
+            -- Close button functionality
+            popupClose.MouseButton1Click:Connect(closeColorPicker)
+            
+            -- Open color picker on click
+            colorButton.MouseButton1Click:Connect(function()
+                if colorPickerPopupContainer.Visible then
+                    closeColorPicker()
+                else
+                    openColorPicker()
+                end
             end)
             
             -- Hover effects
@@ -2177,13 +2512,58 @@ function TabSystem:Create()
                 Tween(colorPicker, {BackgroundTransparency = 0.4}, 0.2)
             end)
             
+            -- Close color picker when clicking elsewhere
+            UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if colorPickerPopupContainer.Visible then
+                        local mousePos = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+                        
+                        -- Check if click is within color picker popup
+                        local inPopup = false
+                        pcall(function()
+                            local popupAbsPos = colorPickerPopup.AbsolutePosition
+                            local popupAbsSize = colorPickerPopup.AbsoluteSize
+                            inPopup = mousePos.X >= popupAbsPos.X and mousePos.X <= popupAbsPos.X + popupAbsSize.X and
+                                      mousePos.Y >= popupAbsPos.Y and mousePos.Y <= popupAbsPos.Y + popupAbsSize.Y
+                        end)
+                        
+                        -- Check if click is within color preview
+                        local inPreview = false
+                        pcall(function()
+                            local previewAbsPos = colorPreview.AbsolutePosition
+                            local previewAbsSize = colorPreview.AbsoluteSize
+                            inPreview = mousePos.X >= previewAbsPos.X and mousePos.X <= previewAbsPos.X + previewAbsSize.X and
+                                       mousePos.Y >= previewAbsPos.Y and mousePos.Y <= previewAbsPos.Y + previewAbsSize.Y
+                        end)
+                        
+                        if not inPopup and not inPreview then
+                            closeColorPicker()
+                        end
+                    end
+                end
+            end)
+            
             -- Create the color picker object
             local colorPickerObject = {
                 Color = color,
                 
                 Set = function(self, newColor)
                     color = newColor
-                    colorPreview.BackgroundColor3 = color
+                    updateColorPreview(color)
+                    updateColorDisplay(color)
+                    
+                    -- Update RGB sliders
+                    rSlider.ValueLabel.Text = tostring(math.floor(color.R * 255))
+                    rSlider.Fill.Size = UDim2.new(color.R, 0, 1, 0)
+                    rSlider.Thumb.Position = UDim2.new(color.R, 0, 0.5, 0)
+                    
+                    gSlider.ValueLabel.Text = tostring(math.floor(color.G * 255))
+                    gSlider.Fill.Size = UDim2.new(color.G, 0, 1, 0)
+                    gSlider.Thumb.Position = UDim2.new(color.G, 0, 0.5, 0)
+                    
+                    bSlider.ValueLabel.Text = tostring(math.floor(color.B * 255))
+                    bSlider.Fill.Size = UDim2.new(color.B, 0, 1, 0)
+                    bSlider.Thumb.Position = UDim2.new(color.B, 0, 0.5, 0)
                     
                     -- Call the callback
                     callback(color)
@@ -2203,6 +2583,7 @@ function TabSystem:Create()
             return colorPickerObject
         end
         
+        -- CREATE KEYBIND METHOD
         tab.CreateKeybind = function(_, options)
             options = options or {}
             local name = options.Name or "Keybind"
@@ -2431,7 +2812,6 @@ function TabSystem:Create()
         
         return tab
     end
-    
     -- Function to select a tab
     tabSystem.SelectTab = function(self, tab)
         if activeTab == tab then return end
@@ -2778,8 +3158,9 @@ function TBD:CreateWindow(options)
         local loadingScreen = TBD.LoadingScreen:Create(loadingOptions)
         
         -- Simulate loading progress
-        for i = 1, 10 do
-            loadingScreen:UpdateProgress(i / 10)
+        local totalSteps = 10
+        for i = 1, totalSteps do
+            loadingScreen:UpdateProgress(i / totalSteps)
             task.wait(0.1)
         end
         
@@ -3114,8 +3495,12 @@ function TBD:CustomTheme(options)
     return true
 end
 
--- Initialize TBD
+-- Configuration System
 TBD.Flags = {}
+TBD.ConfigSystem = {}
+local ConfigSystem = TBD.ConfigSystem
+
+-- Initialize TBD
 TBD.NotificationSystem:Setup()
 
 return TBD
