@@ -1006,24 +1006,25 @@ function NotificationSystem:GetContainerPosition(xOffset, yOffset)
     local position = self.Position
     
     -- Default offsets if not provided
-    xOffset = xOffset or (position:match("Right") and -self.Margin or self.Margin)
-    yOffset = yOffset or (position:match("^Bottom") and -self.Margin or self.Margin)
+    xOffset = xOffset or (position:find("Right") and -self.Margin or self.Margin)
+    yOffset = yOffset or (position:find("Bottom") and -self.Margin or self.Margin)
     
-    -- Get anchor points and position based on desired notification position
+    -- Get anchor points based on desired notification position
     local xScale, yScale
     
-    if position:match("Right") then
+    if position:find("Right") then
         xScale = 1
     else
         xScale = 0
     end
     
-    if position:match("^Bottom") then
+    if position:find("Bottom") then
         yScale = 1
     else
         yScale = 0
     end
     
+    -- Return UDim2 position
     return UDim2.new(xScale, xOffset, yScale, yOffset)
 end
 
@@ -2266,9 +2267,278 @@ function TBD:CreateWindow(options)
             return button
         end
         
+        function tab:CreateToggle(options)
+            options = options or {}
+            local name = options.Name or "Toggle"
+            local description = options.Description
+            local currentValue = options.CurrentValue or false
+            local flag = options.Flag or name
+            local callback = options.Callback or function() end
+            
+            local toggle = {}
+            
+            -- Create toggle container with proper height based on description
+            local height = description and (IS_MOBILE and 62 or 54) or (IS_MOBILE and 44 or 36)
+            local toggleContainer = Create("Frame", {
+                Name = "Toggle_" .. name,
+                Size = UDim2.new(1, 0, 0, height),
+                BackgroundColor3 = ActiveTheme.ElementBackground,
+                BackgroundTransparency = 0.2,
+                Parent = tabContainer
+            })
+            
+            local toggleCorner = Create("UICorner", {
+                CornerRadius = ActiveTheme.CornerRadius,
+                Parent = toggleContainer
+            })
+            
+            -- Create toggle title
+            local toggleTitle = Create("TextLabel", {
+                Name = "Title",
+                Size = UDim2.new(1, -74, 0, 18),
+                Position = UDim2.new(0, 10, 0, IS_MOBILE and 13 or 9),
+                Text = name,
+                TextColor3 = ActiveTheme.TextPrimary,
+                TextSize = ScaleToDevice(ActiveTheme.TextSize),
+                Font = ActiveTheme.Font,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                BackgroundTransparency = 1,
+                Parent = toggleContainer
+            })
+            
+            -- Create description if provided
+            if description then
+                local descriptionLabel = Create("TextLabel", {
+                    Name = "Description",
+                    Size = UDim2.new(1, -74, 0, 18),
+                    Position = UDim2.new(0, 10, 0, IS_MOBILE and 32 or 26),
+                    Text = description,
+                    TextColor3 = ActiveTheme.TextSecondary,
+                    TextSize = ScaleToDevice(ActiveTheme.TextSize - 2),
+                    Font = ActiveTheme.Font,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    BackgroundTransparency = 1,
+                    Parent = toggleContainer
+                })
+                
+                toggle.Description = descriptionLabel
+            end
+            
+            -- Create toggle indicator (background)
+            local toggleBG = Create("Frame", {
+                Name = "ToggleBackground",
+                Size = UDim2.new(0, IS_MOBILE and 54 or 44, 0, IS_MOBILE and 28 or 22),
+                Position = UDim2.new(1, IS_MOBILE and -64 or -54, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundColor3 = currentValue and ActiveTheme.Primary or ActiveTheme.InputBackground,
+                BorderSizePixel = 0,
+                Parent = toggleContainer
+            })
+            
+            local bgCorner = Create("UICorner", {
+                CornerRadius = UDim.new(1, 0), -- Make it fully rounded
+                Parent = toggleBG
+            })
+            
+            -- Create toggle knob/switch
+            local knobSize = IS_MOBILE and 22 or 18
+            local knobInset = IS_MOBILE and 3 or 2
+            local knobPosition = currentValue and 
+                                 UDim2.new(1, -(knobSize + knobInset), 0.5, 0) or 
+                                 UDim2.new(0, knobInset, 0.5, 0)
+            
+            local toggleKnob = Create("Frame", {
+                Name = "Knob",
+                Size = UDim2.new(0, knobSize, 0, knobSize),
+                Position = knobPosition,
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BorderSizePixel = 0,
+                Parent = toggleBG
+            })
+            
+            local knobCorner = Create("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+                Parent = toggleKnob
+            })
+            
+            -- Set config flag if provided
+            if flag then
+                ConfigSystem:SetFlag(flag, currentValue)
+            end
+            
+            -- Make toggle clickable
+            toggleContainer.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    toggle:Toggle()
+                end
+            end)
+            
+            toggleBG.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    toggle:Toggle()
+                end
+            end)
+            
+            -- Toggle function
+            function toggle:Toggle()
+                -- Flip value
+                currentValue = not currentValue
+                
+                -- Animate position change
+                local newPosition = currentValue and 
+                                   UDim2.new(1, -(knobSize + knobInset), 0.5, 0) or 
+                                   UDim2.new(0, knobInset, 0.5, 0)
+                
+                -- Animate background color
+                TweenService:Create(toggleBG, TweenInfo.new(0.2), {
+                    BackgroundColor3 = currentValue and ActiveTheme.Primary or ActiveTheme.InputBackground
+                }):Play()
+                
+                -- Animate knob position
+                TweenService:Create(toggleKnob, TweenInfo.new(0.2), {
+                    Position = newPosition
+                }):Play()
+                
+                -- Update config flag
+                if flag then
+                    ConfigSystem:SetFlag(flag, currentValue)
+                end
+                
+                -- Call callback function
+                task.spawn(function()
+                    pcall(callback, currentValue)
+                end)
+            end
+            
+            -- Set function
+            function toggle:Set(newValue)
+                if currentValue ~= newValue then
+                    currentValue = not currentValue -- Prepare for toggle to flip it
+                    toggle:Toggle()
+                end
+            end
+            
+            -- Get state function
+            function toggle:GetState()
+                return currentValue
+            end
+            
+            -- Update description text
+            function toggle:SetDescription(newDescription)
+                if toggle.Description then
+                    toggle.Description.Text = newDescription
+                elseif newDescription then
+                    local descriptionLabel = Create("TextLabel", {
+                        Name = "Description",
+                        Size = UDim2.new(1, -74, 0, 18),
+                        Position = UDim2.new(0, 10, 0, IS_MOBILE and 32 or 26),
+                        Text = newDescription,
+                        TextColor3 = ActiveTheme.TextSecondary,
+                        TextSize = ScaleToDevice(ActiveTheme.TextSize - 2),
+                        Font = ActiveTheme.Font,
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        BackgroundTransparency = 1,
+                        Parent = toggleContainer
+                    })
+                    
+                    toggle.Description = descriptionLabel
+                    toggleContainer.Size = UDim2.new(1, 0, 0, IS_MOBILE and 62 or 54)
+                end
+            end
+            
+            -- Track element
+            table.insert(tab.Elements, toggle)
+            
+            return toggle
+        end
+        
         -- In a complete implementation, the remaining element creation methods would be added here
         
         return tab
+    end
+    
+    -- Create a home page with player info
+    function window:CreateHomePage()
+        if not options.ShowHomePage then return end
+        
+        -- Create the home tab with player info
+        local homeTab = self:CreateTab({
+            Name = "Home",
+            Icon = "home",
+            ImageSource = "Phosphor",
+            ShowTitle = true
+        })
+        
+        -- Store reference to home tab
+        self.HomeTab = homeTab
+        
+        -- Welcome section
+        homeTab:CreateSection("Welcome")
+        
+        -- Player information
+        local playerName = game.Players.LocalPlayer.Name
+        local playerDisplayName = game.Players.LocalPlayer.DisplayName or playerName
+        local playerID = game.Players.LocalPlayer.UserId
+        local playerAge = game.Players.LocalPlayer.AccountAge or 0
+        
+        -- Player information display
+        local playerLabel = homeTab:CreateButton({
+            Name = "Player Info",
+            Description = "Logged in as: " .. playerDisplayName,
+            Callback = function() end
+        })
+        
+        -- Avatar display if possible
+        local success, result = pcall(function()
+            -- Try to get player thumbnail
+            local thumbType = Enum.ThumbnailType.HeadShot
+            local thumbSize = Enum.ThumbnailSize.Size420x420
+            local content = game.Players:GetUserThumbnailAsync(playerID, thumbType, thumbSize)
+            
+            -- Create avatar display
+            local avatarDisplay = homeTab:CreateButton({
+                Name = "Avatar", 
+                Description = "User ID: " .. playerID .. " | Account Age: " .. playerAge .. " days",
+                Callback = function() end
+            })
+            
+            return true
+        end)
+        
+        -- Add game info
+        homeTab:CreateDivider()
+        homeTab:CreateSection("Game Info")
+        
+        -- Game details
+        local gameInfo = homeTab:CreateButton({
+            Name = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Game",
+            Description = "Place ID: " .. game.PlaceId,
+            Callback = function() end
+        })
+        
+        -- Server info
+        local players = #game.Players:GetPlayers()
+        local maxPlayers = game.Players.MaxPlayers
+        
+        local serverInfo = homeTab:CreateButton({
+            Name = "Server Info",
+            Description = "Players: " .. players .. "/" .. maxPlayers,
+            Callback = function() end
+        })
+        
+        -- TBD UI Library credits
+        homeTab:CreateDivider()
+        homeTab:CreateSection("UI Library")
+        
+        homeTab:CreateButton({
+            Name = "TBD UI Library",
+            Description = "Version 1.1.0",
+            Callback = function() end
+        })
+        
+        -- Return the home tab in case the developer wants to add more elements
+        return homeTab
     end
     
     -- Select a tab by ID
@@ -2358,6 +2628,14 @@ function TBD:CreateWindow(options)
             wait(0.4)
             screenGui:Destroy()
         end)
+    end
+    
+    -- Add ShowHomePage option to window creation options
+    local showHomePage = options.ShowHomePage ~= nil and options.ShowHomePage or false
+    
+    -- Create home page if enabled
+    if showHomePage then
+        window:CreateHomePage()
     end
     
     return window
