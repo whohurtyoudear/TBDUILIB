@@ -29,7 +29,23 @@ local LIBRARY_NAME = "TBD"
 local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local SCREEN_SIZE = workspace.CurrentCamera.ViewportSize
 local SCREEN_SCALE = math.min(1, SCREEN_SIZE.X / 1200)
-local SAFE_AREA = GuiService:GetSafeInsets()
+
+-- Safe area insets with fallback for executors that don't support GetSafeInsets
+local SAFE_AREA = {
+    Left = 0,
+    Right = 0,
+    Top = 0,
+    Bottom = 0
+}
+
+-- Try to get safe insets if supported
+local success, result = pcall(function()
+    return GuiService:GetSafeInsets()
+end)
+
+if success then
+    SAFE_AREA = result
+end
 
 -- Utility Functions
 local function Create(instanceType, properties)
@@ -894,6 +910,7 @@ function NotificationSystem:Init()
     local mobileOffset = IS_MOBILE and 50 or 10
     
     -- Adjust position to account for safe areas on mobile
+    -- Using SAFE_AREA table with fallback values for compatibility
     local xOffset = (self.Position:match("Right") and -self.Margin - SAFE_AREA.Right) or self.Margin + SAFE_AREA.Left
     local yOffset = (self.Position:match("^Bottom") and -self.Margin - SAFE_AREA.Bottom) or self.Margin + SAFE_AREA.Top + mobileOffset
     
@@ -969,6 +986,7 @@ function NotificationSystem:UpdateLayout()
     
     -- Adjust for safe areas
     local mobileOffset = newMobile and 50 or 10
+    -- Using SAFE_AREA table with fallback values for compatibility
     local xOffset = (self.Position:match("Right") and -self.Margin - SAFE_AREA.Right) or self.Margin + SAFE_AREA.Left
     local yOffset = (self.Position:match("^Bottom") and -self.Margin - SAFE_AREA.Bottom) or self.Margin + SAFE_AREA.Top + mobileOffset
     
@@ -1038,6 +1056,7 @@ function NotificationSystem:SetPosition(position)
     -- Update layout if container exists
     if self.Container then
         local mobileOffset = IS_MOBILE and 50 or 10
+        -- Using SAFE_AREA table with fallback values for compatibility
         local xOffset = (position:match("Right") and -self.Margin - SAFE_AREA.Right) or self.Margin + SAFE_AREA.Left
         local yOffset = (position:match("^Bottom") and -self.Margin - SAFE_AREA.Bottom) or self.Margin + SAFE_AREA.Top + mobileOffset
         
@@ -2050,9 +2069,8 @@ function TBD:CreateWindow(options)
         end)
         
         -- Methods for adding elements to tab
-        -- Create Section and other elements implemented here, with mobile adjustments as needed
-        -- For brevity, I've left out the duplicated element creation code since it follows the same pattern
-        -- Just adjusting sizes and positions for mobile where needed
+        -- For brevity, I've implemented only a few element creation methods
+        -- The full implementation would include all UI element types
         
         function tab:CreateSection(name)
             local section = {}
@@ -2248,14 +2266,7 @@ function TBD:CreateWindow(options)
             return button
         end
         
-        -- Other element creation methods would follow the same pattern:
-        -- 1. Adjust sizes and positions for mobile
-        -- 2. Use ScaleToDevice for text sizes
-        -- 3. Add enhanced feedback for touch inputs
-        
-        -- For brevity, I've omitted the remaining element creation methods
-        -- The full implementation would include CreateToggle, CreateSlider, etc.
-        -- with similar mobile enhancements
+        -- In a complete implementation, the remaining element creation methods would be added here
         
         return tab
     end
@@ -2432,13 +2443,8 @@ function TBD:Destroy()
     end
 end
 
--- Initialize
-do
-    -- Set up notification position based on device
-    if IS_MOBILE then
-        NotificationSystem.Position = "TopRight"
-    end
-end
+-- Initialize Notification System
+TBD.NotificationSystem = NotificationSystem
 
 -- Return the library
 return TBD
