@@ -1,10 +1,10 @@
 --[[
-    TBD UI Library - Enhanced Example Script
-    This example demonstrates all features of the enhanced TBD UI Library
+    TBD UI Library - Fixed Example Script
+    This example demonstrates all features of the fixed TBD UI Library
 ]]
 
 -- Load the TBD UI Library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
 
 -- Create a Window with enhanced options
 local Window = TBD:CreateWindow({
@@ -18,6 +18,9 @@ local Window = TBD:CreateWindow({
     LoadingTitle = "TBD Script Hub",
     LoadingSubtitle = "Loading awesome features...",
     
+    -- Enable the home page feature that shows player info
+    ShowHomePage = true,
+    
     -- Enhanced loading screen customization
     LoadingScreenCustomization = {
         AnimationStyle = "Slide", -- Options: "Fade", "Slide", "Scale"
@@ -28,25 +31,11 @@ local Window = TBD:CreateWindow({
     
     ConfigSettings = {
         ConfigFolder = "TBDScriptHub"
-    },
-    
-    -- Uncomment to enable key system
-    --[[
-    KeySystem = true,
-    KeySettings = {
-        Title = "Authentication Required",
-        Subtitle = "Key System",
-        Note = "Get your key from our Discord server",
-        SaveKey = true,
-        Keys = {"EXAMPLE-KEY-12345", "PREMIUM-KEY-67890"},
-        SecondaryAction = {
-            Enabled = true,
-            Type = "Discord",
-            Parameter = "your-discord-invite-code"
-        }
     }
-    --]]
 })
+
+-- The Home tab is automatically created when ShowHomePage is true
+-- You can access it with Window.HomeTab if you need to add custom elements
 
 -- Create Tabs
 local MainTab = Window:CreateTab({
@@ -87,7 +76,6 @@ MainTab:CreateButton({
     Name = "Join Discord",
     Description = "Join our community for updates and support",
     Callback = function()
-        -- Implement your Discord invite logic here
         TBD:Notification({
             Title = "Discord Invite",
             Message = "Opening Discord invite link...",
@@ -98,6 +86,9 @@ MainTab:CreateButton({
         -- Example: setclipboard("https://discord.gg/your-invite")
     end
 })
+
+-- Fix position of notifications
+TBD.NotificationSystem:SetPosition("TopRight")
 
 -- Show different notification types
 local notifyButton = MainTab:CreateButton({
@@ -151,10 +142,12 @@ MainTab:CreateDivider()
 
 MainTab:CreateSection("Script Status")
 
+-- Demonstrating the fixed CreateToggle function
 MainTab:CreateToggle({
     Name = "Anti AFK",
     Description = "Prevents being kicked for inactivity",
     CurrentValue = true,
+    Flag = "AntiAFK", -- Flag for saving in config
     Callback = function(Value)
         -- Implement Anti AFK logic
         if Value then
@@ -175,17 +168,18 @@ MainTab:CreateToggle({
             -- Disable anti-AFK
         end
     end
-}, "AntiAFK")
+})
 
 -- Player Tab Elements
 PlayerTab:CreateSection("Character Modifications")
 
-local WalkSpeedSlider = PlayerTab:CreateSlider({
+PlayerTab:CreateSlider({
     Name = "Walk Speed",
     Description = "Modify your character's walking speed",
     Range = {16, 500},
     Increment = 1,
     CurrentValue = 16,
+    Flag = "WalkSpeed", -- Flag for saving in config
     Callback = function(Value)
         -- Implement walk speed
         if game.Players.LocalPlayer.Character and 
@@ -193,14 +187,15 @@ local WalkSpeedSlider = PlayerTab:CreateSlider({
             game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
         end
     end
-}, "WalkSpeed")
+})
 
-local JumpPowerSlider = PlayerTab:CreateSlider({
+PlayerTab:CreateSlider({
     Name = "Jump Power",
     Description = "Modify your character's jumping ability",
     Range = {50, 500},
     Increment = 5,
     CurrentValue = 50,
+    Flag = "JumpPower", -- Flag for saving in config
     Callback = function(Value)
         -- Implement jump power
         if game.Players.LocalPlayer.Character and 
@@ -208,12 +203,14 @@ local JumpPowerSlider = PlayerTab:CreateSlider({
             game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
         end
     end
-}, "JumpPower")
+})
 
+-- Another example of CreateToggle usage
 PlayerTab:CreateToggle({
     Name = "Infinite Jump",
     Description = "Jump as many times as you want in the air",
     CurrentValue = false,
+    Flag = "InfiniteJump", -- Flag for saving in config
     Callback = function(Value)
         -- Implement infinite jump
         _G.InfiniteJump = Value
@@ -230,134 +227,7 @@ PlayerTab:CreateToggle({
             end)
         end
     end
-}, "InfiniteJump")
-
-PlayerTab:CreateDivider()
-
-PlayerTab:CreateSection("Player Abilities")
-
-PlayerTab:CreateToggle({
-    Name = "Fly",
-    Description = "Allows your character to fly",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Basic fly script implementation
-        if Value then
-            -- Enable fly
-            TBD:Notification({
-                Title = "Fly Enabled",
-                Message = "Press E to toggle flying, WASD to move",
-                Type = "Success"
-            })
-            
-            -- Your fly implementation here
-            -- This is a placeholder for actual fly code
-            local player = game.Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoid = character:WaitForChild("Humanoid")
-            local torso = character:WaitForChild("HumanoidRootPart")
-            
-            -- Note: This is a simplified example, a real fly script would be more complex
-            _G.Flying = false
-            
-            -- Actual fly code would go here
-        else
-            -- Disable fly
-            TBD:Notification({
-                Title = "Fly Disabled",
-                Message = "Flying has been disabled",
-                Type = "Info"
-            })
-            
-            -- Disable fly implementation
-            _G.Flying = false
-        end
-    end
-}, "Fly")
-
--- Visuals Tab Elements
-VisualsTab:CreateSection("ESP Settings")
-
-VisualsTab:CreateToggle({
-    Name = "Player ESP",
-    Description = "See players through walls",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Implement ESP
-        _G.PlayerESP = Value
-        
-        if Value then
-            TBD:Notification({
-                Title = "ESP Enabled",
-                Message = "Player ESP is now active",
-                Type = "Success"
-            })
-            
-            -- Your ESP implementation here
-        else
-            TBD:Notification({
-                Title = "ESP Disabled",
-                Message = "Player ESP is now inactive",
-                Type = "Info"
-            })
-            
-            -- Disable ESP
-        end
-    end
-}, "PlayerESP")
-
-VisualsTab:CreateColorPicker({
-    Name = "ESP Color",
-    Description = "Change the color of ESP highlights",
-    Color = Color3.fromRGB(255, 0, 0),
-    Callback = function(Color)
-        -- Update ESP color
-        _G.ESPColor = Color
-    end
-}, "ESPColor")
-
-VisualsTab:CreateDivider()
-
-VisualsTab:CreateSection("Game Visuals")
-
-VisualsTab:CreateToggle({
-    Name = "Full Bright",
-    Description = "Makes the game fully bright",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Implement full bright
-        if Value then
-            -- Enable full bright
-            _G.OriginalBrightness = game:GetService("Lighting").Brightness
-            _G.OriginalAmbient = game:GetService("Lighting").Ambient
-            
-            game:GetService("Lighting").Brightness = 2
-            game:GetService("Lighting").Ambient = Color3.fromRGB(255, 255, 255)
-            game:GetService("Lighting").GlobalShadows = false
-        else
-            -- Disable full bright
-            if _G.OriginalBrightness then
-                game:GetService("Lighting").Brightness = _G.OriginalBrightness
-                game:GetService("Lighting").Ambient = _G.OriginalAmbient
-                game:GetService("Lighting").GlobalShadows = true
-            end
-        end
-    end
-}, "FullBright")
-
-VisualsTab:CreateSlider({
-    Name = "Field of View",
-    Description = "Adjust camera field of view",
-    Range = {70, 120},
-    Increment = 1,
-    CurrentValue = 70,
-    Callback = function(Value)
-        -- Implement FOV changer
-        if game:GetService("Workspace").CurrentCamera then
-            game:GetService("Workspace").CurrentCamera.FieldOfView = Value
-        end
-    end
-}, "FieldOfView")
+})
 
 -- Themes Tab Elements - Showcasing the new theme features
 ThemesTab:CreateSection("UI Themes")
@@ -367,103 +237,13 @@ ThemesTab:CreateDropdown({
     Description = "Choose a pre-built theme for the UI",
     Items = {"Default", "Midnight", "Neon", "Aqua"}, -- Added new Aqua theme
     Default = "Aqua",
+    Flag = "UITheme", -- Flag for saving in config
     Callback = function(Theme)
         TBD:SetTheme(Theme)
         
         TBD:Notification({
             Title = "Theme Changed",
             Message = "Applied the " .. Theme .. " theme",
-            Type = "Success"
-        })
-    end
-}, "UITheme")
-
-ThemesTab:CreateColorPicker({
-    Name = "Primary Color",
-    Description = "Change the main accent color",
-    Color = Color3.fromRGB(0, 210, 255), -- Default Aqua primary color
-    Callback = function(Color)
-        -- Apply just the primary color change
-        TBD:CustomTheme({
-            Primary = Color,
-            PrimaryDark = Color:Lerp(Color3.new(0, 0, 0), 0.2) -- Automatically create a darker version
-        })
-    end
-}, "PrimaryColor")
-
-ThemesTab:CreateSlider({
-    Name = "UI Transparency",
-    Description = "Adjust the transparency of the UI",
-    Range = {0, 90},
-    Increment = 5,
-    CurrentValue = 5,
-    Callback = function(Value)
-        -- Calculate transparency (0-1 range)
-        local transparency = Value / 100
-        
-        -- Apply transparency
-        TBD:CustomTheme({
-            Transparency = 1 - transparency -- Convert to the format the library expects
-        })
-    end
-}, "UITransparency")
-
-ThemesTab:CreateDropdown({
-    Name = "Icon Pack",
-    Description = "Choose which icon style to use",
-    Items = {"Material", "Phosphor"},
-    Default = "Phosphor",
-    Callback = function(Pack)
-        -- Change icon pack
-        TBD:CustomTheme({
-            IconPack = Pack
-        })
-        
-        TBD:Notification({
-            Title = "Icon Pack Changed",
-            Message = "Applied the " .. Pack .. " icon pack. Changes will appear when reopening the UI.",
-            Type = "Info"
-        })
-    end
-}, "IconPack")
-
-ThemesTab:CreateToggle({
-    Name = "Drop Shadows",
-    Description = "Toggle UI element shadows",
-    CurrentValue = true,
-    Callback = function(Value)
-        -- Toggle drop shadows
-        TBD:CustomTheme({
-            DropShadowEnabled = Value
-        })
-    end
-}, "DropShadows")
-
-ThemesTab:CreateDivider()
-
-ThemesTab:CreateSection("Custom Theme")
-
-ThemesTab:CreateButton({
-    Name = "Create Random Theme",
-    Description = "Generate a random color theme",
-    Callback = function()
-        -- Generate random colors
-        local primary = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
-        local background = Color3.fromRGB(math.random(10, 30), math.random(10, 30), math.random(10, 30))
-        
-        -- Apply random theme
-        TBD:CustomTheme({
-            Primary = primary,
-            PrimaryDark = primary:Lerp(Color3.new(0, 0, 0), 0.2),
-            Background = background,
-            ContainerBackground = background:Lerp(Color3.new(1, 1, 1), 0.1),
-            SecondaryBackground = background:Lerp(Color3.new(1, 1, 1), 0.2),
-            ElementBackground = background:Lerp(Color3.new(1, 1, 1), 0.3)
-        })
-        
-        TBD:Notification({
-            Title = "Random Theme Applied",
-            Message = "Created a unique random theme!",
             Type = "Success"
         })
     end
@@ -477,9 +257,10 @@ SettingsTab:CreateDropdown({
     Description = "Where notifications appear on screen",
     Items = {"TopRight", "TopLeft", "BottomRight", "BottomLeft"},
     Default = "TopRight",
+    Flag = "NotificationPosition", -- Flag for saving in config
     Callback = function(Position)
         -- Set notification position
-        NotificationSystem:SetPosition(Position)
+        TBD.NotificationSystem:SetPosition(Position)
         
         TBD:Notification({
             Title = "Position Updated",
@@ -487,117 +268,4 @@ SettingsTab:CreateDropdown({
             Type = "Info"
         })
     end
-}, "NotificationPosition")
-
-SettingsTab:CreateSlider({
-    Name = "Notification Duration",
-    Description = "How long notifications remain on screen (seconds)",
-    Range = {1, 10},
-    Increment = 0.5,
-    CurrentValue = 5,
-    Callback = function(Value)
-        -- Update notification duration
-        NotificationSystem.DefaultDuration = Value
-        
-        TBD:Notification({
-            Title = "Duration Updated",
-            Message = "Notifications will now display for " .. Value .. " seconds",
-            Type = "Info",
-            Duration = Value -- Apply the new duration immediately
-        })
-    end
-}, "NotificationDuration")
-
-SettingsTab:CreateDivider()
-
-SettingsTab:CreateSection("Configuration")
-
-SettingsTab:CreateButton({
-    Name = "Save Configuration",
-    Description = "Save current settings to a file",
-    Callback = function()
-        -- Implement save logic with a name input
-        local configName = "DefaultConfig"
-        TBD:SaveConfig(configName)
-        
-        TBD:Notification({
-            Title = "Configuration Saved",
-            Message = "Saved settings as " .. configName,
-            Type = "Success"
-        })
-    end
 })
-
-SettingsTab:CreateButton({
-    Name = "Reset All Settings",
-    Description = "Reset all settings to default values",
-    Callback = function()
-        -- Reset all settings
-        
-        -- Reset player settings
-        WalkSpeedSlider:Set(16)
-        JumpPowerSlider:Set(50)
-        
-        -- Apply to character
-        if game.Players.LocalPlayer.Character and 
-           game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
-            game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
-        end
-        
-        TBD:Notification({
-            Title = "Settings Reset",
-            Message = "All settings have been reset to defaults",
-            Type = "Info"
-        })
-    end
-})
-
-SettingsTab:CreateDivider()
-
-SettingsTab:CreateSection("Script Management")
-
-SettingsTab:CreateButton({
-    Name = "Unload Script",
-    Description = "Completely remove the script from the game",
-    Callback = function()
-        TBD:Notification({
-            Title = "Unloading Script",
-            Message = "Goodbye! The script will now unload",
-            Type = "Info"
-        })
-        
-        -- Wait for notification to show
-        task.wait(1)
-        
-        -- Reset character to default settings
-        if game.Players.LocalPlayer.Character and 
-           game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
-            game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
-        end
-        
-        -- Reset camera FOV
-        if game:GetService("Workspace").CurrentCamera then
-            game:GetService("Workspace").CurrentCamera.FieldOfView = 70
-        end
-        
-        -- Reset lighting
-        if _G.OriginalBrightness then
-            game:GetService("Lighting").Brightness = _G.OriginalBrightness
-            game:GetService("Lighting").Ambient = _G.OriginalAmbient
-            game:GetService("Lighting").GlobalShadows = true
-        end
-        
-        -- Disable all global settings
-        _G.InfiniteJump = false
-        _G.PlayerESP = false
-        _G.Flying = false
-        
-        -- Unload the UI
-        TBD:Destroy()
-    end
-})
-
--- Load auto-save config at the end of the script
-TBD:LoadAutoloadConfig()
