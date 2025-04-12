@@ -1,11 +1,13 @@
-# TBD UI Library - Documentation
+# TBD UI Library - Enhanced Documentation
 
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [What's New in v1.1.0](#whats-new-in-v110)
 - [Getting Started](#getting-started)
   - [Installing the Library](#installing-the-library)
   - [Creating a Window](#creating-a-window)
+  - [Customizing the Loading Screen](#customizing-the-loading-screen)
   - [Key System Setup](#key-system-setup)
   - [Working with Tabs](#working-with-tabs)
   - [Configuration System](#configuration-system)
@@ -19,10 +21,13 @@
   - [Dropdowns](#dropdowns)
   - [Color Pickers](#color-pickers)
 - [Notifications](#notifications)
+  - [Notification Types](#notification-types)
+  - [Customizing Notifications](#customizing-notifications)
 - [Theming](#theming)
   - [Built-in Themes](#built-in-themes)
   - [Custom Themes](#custom-themes)
   - [Icon Packs](#icon-packs)
+- [Mobile Support](#mobile-support)
 - [Advanced Features](#advanced-features)
   - [Configuration Flags](#configuration-flags)
   - [Saving and Loading Configurations](#saving-and-loading-configurations)
@@ -42,6 +47,46 @@ Key features include:
 - Advanced configuration system for saving user settings
 - Elegant notification system
 
+## What's New in v1.1.0
+
+The enhanced version includes several major improvements:
+
+1. **Improved Mobile Support**
+   - Automatic device detection
+   - Responsive sizing and layout
+   - Larger touch targets for mobile users
+   - Optimized for different screen sizes
+
+2. **Fixed Notification System**
+   - Properly positioned notifications on all devices
+   - Accounts for safe areas and screen boundaries
+   - Customizable notification position
+
+3. **Enhanced Window Controls**
+   - Better close and minimize buttons
+   - More responsive dragging behavior
+   - Proper scaling for different devices
+
+4. **Customizable Loading Screen**
+   - Three animation styles: Fade, Slide, and Scale
+   - Customizable element positioning
+   - Configurable loading screen appearance
+
+5. **New Theme: Aqua**
+   - Fresh cyan-based color scheme
+   - Clean, modern appearance
+   - Optimized for readability
+
+6. **Better Error Handling**
+   - Comprehensive error checking
+   - Graceful fallbacks
+   - Detailed warning messages
+
+7. **Performance Optimizations**
+   - More efficient rendering
+   - Better memory management
+   - Dynamic layout updates
+
 ## Getting Started
 
 ### Installing the Library
@@ -49,24 +94,35 @@ Key features include:
 To use TBD UI Library in your script, include the following code at the beginning of your script:
 
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 ```
 
 ### Creating a Window
 
-A window is the main container for your interface. You can create a window with various customization options:
+A window is the main container for your interface. The enhanced version offers more customization options:
 
 ```lua
 local Window = TBD:CreateWindow({
     Title = "My Amazing Script",                -- Window title
     Subtitle = "v1.0.0",                        -- Optional subtitle
-    Theme = "Default",                          -- Theme (Default, Midnight, Neon)
+    Theme = "Aqua",                             -- Theme (Default, Midnight, Neon, Aqua)
     Size = {500, 600},                          -- Window size (Width, Height)
     Position = "Center",                        -- Window position ("Center" or {X, Y})
     LogoId = "12345678",                        -- Optional logo AssetId
     LoadingEnabled = true,                      -- Show loading screen
     LoadingTitle = "My Amazing Script",         -- Loading screen title
     LoadingSubtitle = "by Me",                  -- Loading screen subtitle
+    
+    -- NEW: Loading screen customization
+    LoadingScreenCustomization = {
+        AnimationStyle = "Fade",                -- "Fade", "Slide", or "Scale"
+        LogoSize = UDim2.new(0, 100, 0, 100),   -- Size of the logo
+        LogoPosition = UDim2.new(0.5, 0, 0.35, 0), -- Position of the logo
+        TitlePosition = UDim2.new(0.5, 0, 0.55, 0), -- Position of the title
+        SubtitlePosition = UDim2.new(0.5, 0, 0.62, 0), -- Position of the subtitle
+        ProgressBarPosition = UDim2.new(0.5, 0, 0.75, 0), -- Position of the progress bar
+        ProgressBarSize = UDim2.new(0.7, 0, 0, 6) -- Size of the progress bar
+    },
     
     -- Configuration settings (optional)
     ConfigSettings = {
@@ -78,7 +134,34 @@ local Window = TBD:CreateWindow({
 })
 ```
 
-All parameters are optional except `Title`. The default window size is 400×500 pixels if not specified.
+All parameters are optional except `Title`. The default window size is adjusted automatically for mobile devices.
+
+### Customizing the Loading Screen
+
+The enhanced version allows for extensive loading screen customization:
+
+```lua
+LoadingScreenCustomization = {
+    -- Animation style for entering/exiting
+    AnimationStyle = "Fade",  -- Options: "Fade", "Slide", "Scale"
+    
+    -- Optional: Custom background color (uses theme Background by default)
+    BackgroundColor = Color3.fromRGB(15, 15, 20),
+    
+    -- Element sizing and positioning
+    LogoSize = UDim2.new(0, 120, 0, 120),
+    LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
+    TitlePosition = UDim2.new(0.5, 0, 0.55, 0),
+    SubtitlePosition = UDim2.new(0.5, 0, 0.62, 0),
+    ProgressBarPosition = UDim2.new(0.5, 0, 0.75, 0),
+    ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
+}
+```
+
+Animation Styles:
+- `"Fade"` - Elements fade in and out smoothly
+- `"Slide"` - Loading screen slides in from bottom and exits upward
+- `"Scale"` - Loading screen grows from center and shrinks when done
 
 ### Key System Setup
 
@@ -308,7 +391,45 @@ Methods:
 
 ## Notifications
 
-Notifications display temporary messages to the user:
+The notification system has been completely rebuilt to work properly on all devices.
+
+### Notification Types
+
+TBD supports four notification types: Info, Success, Warning, and Error.
+
+```lua
+-- Info notification (blue)
+TBD:Notification({
+    Title = "Information",
+    Message = "This is an informational message",
+    Type = "Info" -- This is the default type if not specified
+})
+
+-- Success notification (green)
+TBD:Notification({
+    Title = "Success",
+    Message = "Operation completed successfully!",
+    Type = "Success"
+})
+
+-- Warning notification (yellow/orange)
+TBD:Notification({
+    Title = "Warning",
+    Message = "Please be careful with this action",
+    Type = "Warning"
+})
+
+-- Error notification (red)
+TBD:Notification({
+    Title = "Error",
+    Message = "Something went wrong!",
+    Type = "Error"
+})
+```
+
+### Customizing Notifications
+
+Notifications can be customized with several options:
 
 ```lua
 TBD:Notification({
@@ -323,19 +444,40 @@ TBD:Notification({
 })
 ```
 
+**NEW:** You can now change the position where notifications appear:
+
+```lua
+-- Change where notifications appear on screen
+TBD.NotificationSystem:SetPosition("BottomRight")
+
+-- Available positions:
+-- "TopRight" (default)
+-- "TopLeft"
+-- "BottomRight"
+-- "BottomLeft"
+```
+
+You can also customize the default duration for all notifications:
+
+```lua
+-- Set default notification duration to 3 seconds
+TBD.NotificationSystem.DefaultDuration = 3
+```
+
 ## Theming
 
 ### Built-in Themes
 
-TBD includes three built-in themes:
+TBD now includes four built-in themes:
 - `Default` - Dark blue/purple theme
 - `Midnight` - Deep purple theme
 - `Neon` - Vibrant cyan theme
+- `Aqua` - New cyan/blue theme (added in v1.1.0)
 
 To switch themes:
 
 ```lua
-TBD:SetTheme("Midnight")
+TBD:SetTheme("Aqua")
 ```
 
 ### Custom Themes
@@ -344,12 +486,54 @@ You can create custom themes by overriding specific theme properties:
 
 ```lua
 TBD:CustomTheme({
+    -- Core Colors
     Primary = Color3.fromRGB(255, 0, 0),           -- Main accent color (red)
     PrimaryDark = Color3.fromRGB(200, 0, 0),       -- Darker accent
     Background = Color3.fromRGB(15, 15, 15),       -- Main background
+    ContainerBackground = Color3.fromRGB(25, 25, 30), -- Container background
+    SecondaryBackground = Color3.fromRGB(35, 35, 40), -- Secondary background
+    ElementBackground = Color3.fromRGB(45, 45, 50),   -- UI element background
+    
+    -- Text Colors
     TextPrimary = Color3.fromRGB(240, 240, 240),   -- Main text color
-    CornerRadius = UDim.new(0, 10),                -- Rounded corners
-    -- Add any other theme properties to override
+    TextSecondary = Color3.fromRGB(180, 180, 180), -- Secondary text
+    
+    -- Status Colors
+    Success = Color3.fromRGB(70, 230, 130),        -- Success indicators
+    Warning = Color3.fromRGB(255, 185, 65),        -- Warning indicators
+    Error = Color3.fromRGB(255, 70, 90),           -- Error indicators
+    Info = Color3.fromRGB(70, 190, 255),           -- Info indicators
+    
+    -- Other UI Colors
+    InputBackground = Color3.fromRGB(55, 55, 60),  -- Input field background
+    Highlight = Color3.fromRGB(255, 0, 0),         -- Highlight/hover color
+    BorderColor = Color3.fromRGB(60, 60, 65),      -- Border color
+    
+    -- Appearance Settings
+    DropShadowEnabled = true,                      -- Enable/disable shadows
+    RoundingEnabled = true,                        -- Enable/disable rounded corners
+    CornerRadius = UDim.new(0, 10),                -- Corner roundness
+    AnimationSpeed = 0.3,                          -- Animation duration
+    GlassEffect = true,                            -- Enable glass effect
+    BlurIntensity = 15,                            -- Blur amount
+    Transparency = 0.95,                           -- UI transparency
+    
+    -- Typography
+    Font = Enum.Font.GothamSemibold,               -- Main font
+    HeaderSize = 18,                               -- Header text size
+    TextSize = 14,                                 -- Regular text size
+    
+    -- Other Settings
+    IconPack = "Phosphor",                         -- Icon set ("Material" or "Phosphor")
+    MobileCompatible = true,                       -- Mobile optimization
+    
+    -- NEW: Loading Screen Customization
+    LoadingScreenCustomization = {
+        BackgroundColor = nil,                     -- Uses theme Background by default
+        AnimationStyle = "Fade",                   -- "Fade", "Slide", or "Scale"
+        LogoSize = UDim2.new(0, 100, 0, 100),
+        LogoPosition = UDim2.new(0.5, 0, 0.35, 0)
+    }
 })
 ```
 
@@ -360,6 +544,34 @@ TBD supports two icon packs:
 - `Phosphor` - Modern minimalist icons
 
 You can specify which icon pack to use when creating tabs or in your theme settings.
+
+## Mobile Support
+
+The enhanced version includes comprehensive mobile support:
+
+### Automatic Device Detection
+
+TBD automatically detects if a device is using touch input and adjusts the UI accordingly:
+
+- Larger buttons and interactive elements
+- Adjusted spacing and padding
+- Optimized layout for touch interaction
+- Safe area insets for notched devices
+
+### Mobile-Specific Adjustments
+
+- Sidebar width is reduced on mobile
+- Text sizes are increased for readability
+- Icons are larger and easier to tap
+- Notification positioning accounts for on-screen keyboards and system UI
+
+### Mobile Testing
+
+When testing on mobile:
+- Ensure UI elements are large enough to tap comfortably
+- Check that notifications appear in visible areas
+- Verify scrolling behavior works smoothly
+- Test with different screen orientations if possible
 
 ## Advanced Features
 
@@ -411,23 +623,26 @@ TBD Global Methods:
 - `TBD:CustomTheme(options)` - Apply custom theme
 - `TBD:Destroy()` - Remove all UI elements
 
+NEW Notification Methods:
+- `TBD.NotificationSystem:SetPosition(position)` - Change notification position
+
 ## Best Practices
 
-1. **Organize with tabs and sections**: Keep your UI organized by using tabs for major categories and sections within tabs for subcategories.
+1. **Optimize for all devices**: Test your UI on both desktop and mobile if possible
 
-2. **Use descriptive names**: Give your UI elements clear, descriptive names so users understand their purpose.
+2. **Organize with tabs and sections**: Keep your UI organized by using tabs for major categories and sections within tabs for subcategories.
 
-3. **Include descriptions**: Use the description parameter for complex features to provide additional context.
+3. **Use descriptive names**: Give your UI elements clear, descriptive names so users understand their purpose.
 
-4. **Use consistent flags**: When using the configuration system, use consistent, descriptive flag names that won't conflict with each other.
+4. **Include descriptions**: Use the description parameter for complex features to provide additional context.
 
-5. **Load auto-save config**: Always include `TBD:LoadAutoloadConfig()` at the end of your script to restore user settings.
+5. **Use consistent flags**: When using the configuration system, use consistent, descriptive flag names that won't conflict with each other.
 
-6. **Handle errors**: Wrap callback functions in pcall to handle potential errors gracefully.
+6. **Load auto-save config**: Always include `TBD:LoadAutoloadConfig()` at the end of your script to restore user settings.
 
-7. **Clean up when done**: Call `TBD:Destroy()` when your script is no longer needed to clean up resources.
+7. **Handle errors**: Wrap callback functions in pcall to handle potential errors gracefully.
 
-8. **Test thoroughly**: Test your UI on different screen sizes and with different executor environments.
+8. **Clean up when done**: Call `TBD:Destroy()` when your script is no longer needed to clean up resources.
 
 ## Troubleshooting
 
@@ -452,5 +667,12 @@ TBD Global Methods:
 **Issue**: Custom theme doesn't apply correctly
 - Make sure to call `TBD:CustomTheme()` after creating the window
 - Check that you're using valid Color3 values
+
+**Issue**: Notifications appear off-screen
+- Try changing the notification position with `TBD.NotificationSystem:SetPosition("TopRight")`
+- If still having issues, try updating to the latest library version
+
+**Issue**: Mobile UI looks too small
+- The enhanced version should automatically adjust for mobile, but if you're having issues, try setting larger sizes in your custom theme
 
 For additional help, please reach out through GitHub issues or the provided contact information.
