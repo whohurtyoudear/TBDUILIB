@@ -1,49 +1,37 @@
-# TBD UI Library - Enhanced & Fixed
+# TBD UI Library - New Edition
 
-A modern, feature-rich Roblox UI library for script hubs and executors with comprehensive documentation and numerous improvements.
-
-## Overview
-
-TBD UI Library is designed to provide an elegant, customizable interface for Roblox script hubs and executors. This enhanced version includes fixes for compatibility issues and adds new features to improve user experience.
+A modern, feature-rich Roblox UI library for script hubs and executors, inspired by popular designs like HoHo UI.
 
 ## Features
 
-- **Modern Design**: Clean, glass-like interface with smooth animations and transitions
-- **Responsive Layout**: Automatically adapts to different screen sizes and devices, including mobile support
-- **Comprehensive Element Set**: Includes buttons, toggles, sliders, dropdowns, colorpickers, and more
-- **Customizable Themes**: Choose from pre-built themes or create your own custom theme
-- **Notification System**: Display elegant notifications with different types (success, info, warning, error)
-- **Configuration System**: Save and load user configurations automatically
-- **Home Page Feature**: Display player information, game details, and library credits
-- **Executor Compatibility**: Fixed to work properly across different Roblox executors
-
-## Recent Fixes & Improvements
-
-1. **GetSafeInsets Compatibility**: Implemented fallback for executors that don't support GuiService:GetSafeInsets()
-2. **CreateToggle Fix**: Added missing CreateToggle method 
-3. **Notification Positioning**: Fixed notification positioning to correctly appear in the specified corner of the screen
-4. **Home Page Feature**: Added a new home page that displays player information, game details, and UI library credits
-5. **Mobile Support**: Improved mobile support with touch-friendly controls and responsive layouts
-6. **Loading Screen**: Enhanced customizable loading screen with animation options
-7. **Aqua Theme**: Added a new "Aqua" theme option
+1. **Redesigned UI**: Completely redesigned with a wider layout for better usability
+2. **Modern Aesthetics**: Sleek, dark theme with accent colors and smooth animations
+3. **Customizable Loading Screen**: Professional loading screen with animation options
+4. **Window Controls**: Proper minimize and close buttons
+5. **Homepage Feature**: Display player info, game details, and credits on a home page
+6. **Fixed Notifications**: Properly positioned notifications with multiple types (Success, Info, Warning, Error)
+7. **Executor Compatibility**: Works across different Roblox executors with fallback mechanisms
+8. **Mobile Support**: Automatically adjusts for mobile devices with touch-friendly controls
+9. **Full Element Set**: All UI elements (buttons, toggles, sliders, dropdowns, etc.) fully functional
+10. **HoHo Theme**: New theme inspired by popular Roblox script hubs
 
 ## Installation
 
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 ```
 
 ## Quick Start Example
 
 ```lua
 -- Load the library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/YOURREPO/main/tbd-enhanced-fixed.lua", true))()
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
 
 -- Create a window with the home page feature enabled
 local Window = TBD:CreateWindow({
     Title = "TBD Script Hub",
-    Subtitle = "v1.1.0",
-    Theme = "Aqua",
+    Subtitle = "v2.0.0",
+    Theme = "HoHo",
     ShowHomePage = true,
     LoadingEnabled = true
 })
@@ -71,7 +59,7 @@ TBD.NotificationSystem:SetPosition("TopRight")
 -- Show a notification
 TBD:Notification({
     Title = "Welcome",
-    Message = "TBD UI Library has been loaded successfully!",
+    Message = "TBD UI Library HoHo Edition has been loaded successfully!",
     Type = "Success",
     Duration = 5
 })
@@ -83,7 +71,7 @@ For complete documentation on all features and API methods, please see the [DOCU
 
 ## Executor Compatibility
 
-The enhanced library has been fixed to work with various Roblox executors through the following improvements:
+The HoHo Edition has been improved to work with various Roblox executors through:
 
 1. Fallback implementation for GetSafeInsets method
 2. Mobile device detection that works across executors
@@ -92,4 +80,4 @@ The enhanced library has been fixed to work with various Roblox executors throug
 ## Credits
 
 - Original concept inspired by various Roblox UI libraries
-- Enhanced and fixed by [Your Name/Team]
+- Enhanced and redesigned with inspiration from HoHo UI
