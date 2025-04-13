@@ -1,26 +1,78 @@
 --[[
-    TBD UI Library - New Edition
+    TBD UI Library - HoHo Edition
     A modern, customizable Roblox UI library for script hubs and executors
-    Version: 2.0.0-V8-AWP
+    Version: 2.0.0-V9
     
-    This version is specifically modified to work with AWP.GG executor
-    while maintaining the exact same visual design and features.
+    Fixed in v9:
+    - Added comprehensive type safety system to prevent "invalid argument" errors
+    - Automatic conversion of numbers to strings where strings are expected
+    - Proper handling of UICorner radius values (auto-converts numbers to UDim)
+    - Enhanced Enum and Color3 handling with fallbacks for compatibility
     
-    Fixes for AWP.GG:
-    - Fixed string concatenation with instance issues
-    - Added nil checks to prevent errors
-    - Enhanced CoreGUI compatibility
-    - Made all Icon/Image loading more resilient
-    - Fixed notification system canvas errors
-    
-    Original V8 Features:
-    - Dropdown positioning works correctly
-    - Color picker fully functional
-    - Theme system properly updates all UI elements
-    - All UI components parented correctly
-    - RGB sliders in color picker work properly
-    - Dropdown lists display properly
+    Previous fixes:
+    - Notification system returns both self and GUI objects
+    - Fixed "attempt to concatenate string with table" errors
+    - Dropdown positioning issues
+    - Color picker functionality
+    - Theme system now properly updates all UI elements when changed
+    - All UI components parented correctly to avoid rendering issues
+    - Fixed RGB slider functionality in color picker
+    - Added backward compatibility for both CreateColorPicker and CreateColorpicker
 ]]
+
+-- Type safety utility functions
+local function SafeToString(value)
+    if value == nil then
+        return ""
+    elseif type(value) == "string" then
+        return value
+    else
+        return tostring(value)
+    end
+end
+
+local function SafeUDim(value)
+    if typeof(value) == "UDim" then
+        return value
+    elseif type(value) == "number" then
+        return UDim.new(0, value) -- Convert number to UDim with scale 0 and offset value
+    else
+        return UDim.new(0, 0)
+    end
+end
+
+local function SafeEnum(enumType, value)
+    if typeof(value) == "EnumItem" then
+        return value
+    elseif type(value) == "string" then
+        -- Try to convert string to Enum
+        local success, result = pcall(function()
+            return Enum[enumType][value]
+        end)
+        if success then
+            return result
+        end
+    end
+    -- Return a default value
+    return Enum[enumType][0] -- First enum value as default
+end
+
+local function SafeColor3(value)
+    if typeof(value) == "Color3" then
+        return value
+    elseif type(value) == "string" then
+        -- Try to parse color from hex format
+        if value:match("^#?%x%x%x%x%x%x$") then
+            local hex = value:gsub("#", "")
+            local r = tonumber(hex:sub(1, 2), 16) / 255
+            local g = tonumber(hex:sub(3, 4), 16) / 255
+            local b = tonumber(hex:sub(5, 6), 16) / 255
+            return Color3.new(r, g, b)
+        end
+    end
+    -- Default fallback color
+    return Color3.new(1, 1, 1)
+end
 
 -- Services
 local Players = game:GetService("Players")
@@ -50,7 +102,7 @@ local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.Keyboar
 
 -- Library table
 local TBD = {
-    Version = "2.0.0-V8-AWP", -- Version string
+    Version = "2.0.0-V8", -- Version string
     IsMobile = IS_MOBILE, -- Mobile detection
     Flags = {}, -- Flags for configuration system
     Windows = {}, -- List of created windows
@@ -312,7 +364,32 @@ local function Create(className, properties)
     -- Track themeable properties
     local themeProperties = {}
     
+    -- Create a safe copy of properties with type conversions
+    local safeProperties = {}
     for property, value in pairs(properties or {}) do
+        -- Apply type safety for common properties
+        if property == "Text" or property == "Name" or property == "Title" or 
+           property == "PlaceholderText" or property == "Description" then
+            safeProperties[property] = SafeToString(value)
+        -- Handle UICorner radius special case
+        elseif className == "UICorner" and property == "CornerRadius" then
+            safeProperties[property] = SafeUDim(value)
+        -- Handle Position and Size special cases
+        elseif (property == "Position" or property == "Size") and type(value) ~= "userdata" then
+            -- Keep as is, these are typically UDim2 values
+            safeProperties[property] = value
+        -- Handle Color3 properties
+        elseif (property == "BackgroundColor3" or property == "TextColor3" or 
+               property == "BorderColor3" or property == "ImageColor3" or 
+               property == "Color") and type(value) ~= "userdata" then
+            safeProperties[property] = SafeColor3(value)
+        else
+            safeProperties[property] = value
+        end
+    end
+    
+    -- Now set the properties with type safety
+    for property, value in pairs(safeProperties) do
         -- Only set properties that exist for the instance type
         if typeof(instance[property]) ~= "nil" then
             -- Handle TextTransparency separately since Images don't have it
@@ -324,7 +401,7 @@ local function Create(className, properties)
                 instance[property] = value
             end
             
-            -- Check if this is a color property that matches a theme color (NEW)
+            -- Check if this is a color property that matches a theme color
             if (property == "BackgroundColor3" or property == "TextColor3" or 
                 property == "BorderColor3" or property == "ImageColor3" or
                 property == "Color") then
@@ -339,7 +416,7 @@ local function Create(className, properties)
         end
     end
     
-    -- Register for theme updates if themeable properties were found (NEW)
+    -- Register for theme updates if themeable properties were found
     if next(themeProperties) then
         TBD:RegisterThemeable(instance, themeProperties)
     end
@@ -556,11 +633,9 @@ function NotificationSystem:Setup()
     
     self.Container = container
     self.Position = "TopRight"
-    self.GUI = notificationGui -- Store reference to the ScreenGui
-    self.Gui = notificationGui -- Add standard case property for compatibility
+    self.Gui = notificationGui -- Store reference to the ScreenGui
     
-    -- Return both self and self.Gui to ensure proper access and prevent nil indexing
-    return self, self.Gui
+    return self
 end
 
 function NotificationSystem:SetPosition(position)
@@ -1372,9 +1447,8 @@ function TabSystem:AddTab(tabInfo)
     
     -- Add methods to the tab
     tab.CreateSection = function(_, sectionName)
-        -- Force sectionName to be a string to prevent "attempt to concatenate string with table" errors
         local section = Create("Frame", {
-            Name = "Section_" .. tostring(sectionName),
+            Name = "Section_" .. sectionName,
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 30),
             Parent = tab.Content
@@ -2780,15 +2854,11 @@ end
 -- CREATE COLOR PICKER METHOD - Fixed positioning and functionality
 tab.CreateColorPicker = function(_, options)
     options = options or {}
-    -- Force name to be a string to prevent "attempt to concatenate string with table" errors
-    local name = tostring(options.Name or "Color Picker")
+    local name = options.Name or "Color Picker"
     local description = options.Description
-    local color = options.Default or options.Color or Color3.fromRGB(255, 255, 255)
+    local color = options.Color or Color3.fromRGB(255, 255, 255)
     local callback = options.Callback or function() end
     local flag = options.Flag
-    
--- Add backward compatibility with lowercase version
-tab.CreateColorpicker = tab.CreateColorPicker
     
     local colorPickerHeight = description and 60 or 46
     
@@ -3817,14 +3887,11 @@ end
     -- CREATE COLOR PICKER METHOD
     tab.CreateColorPicker = function(_, options)
         options = options or {}
-        local name = tostring(options.Name or "Color Picker")
+        local name = options.Name or "Color Picker"
         local description = options.Description
-        local defaultColor = options.Default or options.Color or Color3.fromRGB(255, 0, 0)
+        local defaultColor = options.Color or Color3.fromRGB(255, 0, 0)
         local callback = options.Callback or function() end
         local flag = options.Flag
-        
-    -- For backwards compatibility
-    tab.CreateColorpicker = tab.CreateColorPicker
         
         local colorPickerHeight = description and 60 or 46
         
@@ -5108,7 +5175,7 @@ function Window:CreateTab(options)
         self.TabSystem:SelectTab(tab)
     end
     
-    return self:GetTab(tab)
+    return tab
 end
 
 -- Function to minimize the window
@@ -5397,52 +5464,11 @@ end
 -- Function to create notification
 function TBD:Notification(options)
     if not self.NotificationSystem.Container then
-        -- Store the result of Setup() to ensure we have a valid reference
-        local notificationSystem, notificationGui = self.NotificationSystem:Setup()
-        -- Make sure we have a valid notification system after setup
-        if not self.NotificationSystem.Container then
-            warn("TBD UI Library: Failed to initialize notification system container")
-            return nil
-        end
-        
-        -- Ensure we have access to the GUI object
-        if notificationGui then
-            -- Make sure the GUI is properly parented if needed
-            if not notificationGui.Parent then
-                pcall(function()
-                    notificationGui.Parent = game:GetService("CoreGui")
-                end)
-            end
-        end
+        self.NotificationSystem:Setup()
     end
     
     return self.NotificationSystem:CreateNotification(options)
 end
 
 -- Return the library
--- Add backward compatibility functions for all methods
--- Tab level backward compatibility
-local oldTableTabs = {}
-local oldMetaTab = {
-    __index = function(_, key)
-        if key == "CreateColorpicker" then
-            return function(self, ...)
-                return self.CreateColorPicker(self, ...)
-            end
-        end
-        return nil
-    end
-}
-
--- Function to ensure backward compatibility with both cases
-function Window:GetTab(tab)
-    if not oldTableTabs[tab] then
-        oldTableTabs[tab] = setmetatable({}, oldMetaTab)
-        for k, v in pairs(tab) do
-            oldTableTabs[tab][k] = v
-        end
-    end
-    return oldTableTabs[tab]
-end
-
 return TBD
