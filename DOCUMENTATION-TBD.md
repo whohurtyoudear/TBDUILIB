@@ -1,77 +1,62 @@
-# TBD UI Library - HoHo Edition Documentation
+# TBD UI Library Documentation
+## Version 1.7.0 - Enhanced Edition
 
-A comprehensive guide to using the TBD UI Library HoHo Edition - a modern, feature-rich Roblox UI library designed for script hubs and executors.
-
-**Version: 2.0.0**
+TBD UI Library is a modern, customizable Roblox UI library designed for script hubs and executors. This enhanced edition includes animated hover effects and an expanded dynamic icon library.
 
 ## Table of Contents
-
-- [Overview](#overview)
 - [Installation](#installation)
-- [Getting Started](#getting-started)
+- [Basic Usage](#basic-usage)
 - [Window Creation](#window-creation)
-- [Tabs](#tabs)
+- [Tab System](#tab-system)
 - [UI Elements](#ui-elements)
   - [Section](#section)
   - [Button](#button)
   - [Toggle](#toggle)
   - [Slider](#slider)
   - [Dropdown](#dropdown)
-  - [Textbox](#textbox)
-  - [Color Picker](#color-picker)
+  - [Input Field](#input-field)
   - [Keybind](#keybind)
-  - [Divider](#divider)
-- [Notifications](#notifications)
-- [Themes](#themes)
-- [Configuration System](#configuration-system)
-- [Homepage Feature](#homepage-feature)
-- [Loading Screen](#loading-screen)
-- [Executor Compatibility](#executor-compatibility)
-- [Mobile Support](#mobile-support)
-- [Troubleshooting](#troubleshooting)
-- [Advanced Customization](#advanced-customization)
-- [Migration Guide](#migration-guide)
-
-## Overview
-
-TBD UI Library HoHo Edition is a complete redesign of the original TBD UI Library, featuring:
-
-- Modern, wider layout design inspired by popular Roblox hubs
-- Customizable loading screen
-- Enhanced window controls (minimize, close)
-- Fixed notification positioning
-- Fully functional toggles, sliders, and other UI elements
-- New HoHo theme with sleek, dark aesthetics
-- Full mobile support with improved touch controls
-- Extensive customization options
+  - [Color Picker](#color-picker)
+  - [Label](#label)
+  - [Paragraph](#paragraph)
+- [Special Features](#special-features)
+  - [Animated Hover Effects](#animated-hover-effects)
+  - [Dynamic Icon Library](#dynamic-icon-library)
+  - [Home Page](#home-page)
+  - [Notifications](#notifications)
+  - [Loading Screen](#loading-screen)
+  - [Theming](#theming)
+- [API Reference](#api-reference)
+- [Example Script](#example-script)
 
 ## Installation
 
-Add the following code to your script to load the TBD UI Library HoHo Edition:
+To use the TBD UI Library, add the following line to your script:
 
 ```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
+local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
 ```
 
-## Getting Started
+## Basic Usage
 
-Here's a basic example to get you started:
+Here's a simple example to get started:
 
 ```lua
 -- Load the library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
+local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
 
 -- Create a window
 local Window = TBD:CreateWindow({
     Title = "My Script Hub",
-    Theme = "HoHo",
-    ShowHomePage = true -- Enable the home page feature
+    Subtitle = "v1.0",
+    Theme = "HoHo", -- Available themes: Default, Midnight, Neon, Aqua, HoHo
+    ShowHomePage = true -- Show player info
 })
 
 -- Create a tab
 local MainTab = Window:CreateTab({
     Name = "Main",
-    Icon = "home"
+    Icon = "Home" -- Icon names can be used directly from the icon library
 })
 
 -- Add elements to the tab
@@ -85,40 +70,37 @@ MainTab:CreateButton({
 
 ## Window Creation
 
-Create a window using the `CreateWindow` function:
+Create a window with the following options:
 
 ```lua
 local Window = TBD:CreateWindow({
-    Title = "My Script Hub",            -- Window title
-    Subtitle = "v1.0.0",                -- Optional subtitle
-    Theme = "HoHo",                     -- HoHo, Default, Midnight, Neon, Aqua or custom
-    Size = {780, 460},                  -- Window size {width, height}
-    Position = "Center",                -- "Center" or {x, y} position
-    LogoId = "rbxassetid://12345678",   -- Optional logo image ID
-    LoadingEnabled = true,              -- Show loading screen
-    LoadingTitle = "My Script Hub",     -- Loading screen title
-    LoadingSubtitle = "Loading...",     -- Loading screen subtitle
-    ShowHomePage = true,                -- Enable the home page feature
-    
-    -- Enhanced loading screen customization
+    Title = "My Script Hub",     -- Title shown in the header
+    Subtitle = "v1.0",           -- Subtitle shown in the header
+    Size = {600, 400},           -- Width and height of the window (default: 550, 400)
+    Position = "Center",         -- "Center" or {X, Y} coordinates
+    Theme = "HoHo",              -- Default, Midnight, Neon, Aqua, HoHo
+    LogoId = "rbxassetid://...", -- Optional logo image
+    LoadingEnabled = true,       -- Show loading screen on startup
+    LoadingTitle = "Loading...",  -- Title for loading screen
+    LoadingSubtitle = "Please wait...", -- Subtitle for loading screen
+    ShowHomePage = true,         -- Show home page with player info
     LoadingScreenCustomization = {
-        AnimationStyle = "Slide",       -- "Fade", "Slide", "Scale"
-        LogoSize = UDim2.new(0, 120, 0, 120),
-        LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
-        ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
+        AnimationStyle = "Fade", -- Animation style for loading screen
+        LogoSize = {120, 120},   -- Size of logo on loading screen
+        LogoPosition = {0.5, 0.4}, -- Position of logo (0-1 scale)
+        ProgressBarSize = {300, 8} -- Size of progress bar
     }
 })
 ```
 
-## Tabs
+## Tab System
 
-Create tabs to organize your UI elements:
+Create tabs to organize your UI:
 
 ```lua
-local Tab = Window:CreateTab({
-    Name = "Tab Name",                -- Tab name
-    Icon = "home",                    -- Icon name from the icon pack
-    ImageSource = "Phosphor"          -- Icon pack: "Phosphor" is default
+local MainTab = Window:CreateTab({
+    Name = "Main", -- Name of the tab
+    Icon = "Home"  -- Icon for the tab (can use icon name, asset ID, or number)
 })
 ```
 
@@ -126,21 +108,22 @@ local Tab = Window:CreateTab({
 
 ### Section
 
-Create a section to organize elements within a tab:
+Sections help organize elements within a tab:
 
 ```lua
-Tab:CreateSection("Section Name")
+MainTab:CreateSection("General Settings")
 ```
 
 ### Button
 
-Create a clickable button:
+Create interactive buttons:
 
 ```lua
-local Button = Tab:CreateButton({
-    Name = "Button Name",               -- Button name
-    Description = "Button description", -- Optional description
-    Callback = function()               -- Function to call when clicked
+MainTab:CreateButton({
+    Name = "Click Me",           -- Button text
+    Description = "Optional description", -- Tooltip text (optional)
+    Icon = "Bell",               -- Button icon (optional)
+    Callback = function()        -- Function to run when clicked
         print("Button clicked!")
     end
 })
@@ -148,439 +131,431 @@ local Button = Tab:CreateButton({
 
 ### Toggle
 
-Create a toggle switch for boolean settings:
+Create toggleable options:
 
 ```lua
-local Toggle = Tab:CreateToggle({
-    Name = "Toggle Name",               -- Toggle name
-    Description = "Toggle description", -- Optional description
-    CurrentValue = false,               -- Default value
-    Flag = "ToggleName",                -- Flag for configuration saving
-    Callback = function(Value)          -- Function to call when toggled
-        print("Toggle is now:", Value)
-    end
+local toggle = MainTab:CreateToggle({
+    Name = "Toggle Option",
+    Description = "Enable or disable feature", -- Optional
+    CurrentValue = false,        -- Starting state
+    Callback = function(value)
+        print("Toggle set to:", value)
+    end,
+    Flag = "myToggle"            -- Optional identifier for global access
 })
 
--- You can get or set the toggle value
-local Value = Toggle:GetState()
-Toggle:Set(true)
+-- You can access or set the toggle through its returned object
+toggle:Set(true) -- Programmatically toggle
 ```
 
 ### Slider
 
-Create a slider for number inputs:
+Create adjustable sliders:
 
 ```lua
-local Slider = Tab:CreateSlider({
-    Name = "Slider Name",               -- Slider name
-    Description = "Slider description", -- Optional description
-    Range = {0, 100},                   -- Value range
-    Increment = 1,                      -- Step size
-    CurrentValue = 50,                  -- Default value
-    Flag = "SliderName",                -- Flag for configuration saving
-    Callback = function(Value)          -- Function to call when value changes
-        print("Slider value:", Value)
-    end
+local slider = MainTab:CreateSlider({
+    Name = "Speed",
+    Description = "Adjust player speed", -- Optional
+    Range = {0, 100},            -- Min and max values
+    Increment = 1,               -- Step size
+    CurrentValue = 50,           -- Starting value
+    Callback = function(value)
+        print("Slider value:", value)
+    end,
+    Flag = "speedSlider"         -- Optional identifier for global access
 })
 
--- You can get or set the slider value
-local Value = Slider:GetValue()
-Slider:Set(75)
+-- Programmatically set the slider value
+slider:Set(75)
 ```
 
 ### Dropdown
 
-Create a dropdown menu for selecting from a list:
+Create selection menus:
 
 ```lua
-local Dropdown = Tab:CreateDropdown({
-    Name = "Dropdown Name",               -- Dropdown name
-    Description = "Dropdown description", -- Optional description
-    Items = {"Option 1", "Option 2", "Option 3"},
-    Default = "Option 1",                 -- Default selected item
-    Flag = "DropdownName",                -- Flag for configuration saving
-    Callback = function(Item)             -- Function to call when item selected
-        print("Selected:", Item)
-    end
+local dropdown = MainTab:CreateDropdown({
+    Name = "Select Option",
+    Description = "Choose from the list", -- Optional
+    Options = {"Option 1", "Option 2", "Option 3"},
+    CurrentOption = "Option 1", -- Starting option
+    Callback = function(option)
+        print("Selected:", option)
+    end,
+    Flag = "optionSelect"        -- Optional identifier for global access
 })
 
--- You can refresh the dropdown with new items
-Dropdown:Refresh({
-    "New Option 1",
-    "New Option 2",
-    "New Option 3"
-})
-
--- Set the selected item
-Dropdown:Set("New Option 2")
+-- Programmatically set the dropdown option
+dropdown:Set("Option 2")
 ```
 
-### Textbox
+### Input Field
 
-Create a text input box:
-
-```lua
-local Textbox = Tab:CreateTextbox({
-    Name = "Textbox Name",               -- Textbox name
-    Description = "Textbox description", -- Optional description
-    PlaceholderText = "Enter text...",   -- Placeholder text
-    Text = "",                           -- Default text
-    CharacterLimit = 50,                 -- Maximum character limit
-    Flag = "TextboxName",                -- Flag for configuration saving
-    Callback = function(Text)            -- Function to call when text changes
-        print("Text entered:", Text)
-    end
-})
-
--- Set the text
-Textbox:Set("New text")
-```
-
-### Color Picker
-
-Create a color picker:
+Create text input fields:
 
 ```lua
-local ColorPicker = Tab:CreateColorPicker({
-    Name = "Color Picker",               -- Color picker name
-    Description = "Pick a color",        -- Optional description
-    Color = Color3.fromRGB(255, 0, 0),   -- Default color
-    Flag = "ColorPickerName",            -- Flag for configuration saving
-    Callback = function(Color)           -- Function to call when color changes
-        print("Selected color:", Color)
-    end
+local input = MainTab:CreateInput({
+    Name = "Enter Text",
+    Description = "Type your message", -- Optional
+    Placeholder = "Text here...",  -- Placeholder text
+    CurrentValue = "",            -- Starting value
+    Callback = function(text)
+        print("Input:", text)
+    end,
+    Flag = "inputText"           -- Optional identifier for global access
 })
-
--- Set the color
-ColorPicker:Set(Color3.fromRGB(0, 255, 0))
 ```
 
 ### Keybind
 
-Create a keybind picker:
+Create customizable keybinds:
 
 ```lua
-local Keybind = Tab:CreateKeybind({
-    Name = "Keybind Name",               -- Keybind name
-    Description = "Keybind description", -- Optional description
-    CurrentKeybind = "E",                -- Default key
-    Flag = "KeybindName",                -- Flag for configuration saving
-    Callback = function(Key)             -- Function to call when key pressed
-        print("Key pressed:", Key)
-    end
-})
-
--- Set the keybind
-Keybind:Set("F")
-```
-
-### Divider
-
-Create a visual divider:
-
-```lua
-Tab:CreateDivider()
-```
-
-## Notifications
-
-Display notifications to the user:
-
-```lua
-TBD:Notification({
-    Title = "Notification Title",     -- Notification title
-    Message = "Notification message", -- Notification message
-    Type = "Info",                    -- Type: "Info", "Success", "Warning", "Error"
-    Duration = 5,                     -- Display duration in seconds
-    Callback = function()             -- Function to call when notification clicked
-        print("Notification clicked!")
-    end
-})
-```
-
-Control notification position:
-
-```lua
--- Set notification position (TopRight, TopLeft, BottomRight, BottomLeft)
-TBD.NotificationSystem:SetPosition("TopRight")
-```
-
-## Themes
-
-TBD UI Library HoHo Edition includes several built-in themes:
-
-```lua
--- Set a pre-built theme
-TBD:SetTheme("HoHo")  -- Options: "HoHo", "Default", "Midnight", "Neon", "Aqua"
-
--- Or create a custom theme
-TBD:CustomTheme({
-    Primary = Color3.fromRGB(20, 20, 20),
-    Background = Color3.fromRGB(10, 10, 10),
-    TextPrimary = Color3.fromRGB(240, 240, 240),
-    TextSecondary = Color3.fromRGB(190, 190, 190),
-    Accent = Color3.fromRGB(255, 30, 50),
-    DarkAccent = Color3.fromRGB(200, 25, 45)
-})
-```
-
-## Loading Screen
-
-The library includes a customizable loading screen that displays before your UI:
-
-```lua
--- Enable the loading screen in your window creation
-local Window = TBD:CreateWindow({
-    Title = "My Script Hub",
-    LoadingEnabled = true,
-    LoadingTitle = "My Script Hub",
-    LoadingSubtitle = "Loading awesome features...",
-    
-    -- Customize the loading screen appearance
-    LoadingScreenCustomization = {
-        AnimationStyle = "Slide",  -- "Fade", "Slide", "Scale"
-        LogoSize = UDim2.new(0, 120, 0, 120),
-        LogoPosition = UDim2.new(0.5, 0, 0.35, 0),
-        ProgressBarSize = UDim2.new(0.7, 0, 0, 6)
-    }
-})
-```
-
-## Homepage Feature
-
-The library includes a homepage feature that displays player information, game details, and library credits. To enable it, set `ShowHomePage = true` when creating the window:
-
-```lua
-local Window = TBD:CreateWindow({
-    Title = "My Script Hub",
-    ShowHomePage = true
-})
-```
-
-The homepage includes:
-- Player information (name, display name, user ID, avatar)
-- Game information (game name, place ID, player count)
-- UI library credits
-
-You can access the home tab to add additional elements:
-
-```lua
--- Add custom elements to the home tab
-Window.HomeTab:CreateButton({
-    Name = "Home Button",
+local keybind = MainTab:CreateKeybind({
+    Name = "Toggle UI",
+    Description = "Key to show/hide UI", -- Optional
+    CurrentKeybind = "RightShift", -- Default key
     Callback = function()
-        print("Home button clicked!")
-    end
+        print("Keybind pressed!")
+    end,
+    Flag = "toggleUIBind"        -- Optional identifier for global access
 })
 ```
 
-## Executor Compatibility
+### Color Picker
 
-TBD UI Library HoHo Edition is designed to work across different Roblox executors. It includes several compatibility features to ensure consistent behavior:
-
-### Safe Area Insets
-
-The library includes a fallback mechanism for executors that don't support the `GuiService:GetSafeInsets()` method:
+Create color selection tools:
 
 ```lua
--- This is handled automatically, but you can reference the safe area values if needed:
-local safeAreaLeft = TBD.SafeArea.Left
-local safeAreaTop = TBD.SafeArea.Top
+local colorPicker = MainTab:CreateColorPicker({
+    Name = "UI Color",
+    Description = "Change the accent color", -- Optional
+    CurrentColor = Color3.fromRGB(255, 0, 0), -- Starting color
+    Callback = function(color)
+        print("Color selected:", color)
+    end,
+    Flag = "uiColor"             -- Optional identifier for global access
+})
 ```
 
-### Error Handling
+### Label
 
-All critical functions include error handling to prevent script termination on executor-specific limitations.
-
-## Mobile Support
-
-The library automatically detects and adapts to mobile devices:
-
-### Mobile Detection
-
-Mobile detection is performed when the library loads:
+Create simple text labels:
 
 ```lua
--- You can check if the user is on mobile
-if TBD.IsMobile then
-    -- Perform mobile-specific adjustments
+MainTab:CreateLabel({
+    Text = "This is a label"
+})
+```
+
+### Paragraph
+
+Create multi-line text blocks:
+
+```lua
+MainTab:CreateParagraph({
+    Title = "Information",
+    Content = "This is a paragraph with multiple lines of text that will automatically wrap."
+})
+```
+
+## Special Features
+
+### Animated Hover Effects
+
+The Enhanced Edition includes sophisticated hover animations for buttons, tabs, and other interactive elements:
+
+- **Growth/shrink animations**: Elements subtly expand and contract when hovered to provide visual feedback
+- **Color transitions**: Smooth color blending with theme integration (buttons blend with accent colors)
+- **Subtle glow effects**: Soft radiance appears around elements on hover using ImageLabels
+- **Text size changes**: Text subtly enlarges for better readability and feedback
+- **Position adjustments**: Elements reposition slightly to maintain proper centering during size changes
+
+These effects are automatically applied to all interactive elements without requiring additional code. The animations use easing styles like Quad and Quart to create smooth, professional transitions that make the UI feel more responsive and modern.
+
+#### Button Hover Effects
+When hovering over buttons, you'll notice:
+- The button expands slightly
+- A soft glow appears behind the button
+- The background color shifts toward the accent color
+- Text becomes slightly larger
+
+#### Tab Hover Effects
+Tabs provide feedback through:
+- Enlargement of the tab button
+- Icon size increase
+- Color transitions from secondary to primary text color
+- Background opacity changes
+
+### Dynamic Icon Library
+
+The Enhanced Edition includes a significantly expanded icon library with over 90 built-in icons carefully categorized by type. This makes it easy to find the perfect icon for your UI elements without needing to search for external assets.
+
+#### Icon Categories
+
+| Category | Example Icons | Description |
+|----------|--------------|-------------|
+| Essential UI | Home, Settings, Search, Close | Basic interface control icons |
+| Game Elements | Player, Target, Crown, Trophy | Icons related to gaming concepts |
+| Actions | Play, Download, Save, Edit | Icons representing user actions |
+| Communication | Chat, Mail, Share, Phone | Icons for communication features |
+| Navigation | Compass, Location, Map, Route | Icons for navigation and mapping |
+| UI Elements | Slider, Toggle, Button, Dropdown | Icons representing UI components |
+| Categories | Folder, File, Image, Audio | Icons for categorizing content |
+| Tools | Sword, Shield, Magic, Key | Icons for tools and abilities |
+| Social | User, Users, AddUser, UserCheck | Icons for social interactions |
+| Devices | Desktop, Laptop, Mobile, Tablet | Icons for different devices |
+| Weather | Sun, Moon, Cloud, Rain | Icons for weather states |
+| Misc | Chart, Calendar, Tag, Gift | Various utility icons |
+
+#### Using Icons by Name
+
+The most convenient way to use icons is by referencing their names directly in components:
+
+```lua
+-- Using icons in tabs
+local PlayersTab = Window:CreateTab({
+    Name = "Players",
+    Icon = "User" -- Simply use the icon name
+})
+
+local SettingsTab = Window:CreateTab({
+    Name = "Settings",
+    Icon = "Settings"
+})
+
+-- Using icons in buttons
+MainTab:CreateButton({
+    Name = "Add Friend",
+    Icon = "AddUser",
+    Callback = function() end
+})
+
+MainTab:CreateButton({
+    Name = "Save Configuration",
+    Icon = "Save",
+    Callback = function() end
+})
+```
+
+#### GetIcon Helper Function
+
+The Enhanced Edition includes a powerful `GetIcon` helper function that offers multiple ways to retrieve icons:
+
+```lua
+-- Get icon asset ID by name
+local homeIcon = TBD:GetIcon("Home") 
+-- Returns: "rbxassetid://7733960981"
+
+-- Add prefix to numeric ID
+local sameIcon = TBD:GetIcon(7733960981)
+-- Returns: "rbxassetid://7733960981"
+
+-- Pass through already formatted IDs
+local customIcon = TBD:GetIcon("rbxassetid://12345678")
+-- Returns: "rbxassetid://12345678"
+
+-- Handles nil values with default icon
+local defaultIcon = TBD:GetIcon(nil)
+-- Returns a default icon
+```
+
+This function makes it extremely flexible to work with icons in your script. You can use string names, asset IDs, or already formatted rbxassetid strings interchangeably.
+
+#### Icon Naming Convention
+
+Icons follow a simple naming convention with PascalCase formatting. The first letter is always capitalized. Examples:
+
+- Single word: "Home", "Settings", "User"
+- Multiple words: "AddUser", "ColorPicker", "ChevronDown"
+
+#### Full Icon List
+
+For a complete list of all available icons, you can print them using:
+
+```lua
+for name, _ in pairs(Icons) do
+    print(name)
 end
 ```
-
-### Mobile-Specific Features
-
-The UI automatically adjusts for touch interaction on mobile devices:
-- Larger buttons and interactive elements
-- Adjusted spacing and padding
-- Touch-friendly controls
-- Automatic size adjustments for smaller screens
 
 ## Troubleshooting
 
 ### Common Issues and Solutions
 
-#### Notifications Not Appearing in the Right Position
+#### Dropdown Menu Not Showing
+If dropdown menus aren't displaying correctly:
+1. Make sure you're using the enhanced V7 version of the library
+2. Check that the Options array contains valid entries
+3. The dropdown positioning has been completely fixed in V7
 
-If notifications appear in unexpected locations, explicitly set the notification position:
+#### Color Picker Issues
+If color pickers aren't working properly:
+1. The enhanced V7 version includes fixes for the color picker functionality
+2. Ensure you're setting a valid Color3 value for CurrentColor
+3. The RGB sliders now properly update the color preview
 
-```lua
-TBD.NotificationSystem:SetPosition("TopRight") -- Options: "TopRight", "TopLeft", "BottomRight", "BottomLeft"
-```
-
-#### Toggle Elements Not Working
-
-If toggle elements are not functioning correctly, ensure your element creation follows this pattern:
-
-```lua
-local toggle = Tab:CreateToggle({
-    Name = "Toggle Name",
-    CurrentValue = false, -- Must be a boolean value
-    Callback = function(Value) 
-        -- Always check the Value parameter, not an external variable
-        if Value then
-            -- Code for when toggle is on
-        else
-            -- Code for when toggle is off
-        end
-    end
-})
-```
-
-#### UI Not Appearing on Some Executors
-
-If the UI doesn't appear on certain executors, ensure you're using the fixed version of the library with executor compatibility:
-
-```lua
--- Make sure to use the HoHo Edition
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
-```
-
-#### Scripts Errors on Mobile Devices
-
-If your script encounters errors specifically on mobile devices, ensure mobile compatibility:
-
-```lua
--- Create a window with mobile compatibility in mind
-local Window = TBD:CreateWindow({
-    Title = "My Script Hub",
-    -- The library automatically adjusts for mobile
-})
-```
-
-### Debugging Tips
-
-1. **Enable Debug Mode**: Enable debug mode to get more detailed error information
-   ```lua
-   TBD.DebugMode = true
-   ```
-
-2. **Check Console Logs**: Monitor the developer console for any error messages
-
-3. **Version Verification**: Ensure you're using the latest version of the library
-   ```lua
-   print("TBD UI Version:", TBD.Version)
-   ```
-
-## Advanced Customization
-
-### Deep Theme Customization
-
-For advanced theme customization, you can modify all theme properties:
-
-```lua
-TBD:CustomTheme({
-    -- Main colors
-    Primary = Color3.fromRGB(20, 20, 20),
-    Secondary = Color3.fromRGB(15, 15, 15),
-    Background = Color3.fromRGB(10, 10, 10),
-    
-    -- Text colors
-    TextPrimary = Color3.fromRGB(240, 240, 240),
-    TextSecondary = Color3.fromRGB(190, 190, 190),
-    
-    -- Accent colors
-    Accent = Color3.fromRGB(255, 30, 50),
-    DarkAccent = Color3.fromRGB(200, 25, 45),
-    
-    -- Status colors
-    Success = Color3.fromRGB(40, 200, 90),
-    Warning = Color3.fromRGB(255, 170, 30),
-    Error = Color3.fromRGB(255, 60, 80)
-})
-```
+#### Theme System Not Updating
+If theme changes aren't applying to all elements:
+1. The V7 enhanced version includes an improved theme tracking system
+2. All UI elements now properly update when the theme is changed
+3. Make sure you're using the correct theme name
 
 ## Migration Guide
 
-### Migrating from Previous Versions
+### Upgrading from Previous Versions
 
-If you're updating from a previous version of TBD UI Library, follow these steps to ensure compatibility:
+If you're migrating from an older version of the TBD UI Library, follow these steps:
 
-1. **Update the library import**:
+1. **Update the loadstring URL**:
    ```lua
    -- Old version
    local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd.lua"))()
    
-   -- New HoHo Edition
-   local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/main/tbd-complete-fixed-v2.lua", true))()
+   -- Enhanced V7 version
+   local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua"))()
    ```
 
-2. **Update window creation**:
+2. **Update UI element creation syntax**:
+   Make sure all UI elements use the table format instead of separate parameters:
    ```lua
    -- Old version
-   local Window = TBD:CreateWindow("Window Title", "Window Subtitle")
+   Tab:CreateButton("Button Name", function() end)
    
-   -- New version
-   local Window = TBD:CreateWindow({
-       Title = "Window Title",
-       Subtitle = "Window Subtitle",
-       Theme = "HoHo",
-       ShowHomePage = true
-   })
-   ```
-
-3. **Update tab creation**:
-   ```lua
-   -- Old version
-   local Tab = Window:CreateTab("Tab Name", "tab_icon")
-   
-   -- New version
-   local Tab = Window:CreateTab({
-       Name = "Tab Name",
-       Icon = "home"
-   })
-   ```
-
-4. **Update UI elements**:
-   ```lua
-   -- Old version
-   local button = Tab:CreateButton("Button Name", function() end)
-   
-   -- New version
-   local button = Tab:CreateButton({
+   -- Enhanced V7 version
+   Tab:CreateButton({
        Name = "Button Name",
        Callback = function() end
    })
    ```
 
-5. **Update notification calls**:
-   ```lua
-   -- Old version
-   TBD:Notify("Title", "Message", "Info")
-   
-   -- New version
-   TBD:Notification({
-       Title = "Title",
-       Message = "Message",
-       Type = "Info"
-   })
-   ```
+3. **Take advantage of new features**:
+   - Use icon names directly in components
+   - Implement the home page feature
+   - Explore the animated hover effects
 
-### Breaking Changes
+## Conclusion
 
-Be aware of these breaking changes when updating:
+The TBD UI Library Enhanced Edition builds upon the solid foundation of previous versions, adding sophisticated hover animations and a comprehensive icon library while fixing critical issues. The result is a polished, professional UI toolkit that elevates the user experience in Roblox script hubs and executors.
 
-1. All UI element creation now uses a table-based parameter system instead of individual parameters
-2. Window creation requires a table of options
-3. Notification system has a new interface and positioning system
-4. Theme customization requires a table of properties instead of individual color arguments
-5. The window dimensions have changed to a wider layout (780×460 by default)
+For additional support or questions, refer to the GitHub repository or contact the library developer.
+
+
+
+## Example Script
+
+See the `fixed-example-v7-enhanced.lua` file for a complete example that demonstrates all features of the Enhanced Edition.
+
+```lua
+-- Load the library
+local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
+
+-- Create a window with custom settings
+local Window = TBD:CreateWindow({
+    Title = "My Script Hub",
+    Subtitle = "Enhanced Edition",
+    Theme = "HoHo",
+    Size = {650, 500},
+    ShowHomePage = true,
+    LoadingEnabled = true
+})
+
+-- Create tabs with icons from the dynamic icon library
+local MainTab = Window:CreateTab({
+    Name = "Main",
+    Icon = "Home"  -- Using icon name instead of asset ID
+})
+
+local SettingsTab = Window:CreateTab({
+    Name = "Settings",
+    Icon = "Settings"
+})
+
+-- Add UI elements
+MainTab:CreateSection("Features")
+
+MainTab:CreateButton({
+    Name = "Example Button",
+    Description = "Click to see the hover animation effect",
+    Icon = "Bell",
+    Callback = function()
+        TBD:Notification({
+            Title = "Welcome!",
+            Message = "Thanks for using TBD UI Library.",
+            Duration = 5,
+            Type = "Success"
+        })
+    end
+})
+
+-- Add toggles with enhanced hover effects
+MainTab:CreateToggle({
+    Name = "Feature Toggle",
+    Description = "Enable or disable a feature",
+    CurrentValue = false,
+    Callback = function(value)
+        print("Toggle set to:", value)
+    end
+})
+
+-- Add a slider
+MainTab:CreateSlider({
+    Name = "Speed Adjustment",
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(value)
+        print("Speed set to:", value)
+    end
+})
+
+-- Add a dropdown with improved positioning
+MainTab:CreateDropdown({
+    Name = "Select Option",
+    Options = {"Option 1", "Option 2", "Option 3"},
+    CurrentOption = "Option 1",
+    Callback = function(option)
+        print("Selected:", option)
+    end
+})
+
+-- Add a color picker with fixed functionality
+MainTab:CreateColorPicker({
+    Name = "UI Color",
+    CurrentColor = Color3.fromRGB(255, 0, 0),
+    Callback = function(color)
+        print("Color selected:", color)
+    end
+})
+
+-- Add theme settings
+SettingsTab:CreateSection("UI Customization")
+
+local themes = {"Default", "Midnight", "Neon", "Aqua", "HoHo"}
+SettingsTab:CreateDropdown({
+    Name = "UI Theme",
+    Options = themes,
+    CurrentOption = "HoHo",
+    Callback = function(theme)
+        TBD:SetTheme(theme)
+    end
+})
+
+-- Access icons from the expanded library
+SettingsTab:CreateSection("Icon Examples")
+
+local iconNames = {"User", "Settings", "Home", "Search", "Bell", "Save", "Heart", "Target", "Crown", "Sword"}
+for _, iconName in pairs(iconNames) do
+    SettingsTab:CreateButton({
+        Name = iconName,
+        Icon = iconName,
+        Callback = function()
+            TBD:Notification({
+                Title = "Icon Used",
+                Message = "You clicked the " .. iconName .. " icon!",
+                Duration = 3,
+                Type = "Info"
+            })
+        end
+    })
+end
