@@ -2778,13 +2778,14 @@ end
 -- CREATE COLOR PICKER METHOD - Fixed positioning and functionality
 tab.CreateColorPicker = function(_, options)
     options = options or {}
-    local name = options.Name or "Color Picker"
+    -- Force name to be a string to prevent "attempt to concatenate string with table" errors
+    local name = tostring(options.Name or "Color Picker")
     local description = options.Description
     local color = options.Default or options.Color or Color3.fromRGB(255, 255, 255)
     local callback = options.Callback or function() end
     local flag = options.Flag
     
--- For backwards compatibility
+-- Add backward compatibility with lowercase version
 tab.CreateColorpicker = tab.CreateColorPicker
     
     local colorPickerHeight = description and 60 or 46
@@ -3814,7 +3815,7 @@ end
     -- CREATE COLOR PICKER METHOD
     tab.CreateColorPicker = function(_, options)
         options = options or {}
-        local name = options.Name or "Color Picker"
+        local name = tostring(options.Name or "Color Picker")
         local description = options.Description
         local defaultColor = options.Default or options.Color or Color3.fromRGB(255, 0, 0)
         local callback = options.Callback or function() end
@@ -5105,7 +5106,7 @@ function Window:CreateTab(options)
         self.TabSystem:SelectTab(tab)
     end
     
-    return tab
+    return self:GetTab(tab)
 end
 
 -- Function to minimize the window
@@ -5407,4 +5408,29 @@ function TBD:Notification(options)
 end
 
 -- Return the library
+-- Add backward compatibility functions for all methods
+-- Tab level backward compatibility
+local oldTableTabs = {}
+local oldMetaTab = {
+    __index = function(_, key)
+        if key == "CreateColorpicker" then
+            return function(self, ...)
+                return self.CreateColorPicker(self, ...)
+            end
+        end
+        return nil
+    end
+}
+
+-- Function to ensure backward compatibility with both cases
+function Window:GetTab(tab)
+    if not oldTableTabs[tab] then
+        oldTableTabs[tab] = setmetatable({}, oldMetaTab)
+        for k, v in pairs(tab) do
+            oldTableTabs[tab][k] = v
+        end
+    end
+    return oldTableTabs[tab]
+end
+
 return TBD
