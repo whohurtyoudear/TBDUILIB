@@ -1,5 +1,5 @@
 --[[
-    TBD UI Library - New Edition 
+    TBD UI Library - New Edition
     A modern, customizable Roblox UI library for script hubs and executors
     Version: 2.0.0-V8-AWP
     
@@ -2780,9 +2780,12 @@ tab.CreateColorPicker = function(_, options)
     options = options or {}
     local name = options.Name or "Color Picker"
     local description = options.Description
-    local color = options.Color or Color3.fromRGB(255, 255, 255)
+    local color = options.Default or options.Color or Color3.fromRGB(255, 255, 255)
     local callback = options.Callback or function() end
     local flag = options.Flag
+    
+-- For backwards compatibility
+tab.CreateColorpicker = tab.CreateColorPicker
     
     local colorPickerHeight = description and 60 or 46
     
@@ -3813,9 +3816,12 @@ end
         options = options or {}
         local name = options.Name or "Color Picker"
         local description = options.Description
-        local defaultColor = options.Color or Color3.fromRGB(255, 0, 0)
+        local defaultColor = options.Default or options.Color or Color3.fromRGB(255, 0, 0)
         local callback = options.Callback or function() end
         local flag = options.Flag
+        
+    -- For backwards compatibility
+    tab.CreateColorpicker = tab.CreateColorPicker
         
         local colorPickerHeight = description and 60 or 46
         
