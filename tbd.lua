@@ -1,7 +1,7 @@
 --[[
     TBD UI Library - New Edition
     A modern, customizable Roblox UI library for script hubs and executors
-    Version: 2.0.0-V7
+    Version: 2.0.0-V8
     
     Fixed in v7:
     - Dropdown positioning issues
@@ -41,7 +41,7 @@ local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.Keyboar
 
 -- Library table
 local TBD = {
-    Version = "2.0.0-V7", -- Version string
+    Version = "2.0.0-V8", -- Version string
     IsMobile = IS_MOBILE, -- Mobile detection
     Flags = {}, -- Flags for configuration system
     Windows = {}, -- List of created windows
@@ -1969,6 +1969,103 @@ function TabSystem:AddTab(tabInfo)
         return sliderObject
     end
     
+    -- CREATE LABEL METHOD
+    tab.CreateLabel = function(_, options)
+        options = options or {}
+        local text = options.Text or "Label"
+        
+        local labelInstance = {}
+        
+        -- Create the label container
+        local container = Create("Frame", {
+            Name = "LabelElement",
+            Size = UDim2.new(1, 0, 0, 30),
+            BackgroundTransparency = 1,
+            Parent = tab.Container
+        })
+        
+        -- Label text
+        local textLabel = Create("TextLabel", {
+            Name = "Text",
+            Size = UDim2.new(1, -20, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            BackgroundTransparency = 1,
+            Text = text,
+            TextColor3 = Library.Themes[Library.CurrentTheme].TextPrimary,
+            TextSize = 15,
+            Font = Enum.Font.SourceSans,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = container
+        })
+        
+        Library:RegisterThemeable(textLabel, {TextColor3 = "TextPrimary"})
+        
+        -- Methods
+        function labelInstance:SetText(newText)
+            textLabel.Text = newText
+        end
+        
+        return labelInstance
+    end
+    
+    -- CREATE PARAGRAPH METHOD
+    tab.CreateParagraph = function(_, options)
+        options = options or {}
+        local title = options.Title or "Title"
+        local content = options.Content or "Content"
+        
+        local paragraphInstance = {}
+        
+        -- Create the paragraph container
+        local container = Create("Frame", {
+            Name = "ParagraphElement",
+            Size = UDim2.new(1, 0, 0, 60),
+            BackgroundTransparency = 1,
+            Parent = tab.Container
+        })
+        
+        -- Title
+        local titleLabel = Create("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, -20, 0, 20),
+            Position = UDim2.new(0, 10, 0, 5),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = Library.Themes[Library.CurrentTheme].TextPrimary,
+            TextSize = 16,
+            Font = Enum.Font.SourceSansSemibold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = container
+        })
+        
+        Library:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
+        
+        -- Content
+        local contentLabel = Create("TextLabel", {
+            Name = "Content",
+            Size = UDim2.new(1, -20, 0, 30),
+            Position = UDim2.new(0, 10, 0, 25),
+            BackgroundTransparency = 1,
+            Text = content,
+            TextColor3 = Library.Themes[Library.CurrentTheme].TextSecondary,
+            TextSize = 14,
+            Font = Enum.Font.SourceSans,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true,
+            Parent = container
+        })
+        
+        Library:RegisterThemeable(contentLabel, {TextColor3 = "TextSecondary"})
+        
+        -- Adjust container size based on content height
+        local textSize = TextService:GetTextSize(content, 14, Enum.Font.SourceSans, Vector2.new(container.AbsoluteSize.X - 20, math.huge))
+        local contentHeight = math.clamp(textSize.Y, 30, 500)
+        contentLabel.Size = UDim2.new(1, -20, 0, contentHeight)
+        container.Size = UDim2.new(1, 0, 0, contentHeight + 30)
+        
+        return paragraphInstance
+    end
+    
     -- CREATE TEXTBOX METHOD
     tab.CreateTextbox = function(_, options)
         options = options or {}
@@ -2126,6 +2223,10 @@ function TabSystem:AddTab(tabInfo)
         
         return textboxObject
     end
+    
+    -- Create Input alias for CreateTextbox
+    tab.CreateInput = tab.CreateTextbox
+    
 -- FIXED DROPDOWN IMPLEMENTATION FOR TBD-COMPLETE-FIXED-V5.lua
 
 -- CREATE DROPDOWN METHOD - Completely revised positioning
