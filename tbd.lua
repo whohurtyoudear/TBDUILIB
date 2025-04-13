@@ -557,9 +557,10 @@ function NotificationSystem:Setup()
     self.Container = container
     self.Position = "TopRight"
     self.GUI = notificationGui -- Store reference to the ScreenGui
+    self.Gui = notificationGui -- Add standard case property for compatibility
     
-    -- Return self for method chaining and ensure Gui property is accessible
-    return self
+    -- Return both self and self.Gui to ensure proper access and prevent nil indexing
+    return self, self.Gui
 end
 
 function NotificationSystem:SetPosition(position)
@@ -1371,8 +1372,9 @@ function TabSystem:AddTab(tabInfo)
     
     -- Add methods to the tab
     tab.CreateSection = function(_, sectionName)
+        -- Force sectionName to be a string to prevent "attempt to concatenate string with table" errors
         local section = Create("Frame", {
-            Name = "Section_" .. sectionName,
+            Name = "Section_" .. tostring(sectionName),
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 30),
             Parent = tab.Content
@@ -5396,11 +5398,21 @@ end
 function TBD:Notification(options)
     if not self.NotificationSystem.Container then
         -- Store the result of Setup() to ensure we have a valid reference
-        local notificationSystem = self.NotificationSystem:Setup()
+        local notificationSystem, notificationGui = self.NotificationSystem:Setup()
         -- Make sure we have a valid notification system after setup
         if not self.NotificationSystem.Container then
             warn("TBD UI Library: Failed to initialize notification system container")
             return nil
+        end
+        
+        -- Ensure we have access to the GUI object
+        if notificationGui then
+            -- Make sure the GUI is properly parented if needed
+            if not notificationGui.Parent then
+                pcall(function()
+                    notificationGui.Parent = game:GetService("CoreGui")
+                end)
+            end
         end
     end
     
