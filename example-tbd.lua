@@ -1,7 +1,8 @@
 --[[
-    TBD UI Library V9 Example
-    This example demonstrates all key features of the V9 library
-    Works on all Roblox executors
+    TBD UI Library V9 - Fixed Example
+    
+    This example demonstrates the beautiful original design while 
+    maintaining compatibility with all Roblox executors
 ]]
 
 -- Load the TBD UI Library with proper error handling
@@ -27,10 +28,10 @@ end
 print("TBD UI Library loaded successfully!")
 print("Version: " .. TBD.Version)
 
--- Create a window with a custom theme
+-- Create a window with the HoHo theme
 local Window = TBD:CreateWindow({
     Title = "TBD UI Library",
-    Subtitle = "Universal V9",
+    Subtitle = "V9 Fixed",
     Theme = "HoHo", -- Available themes: Default, HoHo, Midnight, Neon, Aqua
     Size = {650, 450}, -- Wider design as requested
     LoadingEnabled = true, -- Enables the fancy loading screen
@@ -59,11 +60,11 @@ local CreditsTab = Window:CreateTab({
 })
 
 -- Home Tab Content
-local HomeSection = HomeTab:CreateSection("Welcome")
+local HomeSectionWelcome = HomeTab:CreateSection("Welcome")
 
 HomeTab:CreateParagraph({
     Title = "TBD UI Library V9",
-    Content = "Welcome to the TBD UI Library V9 - Universal Edition. This library is designed to work across all Roblox executors and provides a comprehensive set of UI components."
+    Content = "Welcome to the TBD UI Library V9 - Fixed Edition. This library preserves the beautiful design of previous versions while ensuring compatibility with all Roblox executors."
 })
 
 HomeTab:CreateButton({
@@ -73,7 +74,7 @@ HomeTab:CreateButton({
         TBD:Notification({
             Title = "TBD UI Library",
             Message = "This is a test notification. The notification system works!",
-            Duration = 5,
+            Time = 5,
             Type = "Info" -- Types: Success, Error, Warning, Info
         })
     end
@@ -98,7 +99,7 @@ FeaturesTab:CreateButton({
         TBD:Notification({
             Title = "Button Clicked",
             Message = "You clicked the button with a description",
-            Duration = 3,
+            Time = 3,
             Type = "Success"
         })
     end
@@ -183,7 +184,7 @@ FeaturesTab:CreateButton({
         TBD:Notification({
             Title = "Dropdown Updated",
             Message = "The dropdown options have been refreshed",
-            Duration = 3,
+            Time = 3,
             Type = "Info"
         })
     end
@@ -211,7 +212,7 @@ FeaturesTab:CreateTextBox({
         TBD:Notification({
             Title = "Username Entered",
             Message = "You entered: " .. username,
-            Duration = 3,
+            Time = 3,
             Type = "Info"
         })
     end
@@ -263,7 +264,7 @@ SettingsTab:CreateDropdown({
         TBD:Notification({
             Title = "Theme Selected",
             Message = "Selected the " .. theme .. " theme (would normally change theme)",
-            Duration = 3,
+            Time = 3,
             Type = "Info"
         })
     end
@@ -276,22 +277,35 @@ SettingsTab:CreateButton({
     Callback = function()
         -- Create a custom theme (in a real scenario, you'd apply this)
         local customTheme = TBD:CustomTheme({
-            Primary = Color3.fromRGB(30, 30, 35),
-            Secondary = Color3.fromRGB(25, 25, 30),
-            Background = Color3.fromRGB(20, 20, 25),
-            TextPrimary = Color3.fromRGB(240, 240, 240),
-            TextSecondary = Color3.fromRGB(190, 190, 190),
-            Accent = Color3.fromRGB(130, 170, 255),
-            DarkAccent = Color3.fromRGB(110, 150, 230),
-            Success = Color3.fromRGB(60, 200, 120),
-            Warning = Color3.fromRGB(255, 180, 40),
-            Error = Color3.fromRGB(255, 50, 50),
+            MainFrame = Color3.fromRGB(30, 30, 40),
+            TopBar = Color3.fromRGB(25, 25, 35),
+            TextColor = Color3.fromRGB(255, 255, 255),
+            Menu = Color3.fromRGB(25, 25, 35),
+            TabToggled = Color3.fromRGB(40, 40, 50),
+            Button = Color3.fromRGB(35, 35, 45),
+            ButtonHold = Color3.fromRGB(45, 45, 55),
+            Toggle = Color3.fromRGB(35, 35, 45),
+            ToggleFrame = Color3.fromRGB(65, 65, 75),
+            ToggleToggled = Color3.fromRGB(130, 170, 255),
+            Slider = Color3.fromRGB(35, 35, 45),
+            SliderInner = Color3.fromRGB(25, 25, 35),
+            SliderProgress = Color3.fromRGB(130, 170, 255),
+            Dropdown = Color3.fromRGB(35, 35, 45),
+            DropdownItem = Color3.fromRGB(35, 35, 45),
+            ColorPicker = Color3.fromRGB(35, 35, 45),
+            Input = Color3.fromRGB(35, 35, 45),
+            Notification = Color3.fromRGB(35, 35, 45),
+            NotificationButtons = Color3.fromRGB(25, 25, 35),
+            NotificationSuccess = Color3.fromRGB(60, 200, 120),
+            NotificationError = Color3.fromRGB(255, 50, 50),
+            NotificationWarning = Color3.fromRGB(255, 180, 40),
+            NotificationInfo = Color3.fromRGB(130, 170, 255)
         })
         
         TBD:Notification({
             Title = "Custom Theme Created",
             Message = "Custom theme has been created (would normally apply)",
-            Duration = 3,
+            Time = 3,
             Type = "Success"
         })
     end
@@ -323,7 +337,7 @@ CreditsTab:CreateButton({
         TBD:Notification({
             Title = "Discord Invite",
             Message = "Discord invite would be copied to clipboard",
-            Duration = 3,
+            Time = 3,
             Type = "Info"
         })
     end
@@ -331,9 +345,9 @@ CreditsTab:CreateButton({
 
 -- Final notification to show library is fully loaded
 TBD:Notification({
-    Title = "TBD UI Library V9",
+    Title = "TBD UI Library V9 Fixed",
     Message = "Interface loaded successfully!",
-    Duration = 5,
+    Time = 5,
     Type = "Success"
 })
 
