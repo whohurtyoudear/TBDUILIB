@@ -1,17 +1,17 @@
 --[[
-    TBD UI Library - Fixed Example (v9)
-    This example demonstrates usage of the Type Error Fixed version
+    TBD UI Library - V10 Example
+    This example demonstrates all the features and fixes in V10
 ]]
 
--- Load the fixed library from GitHub
+-- Load the library from GitHub or use local source
 local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua"))()
 
--- Create a window with the same options as before
+-- Create a window
 local Window = TBD:CreateWindow({
     Title = "TBD UI Library",
-    Subtitle = "Type Error Fixed Version",
+    Subtitle = "V10 Fixed Edition",
     TabWidth = 160, -- Wider tabs for HoHo style
-    Size = UDim2.new(0, 650, 0, 460), -- Wider window (HoHo style)
+    Size = 650, -- Can now use a number directly, will be auto-converted to UDim2
     Theme = "HoHo", -- Use HoHo theme by default
     MinimizeKey = Enum.KeyCode.LeftAlt,
     ShowHomePage = true -- Show the home page with player info
@@ -25,7 +25,7 @@ local GeneralTab = Window:CreateTab({
 
 local TestTab = Window:CreateTab({
     Name = "Test Cases",
-    Icon = "search"
+    Icon = "flask"
 })
 
 -- Add elements to General tab
@@ -45,8 +45,44 @@ GeneralTab:CreateButton({
     end
 })
 
--- Add test cases that trigger potential type errors
-TestTab:CreateSection("Type Error Tests")
+-- Create a toggle
+GeneralTab:CreateToggle({
+    Name = "Feature Toggle",
+    Description = "Enable or disable a feature",
+    CurrentValue = false,
+    Flag = "featureEnabled",
+    Callback = function(value)
+        print("Toggle switched to:", value)
+    end
+})
+
+-- Create a slider
+GeneralTab:CreateSlider({
+    Name = "Speed Adjustment",
+    Description = "Adjust the speed value",
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 50,
+    Flag = "speedValue",
+    Callback = function(value)
+        print("Slider value changed to:", value)
+    end
+})
+
+-- Create a dropdown
+GeneralTab:CreateDropdown({
+    Name = "Select Option",
+    Description = "Choose from available options",
+    Items = {"Option 1", "Option 2", "Option 3", "Option 4"},
+    CurrentOption = "Option 1",
+    Flag = "selectedOption",
+    Callback = function(option)
+        print("Selected option:", option)
+    end
+})
+
+-- Add test cases that demonstrate the type safety fixes
+TestTab:CreateSection("Type Error Fixes")
 
 -- Test with number as string
 TestTab:CreateButton({
@@ -62,41 +98,108 @@ TestTab:CreateButton({
     end
 })
 
--- Test with UICorner radius
+-- UICorner with number radius
 TestTab:CreateButton({
-    Name = "Create UICorner Test",
-    Description = "Tests UICorner with number radius",
+    Name = "Test UICorner",
+    Description = "Test UICorner with number radius",
     Callback = function()
-        -- This would normally trigger an error with numeric radius
+        -- Create a test frame
         local testFrame = Instance.new("Frame")
-        testFrame.Size = UDim2.new(0, 100, 0, 100)
-        testFrame.Position = UDim2.new(0.5, -50, 0.5, -50)
+        testFrame.Size = UDim2.new(0, 200, 0, 200)
+        testFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
         testFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         testFrame.Parent = game.CoreGui
         
-        -- This should be fixed now to handle number input
+        -- This would normally cause an error without the type safety fix:
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = 8 -- Intentionally using number instead of UDim
+        corner.CornerRadius = 8 -- Using a number instead of UDim
         corner.Parent = testFrame
         
         TBD:Notification({
             Title = "UICorner Test",
-            Message = "Created frame with UICorner",
+            Message = "Created frame with number radius - should work with type safety!",
             Type = "Success",
-            Duration = 3
+            Duration = 5
         })
         
-        -- Cleanup after 3 seconds
-        task.delay(3, function()
+        -- Cleanup after 5 seconds
+        task.delay(5, function()
             testFrame:Destroy()
         end)
     end
 })
 
--- Show a welcome notification
+-- Test Color Picker with both naming conventions
+TestTab:CreateButton({
+    Name = "Test Color Picker Names",
+    Description = "Test both ColorPicker and Colorpicker",
+    Callback = function()
+        -- Both these methods should work due to our compatibility fix
+        local picker1 = TestTab:CreateColorPicker({
+            Name = "Method 1",
+            Default = Color3.fromRGB(255, 0, 0),
+            Callback = function(color) end
+        })
+        
+        local picker2 = TestTab:CreateColorpicker({
+            Name = "Method 2",
+            Default = Color3.fromRGB(0, 255, 0),
+            Callback = function(color) end
+        })
+        
+        TBD:Notification({
+            Title = "Color Picker Test",
+            Message = "Both naming conventions work!",
+            Type = "Success",
+            Duration = 3
+        })
+    end
+})
+
+-- Test Window Size with all formats
+TestTab:CreateButton({
+    Name = "Test Window Size",
+    Description = "Test different window size formats",
+    Callback = function()
+        -- Create windows with different size formats
+        local window1 = TBD:CreateWindow({
+            Title = "UDim2 Size",
+            Size = UDim2.new(0, 500, 0, 300),
+            Position = UDim2.new(0, 100, 0, 100)
+        })
+        
+        local window2 = TBD:CreateWindow({
+            Title = "Table Size",
+            Size = {400, 250},
+            Position = UDim2.new(0, 100, 0, 450)
+        })
+        
+        local window3 = TBD:CreateWindow({
+            Title = "Number Size",
+            Size = 300, -- Single number
+            Position = UDim2.new(0, 600, 0, 100)
+        })
+        
+        TBD:Notification({
+            Title = "Window Size Test",
+            Message = "Created windows with all size formats!",
+            Type = "Success", 
+            Duration = 3
+        })
+        
+        -- Cleanup after 5 seconds
+        task.delay(5, function()
+            window1:Destroy()
+            window2:Destroy()
+            window3:Destroy()
+        end)
+    end
+})
+
+-- Welcome notification
 TBD:Notification({
-    Title = "Welcome!",
-    Message = "TBD UI Library v9 has been loaded successfully.",
+    Title = "V10 Fixed Edition",
+    Message = "TBD UI Library loaded successfully with all type safety fixes!",
     Type = "Success",
     Duration = 5
 })
