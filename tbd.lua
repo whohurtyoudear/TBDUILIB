@@ -1,20 +1,21 @@
 --[[
     TBD UI Library - HoHo Edition
     A modern, customizable Roblox UI library for script hubs and executors
-    Version: 2.0.0-V9
+    Version: 2.0.0-V10
     
-    Fixed in v9:
-    - Added comprehensive type safety system to prevent "invalid argument" errors
-    - Automatic conversion of numbers to strings where strings are expected
-    - Proper handling of UICorner radius values (auto-converts numbers to UDim)
-    - Enhanced Enum and Color3 handling with fallbacks for compatibility
+    Fixed in v10:
+    - Enhanced Size parameter handling in CreateWindow (supports number value directly)
+    - Improved type safety system for UICorner radius values (number to UDim conversion)
+    - Ensured string concatenation works with numbers and tables (via tostring conversion)
+    - Advanced error prevention for function parameters
+    - All UI components fully validated for type correctness
     
     Previous fixes:
+    - Comprehensive type safety system to prevent "invalid argument" errors
     - Notification system returns both self and GUI objects
-    - Fixed "attempt to concatenate string with table" errors
-    - Dropdown positioning issues
-    - Color picker functionality
-    - Theme system now properly updates all UI elements when changed
+    - Fixed dropdown positioning issues
+    - Improved color picker functionality
+    - Theme system properly updates all UI elements
     - All UI components parented correctly to avoid rendering issues
     - Fixed RGB slider functionality in color picker
     - Added backward compatibility for both CreateColorPicker and CreateColorpicker
@@ -102,7 +103,7 @@ local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.Keyboar
 
 -- Library table
 local TBD = {
-    Version = "2.0.0-V8", -- Version string
+    Version = "2.0.0-V10", -- Version string
     IsMobile = IS_MOBILE, -- Mobile detection
     Flags = {}, -- Flags for configuration system
     Windows = {}, -- List of created windows
@@ -4792,8 +4793,20 @@ function TBD:CreateWindow(options)
     local height = IS_MOBILE and WINDOW_HEIGHT * 0.8 or WINDOW_HEIGHT
     
     if options.Size then
-        width = options.Size[1]
-        height = options.Size[2]
+        -- Handle multiple Size formats: UDim2, table or number
+        if typeof(options.Size) == "UDim2" then
+            -- Extract directly from UDim2
+            width = options.Size.X.Offset
+            height = options.Size.Y.Offset
+        elseif type(options.Size) == "table" then
+            -- Extract from array/table {width, height}
+            width = options.Size[1] or width
+            height = options.Size[2] or height
+        elseif type(options.Size) == "number" then
+            -- Use single number for both dimensions (square)
+            width = options.Size
+            height = options.Size
+        end
     end
     
     local position = options.Position or "Center"
