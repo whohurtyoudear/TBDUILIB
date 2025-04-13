@@ -1,16 +1,16 @@
 --[[
-    TBD UI Library V12 - Complete
+    TBD UI Library V13 - Final Release
     
     A modern, robust Roblox UI library for script hubs and executors
-    Version 2.0.0-V12
+    Version 3.0.0-V13
     
-    Based on original TBD design with improved error handling and compatibility
-    Incorporates fixes for all known issues in previous versions
+    Enhanced with improved dragging functionality and UI refinements
+    Incorporates fixes for all known issues from previous versions
 ]]
 
 -- Library setup with error handling
 local TBD = {
-    Version = "2.0.0-V12",
+    Version = "3.0.0-V13",
     _initialized = false,
     _theme = nil,
     Windows = {},
@@ -240,18 +240,22 @@ local function SafeParent(gui, preferredParent)
     end
     
     -- Method 3: Try CoreGui:FindFirstChild("RobloxGui")
-    if not success and services.CoreGui:FindFirstChild("RobloxGui") then
-        success = pcall(function()
-            gui.Parent = services.CoreGui:FindFirstChild("RobloxGui")
-            return true
+    if not success then
+        pcall(function()
+            if services.CoreGui:FindFirstChild("RobloxGui") then
+                gui.Parent = services.CoreGui:FindFirstChild("RobloxGui")
+                success = true
+            end
         end)
     end
     
     -- Method 4: Try PlayerGui if available
-    if not success and LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
-        success = pcall(function()
-            gui.Parent = LocalPlayer.PlayerGui
-            return true
+    if not success then
+        pcall(function()
+            if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+                gui.Parent = LocalPlayer.PlayerGui
+                success = true
+            end
         end)
     end
     
@@ -881,7 +885,7 @@ function TBD:Notification(options)
     return self.NotificationSystem:CreateNotification(options)
 end
 
--- Make element draggable
+-- Improved draggable function to fix the dragging issue
 local function MakeDraggable(element, handle, constraint)
     local dragging = false
     local dragInput
@@ -891,35 +895,59 @@ local function MakeDraggable(element, handle, constraint)
     handle = handle or element
     constraint = constraint or element.Parent
     
+    -- Function to safely get values that could be nil in some environments
+    local function GetAbsoluteSize(instance)
+        return (typeof(instance) == "Instance" and instance:IsA("GuiObject")) and 
+            instance.AbsoluteSize or Vector2.new(800, 600)
+    end
+    
+    local function GetAbsolutePosition(instance)
+        return (typeof(instance) == "Instance" and instance:IsA("GuiObject")) and 
+            instance.AbsolutePosition or Vector2.new(0, 0)
+    end
+    
+    -- Improved update function with better validation
     local function Update(input)
         if not dragging then return end
         
+        -- Ensure values are valid
+        if not dragStart or not startPos or not input or not input.Position then return end
+        
         local delta = input.Position - dragStart
         
-        -- Calculate new position with safe bounds checking
+        -- Get constraint bounds safely
+        local constraintSize = GetAbsoluteSize(constraint)
+        local elementSize = GetAbsoluteSize(element)
+        local maxX = constraintSize.X - elementSize.X
+        local maxY = constraintSize.Y - elementSize.Y
+        
+        -- Calculate new position with improved clamping
         local newPosition = UDim2.new(
             startPos.X.Scale, 
-            math.clamp(startPos.X.Offset + delta.X, 0, constraint.AbsoluteSize.X - element.AbsoluteSize.X),
+            math.clamp(startPos.X.Offset + delta.X, 0, maxX > 0 and maxX or 500),
             startPos.Y.Scale,
-            math.clamp(startPos.Y.Offset + delta.Y, 0, constraint.AbsoluteSize.Y - element.AbsoluteSize.Y)
+            math.clamp(startPos.Y.Offset + delta.Y, 0, maxY > 0 and maxY or 300)
         )
         
-        -- Safely tween to new position
-        pcall(function()
-            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quint)
-            services.TweenService:Create(element, tweenInfo, {
-                Position = newPosition
-            }):Play()
-        end)
+        -- Only use tweens for smooth small movements, use direct positioning for dragging
+        -- This prevents the UI from getting stuck
+        element.Position = newPosition
     end
     
-    -- Connect drag events with error handling
+    -- Connect drag events with additional error handling
     pcall(function()
         handle.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
                 startPos = element.Position
+                
+                -- Capture input to prevent losing track if mouse moves too fast
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
             end
         end)
         
@@ -1401,7 +1429,7 @@ function TBD:CreateWindow(options)
         windowObj:Minimize()
     end)
     
-    -- Make window draggable
+    -- Make window draggable with improved function
     MakeDraggable(window, header, gui)
     
     -- Handle home button
@@ -1950,16 +1978,24 @@ function TBD:CreateWindow(options)
             
             -- Helper function to get value from slider position
             local function getValueFromPosition(posX)
-                local sliderBarPos = sliderBar.AbsolutePosition.X
-                local sliderBarWidth = sliderBar.AbsoluteSize.X
+                -- Safely get slider bar position and size
+                local sliderBarPos = 0
+                local sliderBarWidth = 100
+                
+                pcall(function()
+                    sliderBarPos = sliderBar.AbsolutePosition.X
+                    sliderBarWidth = sliderBar.AbsoluteSize.X
+                end)
+                
                 local relativePos = math.clamp((posX - sliderBarPos) / sliderBarWidth, 0, 1)
                 local newValue = options.Min + relativePos * (options.Max - options.Min)
                 return newValue
             end
             
-            -- Handle slider interaction
+            -- Handle slider interaction - with direct position updates for better drag response
             local isDragging = false
             
+            -- Handle slider click
             ConnectTouchInput(sliderBar, function(input)
                 -- Get value from input position
                 local newValue = getValueFromPosition(input.Position.X)
@@ -1967,21 +2003,59 @@ function TBD:CreateWindow(options)
                 
                 -- Start dragging
                 isDragging = true
+                
+                -- Ensure we handle input ending
+                pcall(function()
+                    local dragConnection
+                    dragConnection = services.UserInputService.InputChanged:Connect(function(dragInput)
+                        if isDragging and (dragInput.UserInputType == Enum.UserInputType.MouseMovement or 
+                                         dragInput.UserInputType == Enum.UserInputType.Touch) then
+                            local newValue = getValueFromPosition(dragInput.Position.X)
+                            updateSlider(newValue)
+                        end
+                    end)
+                    
+                    -- Connect a one-time use ended event
+                    local endConnection
+                    endConnection = services.UserInputService.InputEnded:Connect(function(inputEnd)
+                        if inputEnd == input then
+                            isDragging = false
+                            endConnection:Disconnect()
+                            dragConnection:Disconnect()
+                        end
+                    end)
+                end)
             end)
             
-            -- Handle touch/mouse movement
-            pcall(function()
-                services.UserInputService.InputChanged:Connect(function(input)
-                    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                        local newValue = getValueFromPosition(input.Position.X)
-                        updateSlider(newValue)
-                    end
-                end)
+            -- Connect to knob as well for better usability
+            ConnectTouchInput(sliderKnob, function(input)
+                -- Get value from input position
+                local newValue = getValueFromPosition(input.Position.X)
+                updateSlider(newValue)
                 
-                services.UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        isDragging = false
-                    end
+                -- Start dragging
+                isDragging = true
+                
+                -- Ensure we handle input ending
+                pcall(function()
+                    local dragConnection
+                    dragConnection = services.UserInputService.InputChanged:Connect(function(dragInput)
+                        if isDragging and (dragInput.UserInputType == Enum.UserInputType.MouseMovement or 
+                                         dragInput.UserInputType == Enum.UserInputType.Touch) then
+                            local newValue = getValueFromPosition(dragInput.Position.X)
+                            updateSlider(newValue)
+                        end
+                    end)
+                    
+                    -- Connect a one-time use ended event
+                    local endConnection
+                    endConnection = services.UserInputService.InputEnded:Connect(function(inputEnd)
+                        if inputEnd == input then
+                            isDragging = false
+                            endConnection:Disconnect()
+                            dragConnection:Disconnect()
+                        end
+                    end)
                 end)
             end)
             
@@ -2546,7 +2620,7 @@ function TBD:CreateWindow(options)
                 toggleColorPicker()
             end)
             
-            -- Handle hue selection
+            -- Improved touch/mouse handling for hue selection
             local hueSelecting = false
             
             ConnectTouchInput(huePicker, function(input)
@@ -2556,12 +2630,34 @@ function TBD:CreateWindow(options)
                 local yOffset = math.clamp(input.Position.Y - huePicker.AbsolutePosition.Y, 0, huePicker.AbsoluteSize.Y)
                 h = yOffset / huePicker.AbsoluteSize.Y
                 
-                -- Update color
+                -- Update color without tweening for immediate feedback
                 updateSelectors()
                 updateColor()
+                
+                -- Add mouse movement tracking
+                local moveConnection
+                moveConnection = services.UserInputService.InputChanged:Connect(function(changeInput)
+                    if hueSelecting and (changeInput.UserInputType == Enum.UserInputType.MouseMovement or 
+                                     changeInput.UserInputType == Enum.UserInputType.Touch) then
+                        local yOffset = math.clamp(changeInput.Position.Y - huePicker.AbsolutePosition.Y, 0, huePicker.AbsoluteSize.Y)
+                        h = yOffset / huePicker.AbsoluteSize.Y
+                        updateSelectors()
+                        updateColor()
+                    end
+                end)
+                
+                -- Add one-time end connection
+                local endConnection
+                endConnection = services.UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput == input then
+                        hueSelecting = false
+                        if moveConnection then moveConnection:Disconnect() end
+                        endConnection:Disconnect()
+                    end
+                end)
             end)
             
-            -- Handle saturation/value selection
+            -- Improved touch/mouse handling for saturation/value selection
             local saturationSelecting = false
             
             ConnectTouchInput(saturationPicker, function(input)
@@ -2574,42 +2670,33 @@ function TBD:CreateWindow(options)
                 s = xOffset / saturationPicker.AbsoluteSize.X
                 v = 1 - (yOffset / saturationPicker.AbsoluteSize.Y)
                 
-                -- Update color
+                -- Update color without tweening for immediate feedback
                 updateSelectors()
                 updateColor()
-            end)
-            
-            -- Handle input changed
-            pcall(function()
-                services.UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                        if hueSelecting then
-                            -- Update hue
-                            local yOffset = math.clamp(input.Position.Y - huePicker.AbsolutePosition.Y, 0, huePicker.AbsoluteSize.Y)
-                            h = yOffset / huePicker.AbsoluteSize.Y
-                            
-                            -- Update color
-                            updateSelectors()
-                            updateColor()
-                        elseif saturationSelecting then
-                            -- Update saturation and value
-                            local xOffset = math.clamp(input.Position.X - saturationPicker.AbsolutePosition.X, 0, saturationPicker.AbsoluteSize.X)
-                            local yOffset = math.clamp(input.Position.Y - saturationPicker.AbsolutePosition.Y, 0, saturationPicker.AbsoluteSize.Y)
-                            
-                            s = xOffset / saturationPicker.AbsoluteSize.X
-                            v = 1 - (yOffset / saturationPicker.AbsoluteSize.Y)
-                            
-                            -- Update color
-                            updateSelectors()
-                            updateColor()
-                        end
+                
+                -- Add mouse movement tracking
+                local moveConnection
+                moveConnection = services.UserInputService.InputChanged:Connect(function(changeInput)
+                    if saturationSelecting and (changeInput.UserInputType == Enum.UserInputType.MouseMovement or 
+                                           changeInput.UserInputType == Enum.UserInputType.Touch) then
+                        local xOffset = math.clamp(changeInput.Position.X - saturationPicker.AbsolutePosition.X, 0, saturationPicker.AbsoluteSize.X)
+                        local yOffset = math.clamp(changeInput.Position.Y - saturationPicker.AbsolutePosition.Y, 0, saturationPicker.AbsoluteSize.Y)
+                        
+                        s = xOffset / saturationPicker.AbsoluteSize.X
+                        v = 1 - (yOffset / saturationPicker.AbsoluteSize.Y)
+                        
+                        updateSelectors()
+                        updateColor()
                     end
                 end)
                 
-                services.UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        hueSelecting = false
+                -- Add one-time end connection
+                local endConnection
+                endConnection = services.UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput == input then
                         saturationSelecting = false
+                        if moveConnection then moveConnection:Disconnect() end
+                        endConnection:Disconnect()
                     end
                 end)
             end)
