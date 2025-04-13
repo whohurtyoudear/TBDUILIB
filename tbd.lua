@@ -1,5 +1,5 @@
 --[[
-    TBD UI Library - New Edition (AWP Compatible)
+    TBD UI Library - New Edition 
     A modern, customizable Roblox UI library for script hubs and executors
     Version: 2.0.0-V8-AWP
     
@@ -556,8 +556,9 @@ function NotificationSystem:Setup()
     
     self.Container = container
     self.Position = "TopRight"
-    self.Gui = notificationGui -- Store reference to the ScreenGui
+    self.GUI = notificationGui -- Store reference to the ScreenGui
     
+    -- Return self for method chaining and ensure Gui property is accessible
     return self
 end
 
@@ -5387,7 +5388,13 @@ end
 -- Function to create notification
 function TBD:Notification(options)
     if not self.NotificationSystem.Container then
-        self.NotificationSystem:Setup()
+        -- Store the result of Setup() to ensure we have a valid reference
+        local notificationSystem = self.NotificationSystem:Setup()
+        -- Make sure we have a valid notification system after setup
+        if not self.NotificationSystem.Container then
+            warn("TBD UI Library: Failed to initialize notification system container")
+            return nil
+        end
     end
     
     return self.NotificationSystem:CreateNotification(options)
