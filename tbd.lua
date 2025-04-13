@@ -591,6 +591,11 @@ end
 local NotificationSystem = {}
 
 function NotificationSystem:Setup()
+    -- Only setup once
+    if self.Container then
+        return self
+    end
+    
     -- Create notification container
     local notificationGui = Create("ScreenGui", {
         Name = LIBRARY_NAME .. "_Notifications",
@@ -599,20 +604,9 @@ function NotificationSystem:Setup()
         DisplayOrder = 100
     })
     
-    -- Try to parent to CoreGui
-    local success, result = pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(notificationGui)
-            notificationGui.Parent = CoreGui
-        else
-            notificationGui.Parent = CoreGui
-        end
-        return true
-    end)
-    
-    if not success then
-        notificationGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
+    -- Always parent to PlayerGui for maximum compatibility with all executors
+    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
+    notificationGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     
     local container = Create("Frame", {
         Name = "NotificationContainer",
@@ -680,8 +674,8 @@ function NotificationSystem:CreateNotification(options)
     end
     
     options = options or {}
-    local title = options.Title or "Notification"
-    local message = options.Message or ""
+    local title = tostring(options.Title or "Notification")
+    local message = tostring(options.Message or "")
     local duration = options.Duration or 5
     local type = options.Type or "Info"
     local callback = options.Callback
@@ -965,8 +959,8 @@ local LoadingScreen = {}
 function LoadingScreen:Create(options)
     options = options or {}
     
-    local title = options.Title or "TBD UI Library"
-    local subtitle = options.Subtitle or "Loading..."
+    local title = tostring(options.Title or "TBD UI Library")
+    local subtitle = tostring(options.Subtitle or "Loading...")
     local logoId = options.LogoId
     local logoSize = options.LogoSize or UDim2.new(0, 100, 0, 100)
     local logoPosition = options.LogoPosition or UDim2.new(0.5, 0, 0.4, 0)
@@ -981,20 +975,9 @@ function LoadingScreen:Create(options)
         DisplayOrder = 1000
     })
     
-    -- Try to parent to CoreGui
-    local success, result = pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(loadingGui)
-            loadingGui.Parent = CoreGui
-        else
-            loadingGui.Parent = CoreGui
-        end
-        return true
-    end)
-    
-    if not success then
-        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
+    -- Always parent to PlayerGui for maximum compatibility with all executors
+    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
+    loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     
     -- Create loading screen background with blur
     local background = Create("Frame", {
@@ -4844,20 +4827,9 @@ function TBD:CreateWindow(options)
         IgnoreGuiInset = true
     })
     
-    -- Try to parent to CoreGui
-    local success, result = pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(screenGui)
-            screenGui.Parent = CoreGui
-        else
-            screenGui.Parent = CoreGui
-        end
-        return true
-    end)
-    
-    if not success then
-        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
+    -- Always parent to PlayerGui for maximum compatibility with all executors
+    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     
     -- Create main frame
     local mainFrame = Create("Frame", {
@@ -5476,10 +5448,8 @@ end
 
 -- Function to create notification
 function TBD:Notification(options)
-    if not self.NotificationSystem.Container then
-        self.NotificationSystem:Setup()
-    end
-    
+    -- NotificationSystem:CreateNotification will automatically call Setup() if needed
+    -- This ensures maximum compatibility with all executors
     return self.NotificationSystem:CreateNotification(options)
 end
 
