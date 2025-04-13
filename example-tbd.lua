@@ -1,179 +1,102 @@
 --[[
-    AWP.GG Example for TBD UI Library V8
-    This example demonstrates the V8 version working perfectly in AWP.GG
-    No design changes, just compatibility fixes
+    TBD UI Library - Fixed Example (v9)
+    This example demonstrates usage of the Type Error Fixed version
 ]]
 
--- Load TBD UI Library
-local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
+-- Load the fixed library from GitHub
+local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua"))()
 
--- Create a window with the HoHo theme
+-- Create a window with the same options as before
 local Window = TBD:CreateWindow({
     Title = "TBD UI Library",
-    Subtitle = "V8 HoHo Edition",
-    Theme = "HoHo",
-    ShowHomePage = true
+    Subtitle = "Type Error Fixed Version",
+    TabWidth = 160, -- Wider tabs for HoHo style
+    Size = UDim2.new(0, 650, 0, 460), -- Wider window (HoHo style)
+    Theme = "HoHo", -- Use HoHo theme by default
+    MinimizeKey = Enum.KeyCode.LeftAlt,
+    ShowHomePage = true -- Show the home page with player info
 })
 
--- Create a main tab
-local MainTab = Window:CreateTab({
-    Name = "Main Features",
-    Icon = "Home"
+-- Create tabs
+local GeneralTab = Window:CreateTab({
+    Name = "General",
+    Icon = "settings"
 })
 
--- Create a section header
-MainTab:CreateSection("Buttons")
+local TestTab = Window:CreateTab({
+    Name = "Test Cases",
+    Icon = "search"
+})
 
--- Create a button with click effect
-MainTab:CreateButton({
+-- Add elements to General tab
+GeneralTab:CreateSection("Basic Controls")
+
+-- Create a button
+GeneralTab:CreateButton({
     Name = "Simple Button",
-    Description = "A basic button with click effect",
+    Description = "Click to perform an action",
     Callback = function()
         TBD:Notification({
             Title = "Button Clicked",
-            Message = "You clicked the simple button!",
+            Message = "You clicked the button!",
             Type = "Info",
             Duration = 3
         })
     end
 })
 
--- Create a toggle
-MainTab:CreateSection("Toggles")
+-- Add test cases that trigger potential type errors
+TestTab:CreateSection("Type Error Tests")
 
-local toggle1 = MainTab:CreateToggle({
-    Name = "Feature Toggle",
-    Description = "Enables or disables a feature",
-    Default = false,
-    Callback = function(Value)
+-- Test with number as string
+TestTab:CreateButton({
+    Name = 123, -- Intentionally using a number instead of string
+    Description = "Testing number as name",
+    Callback = function()
         TBD:Notification({
-            Title = "Toggle Changed",
-            Message = "Feature is now " .. (Value and "Enabled" or "Disabled"),
-            Type = Value and "Success" or "Error",
+            Title = 456, -- Intentionally using a number
+            Message = 789, -- Intentionally using a number
+            Type = "Info",
             Duration = 3
         })
     end
 })
 
--- Create a slider
-MainTab:CreateSection("Sliders")
-
-local slider1 = MainTab:CreateSlider({
-    Name = "Walkspeed Slider",
-    Description = "Adjusts player walkspeed",
-    Range = {16, 250},
-    Increment = 1,
-    Default = 16,
-    Callback = function(Value)
-        -- Set the player's walkspeed (safely)
-        pcall(function()
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+-- Test with UICorner radius
+TestTab:CreateButton({
+    Name = "Create UICorner Test",
+    Description = "Tests UICorner with number radius",
+    Callback = function()
+        -- This would normally trigger an error with numeric radius
+        local testFrame = Instance.new("Frame")
+        testFrame.Size = UDim2.new(0, 100, 0, 100)
+        testFrame.Position = UDim2.new(0.5, -50, 0.5, -50)
+        testFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        testFrame.Parent = game.CoreGui
+        
+        -- This should be fixed now to handle number input
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = 8 -- Intentionally using number instead of UDim
+        corner.Parent = testFrame
+        
+        TBD:Notification({
+            Title = "UICorner Test",
+            Message = "Created frame with UICorner",
+            Type = "Success",
+            Duration = 3
+        })
+        
+        -- Cleanup after 3 seconds
+        task.delay(3, function()
+            testFrame:Destroy()
         end)
-    end
-})
-
--- Create a second tab for other features
-local CustomizationTab = Window:CreateTab({
-    Name = "Customization",
-    Icon = "Settings"
-})
-
--- Create a dropdown for theme selection
-CustomizationTab:CreateSection("Theme Selection")
-
-local themes = {"HoHo", "Default", "Midnight", "Neon", "Aqua"}
-local dropdown1 = CustomizationTab:CreateDropdown({
-    Name = "UI Theme",
-    Description = "Change the look of the interface",
-    Items = themes,
-    Default = "HoHo",
-    Callback = function(Value)
-        TBD:SetTheme(Value)
-        TBD:Notification({
-            Title = "Theme Changed",
-            Message = "Applied the " .. Value .. " theme",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
--- Create a color picker for custom theming
-CustomizationTab:CreateSection("Custom Colors")
-
-local colorPicker1 = CustomizationTab:CreateColorPicker({
-    Name = "Accent Color",
-    Description = "Change the accent color of the UI",
-    Default = Color3.fromRGB(255, 30, 50), -- HoHo red
-    Callback = function(Value)
-        TBD:CustomTheme({
-            Accent = Value,
-            DarkAccent = Value:Lerp(Color3.new(0,0,0), 0.2)
-        })
-    end
-})
-
--- Create a third tab for notifications
-local NotificationsTab = Window:CreateTab({
-    Name = "Notifications",
-    Icon = "Notification"
-})
-
--- Add notification examples
-NotificationsTab:CreateSection("Notification Types")
-
-NotificationsTab:CreateButton({
-    Name = "Success Notification",
-    Callback = function()
-        TBD:Notification({
-            Title = "Success",
-            Message = "Operation completed successfully!",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
-NotificationsTab:CreateButton({
-    Name = "Info Notification",
-    Callback = function()
-        TBD:Notification({
-            Title = "Information",
-            Message = "Here's some useful information for you.",
-            Type = "Info",
-            Duration = 3
-        })
-    end
-})
-
-NotificationsTab:CreateButton({
-    Name = "Warning Notification",
-    Callback = function()
-        TBD:Notification({
-            Title = "Warning",
-            Message = "Please be careful with this action!",
-            Type = "Warning",
-            Duration = 3
-        })
-    end
-})
-
-NotificationsTab:CreateButton({
-    Name = "Error Notification",
-    Callback = function()
-        TBD:Notification({
-            Title = "Error",
-            Message = "Something went wrong! Please try again.",
-            Type = "Error",
-            Duration = 3
-        })
     end
 })
 
 -- Show a welcome notification
 TBD:Notification({
-    Title = "Welcome",
-    Message = "TBD UI Library V8 loaded successfully!",
+    Title = "Welcome!",
+    Message = "TBD UI Library v9 has been loaded successfully.",
     Type = "Success",
     Duration = 5
 })
