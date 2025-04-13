@@ -1,83 +1,177 @@
-# TBD UI Library - New Edition
+# TBD UI Library - Enhanced Edition
 
-A modern, feature-rich Roblox UI library for script hubs and executors, inspired by popular designs like HoHo UI.
+TBD UI Library is a modern, powerful user interface library for Roblox script hubs and executors. This enhanced version (v7) includes animated hover effects and a comprehensive dynamic icon library to create sleek, responsive, and visually appealing UIs.
 
-## Features
+![TBD UI Library Preview](https://i.ibb.co/MkwVJpJt/giphy-5.gif)
 
-1. **Redesigned UI**: Completely redesigned with a wider layout for better usability
-2. **Modern Aesthetics**: Sleek, dark theme with accent colors and smooth animations
-3. **Customizable Loading Screen**: Professional loading screen with animation options
-4. **Window Controls**: Proper minimize and close buttons
-5. **Homepage Feature**: Display player info, game details, and credits on a home page
-6. **Fixed Notifications**: Properly positioned notifications with multiple types (Success, Info, Warning, Error)
-7. **Executor Compatibility**: Works across different Roblox executors with fallback mechanisms
-8. **Mobile Support**: Automatically adjusts for mobile devices with touch-friendly controls
-9. **Full Element Set**: All UI elements (buttons, toggles, sliders, dropdowns, etc.) fully functional
-10. **HoHo Theme**: New theme inspired by popular Roblox script hubs
+## ✨ Features
 
-## Installation
+- **Fully Customizable UI** - Create beautiful interfaces with various UI components
+- **Advanced Theming System** - Choose from built-in themes or create your own
+- **Animated Hover Effects** - Enhanced visual feedback with smooth animations
+- **Dynamic Icon Library** - 90+ built-in icons organized by categories
+- **Responsive Design** - Adapts to different screen sizes and resolutions
+- **Mobile Support** - Works on touch devices with appropriate control sizing
+- **Home Page** - Optional built-in home page with player and game info
+- **Loading Screen** - Customizable loading screen with progress bar
+- **Notification System** - Informative notifications with different types
 
-```lua
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
-```
+## 📋 Quick Start
 
-## Quick Start Example
+Add this to your script to get started:
 
 ```lua
--- Load the library
-local TBD = loadstring(game:HttpGet("https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua", true))()
+local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
 
--- Create a window with the home page feature enabled
+-- Create window
 local Window = TBD:CreateWindow({
-    Title = "TBD Script Hub",
-    Subtitle = "v2.0.0",
+    Title = "My Script Hub",
+    Subtitle = "v1.0",
     Theme = "HoHo",
-    ShowHomePage = true,
-    LoadingEnabled = true
+    ShowHomePage = true
 })
 
--- Create a tab
+-- Create tab with icon
 local MainTab = Window:CreateTab({
     Name = "Main",
-    Icon = "home",
-    ImageSource = "Phosphor"
+    Icon = "Home" -- Use icon name from the dynamic icon library
 })
 
--- Add a toggle (using the fixed CreateToggle method)
-MainTab:CreateToggle({
-    Name = "Test Feature",
-    Description = "Enable or disable this feature",
-    CurrentValue = false,
-    Callback = function(Value)
-        print("Toggle is now set to:", Value)
+-- Create interactive elements
+MainTab:CreateButton({
+    Name = "Click Me",
+    Callback = function()
+        TBD:Notification({
+            Title = "Button Clicked",
+            Message = "You clicked the button!",
+            Duration = 3,
+            Type = "Success"
+        })
     end
-})
-
--- Fix notification positioning
-TBD.NotificationSystem:SetPosition("TopRight")
-
--- Show a notification
-TBD:Notification({
-    Title = "Welcome",
-    Message = "TBD UI Library HoHo Edition has been loaded successfully!",
-    Type = "Success",
-    Duration = 5
 })
 ```
 
-## Documentation
+## 🎮 UI Components
 
-For complete documentation on all features and API methods, please see the [DOCUMENTATION.md](DOCUMENTATION.md) file.
+TBD UI Library includes various components for building your interface:
 
-## Executor Compatibility
+- **Sections** - Organize elements with headers
+- **Buttons** - Trigger actions with animated hover effects
+- **Toggles** - Enable/disable features
+- **Sliders** - Adjust numerical values
+- **Dropdowns** - Select from multiple options
+- **Inputs** - Text entry fields
+- **Keybinds** - Customizable keyboard shortcuts
+- **Color Pickers** - Select colors with a visual picker
+- **Labels** - Display text information
+- **Paragraphs** - Show multi-line text content
 
-The HoHo Edition has been improved to work with various Roblox executors through:
+## 🎨 New Animated Hover Effects
 
-1. Fallback implementation for GetSafeInsets method
-2. Mobile device detection that works across executors
-3. Error handling for executor-specific limitations
+The Enhanced Edition features sophisticated hover animations:
 
-## Credits
+- **Growth/Shrink Effects** - Elements subtly expand when hovered
+- **Color Transitions** - Smooth color changes with theme integration
+- **Glow Effects** - Soft glow around elements on hover
+- **Text Enhancement** - Text brightness and size changes for better feedback
 
-- Original concept inspired by various Roblox UI libraries
-- Enhanced and redesigned with inspiration from HoHo UI
+## 🖼️ Dynamic Icon Library
+
+This version includes an expanded icon library with over 90 built-in icons:
+
+- **UI Essentials** - Home, Settings, Close, etc.
+- **Game Elements** - Player, Target, Crown, etc.
+- **Actions** - Play, Download, Save, etc.
+- **Communication** - Chat, Mail, Phone, etc.
+- **Navigation** - Map, Compass, Location, etc.
+- **Categories** - Folder, File, Image, etc.
+- **Social** - User, Users, AddUser, etc.
+- **Devices** - Desktop, Mobile, Tablet, etc.
+- **Tools** - Sword, Shield, Key, etc.
+- **Weather** - Sun, Cloud, Rain, etc.
+
+Access icons easily with the new GetIcon helper function:
+
+```lua
+-- Use icon by name in components
+local Tab = Window:CreateTab({
+    Name = "Players",
+    Icon = "User" -- Simply use the icon name
+})
+
+-- Or get the icon ID directly
+local iconId = TBD:GetIcon("Home")
+```
+
+## 🌈 Themes
+
+Choose from built-in themes or create your own:
+
+```lua
+-- Use a built-in theme
+TBD:SetTheme("HoHo") -- Default, Midnight, Neon, Aqua, HoHo
+
+-- Create your own theme
+TBD:CustomTheme({
+    Primary = Color3.fromRGB(20, 20, 20),
+    Secondary = Color3.fromRGB(15, 15, 15),
+    Background = Color3.fromRGB(10, 10, 10),
+    TextPrimary = Color3.fromRGB(240, 240, 240),
+    TextSecondary = Color3.fromRGB(190, 190, 190),
+    Accent = Color3.fromRGB(255, 30, 50),
+    DarkAccent = Color3.fromRGB(200, 25, 45)
+})
+```
+
+## 📱 Responsiveness
+
+TBD UI Library automatically adapts to different screen sizes:
+
+- Adjusts for desktop and mobile screens
+- Touch-friendly controls for mobile users
+- Proper positioning of dropdowns and color pickers
+- Safe area adjustments for notches and system interfaces
+
+## 🔔 Notifications
+
+Show informative notifications to your users:
+
+```lua
+TBD:Notification({
+    Title = "Success",
+    Message = "Operation completed successfully",
+    Duration = 5,
+    Type = "Success" -- Info, Success, Warning, Error
+})
+```
+
+## 🏠 Home Page
+
+Enable the built-in home page to show player and game information:
+
+```lua
+local Window = TBD:CreateWindow({
+    -- other options
+    ShowHomePage = true
+})
+```
+
+## 📘 Documentation
+
+For complete documentation, see the `DOCUMENTATION.md` file for detailed instructions on all library features and components.
+
+## 🧪 Example Script
+
+Check out the `example-tbd.lua` file for a complete example that demonstrates all features of the Enhanced Edition.
+
+## 📝 License
+
+This project is open source and available for use in your scripts.
+
+## 🤝 Contributing
+
+Feel free to contribute to this library by suggesting improvements or reporting issues.
+
+---
+
+Made with ❤️ by TBD Development Team
