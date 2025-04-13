@@ -1,79 +1,17 @@
 --[[
     TBD UI Library - HoHo Edition
     A modern, customizable Roblox UI library for script hubs and executors
-    Version: 2.0.0-V10
+    Version: 2.0.0-V7
     
-    Fixed in v10:
-    - Enhanced Size parameter handling in CreateWindow (supports number value directly)
-    - Improved type safety system for UICorner radius values (number to UDim conversion)
-    - Ensured string concatenation works with numbers and tables (via tostring conversion)
-    - Advanced error prevention for function parameters
-    - All UI components fully validated for type correctness
-    
-    Previous fixes:
-    - Comprehensive type safety system to prevent "invalid argument" errors
-    - Notification system returns both self and GUI objects
-    - Fixed dropdown positioning issues
-    - Improved color picker functionality
-    - Theme system properly updates all UI elements
+    Fixed in v7:
+    - Dropdown positioning issues
+    - Color picker functionality
+    - Theme system now properly updates all UI elements when changed
     - All UI components parented correctly to avoid rendering issues
     - Fixed RGB slider functionality in color picker
-    - Added backward compatibility for both CreateColorPicker and CreateColorpicker
+    - Added UI element tracking system for theme changes
+    - Fixed dropdown list syntax error
 ]]
-
--- Type safety utility functions
-local function SafeToString(value)
-    if value == nil then
-        return ""
-    elseif type(value) == "string" then
-        return value
-    else
-        return tostring(value)
-    end
-end
-
-local function SafeUDim(value)
-    if typeof(value) == "UDim" then
-        return value
-    elseif type(value) == "number" then
-        return UDim.new(0, value) -- Convert number to UDim with scale 0 and offset value
-    else
-        return UDim.new(0, 0)
-    end
-end
-
-local function SafeEnum(enumType, value)
-    if typeof(value) == "EnumItem" then
-        return value
-    elseif type(value) == "string" then
-        -- Try to convert string to Enum
-        local success, result = pcall(function()
-            return Enum[enumType][value]
-        end)
-        if success then
-            return result
-        end
-    end
-    -- Return a default value
-    return Enum[enumType][0] -- First enum value as default
-end
-
-local function SafeColor3(value)
-    if typeof(value) == "Color3" then
-        return value
-    elseif type(value) == "string" then
-        -- Try to parse color from hex format
-        if value:match("^#?%x%x%x%x%x%x$") then
-            local hex = value:gsub("#", "")
-            local r = tonumber(hex:sub(1, 2), 16) / 255
-            local g = tonumber(hex:sub(3, 4), 16) / 255
-            local b = tonumber(hex:sub(5, 6), 16) / 255
-            return Color3.new(r, g, b)
-        end
-    end
-    -- Default fallback color
-    return Color3.new(1, 1, 1)
-end
 
 -- Services
 local Players = game:GetService("Players")
@@ -103,7 +41,7 @@ local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.Keyboar
 
 -- Library table
 local TBD = {
-    Version = "2.0.0-V10", -- Version string
+    Version = "2.0.0-V7", -- Version string
     IsMobile = IS_MOBILE, -- Mobile detection
     Flags = {}, -- Flags for configuration system
     Windows = {}, -- List of created windows
@@ -365,32 +303,7 @@ local function Create(className, properties)
     -- Track themeable properties
     local themeProperties = {}
     
-    -- Create a safe copy of properties with type conversions
-    local safeProperties = {}
     for property, value in pairs(properties or {}) do
-        -- Apply type safety for common properties
-        if property == "Text" or property == "Name" or property == "Title" or 
-           property == "PlaceholderText" or property == "Description" then
-            safeProperties[property] = SafeToString(value)
-        -- Handle UICorner radius special case
-        elseif className == "UICorner" and property == "CornerRadius" then
-            safeProperties[property] = SafeUDim(value)
-        -- Handle Position and Size special cases
-        elseif (property == "Position" or property == "Size") and type(value) ~= "userdata" then
-            -- Keep as is, these are typically UDim2 values
-            safeProperties[property] = value
-        -- Handle Color3 properties
-        elseif (property == "BackgroundColor3" or property == "TextColor3" or 
-               property == "BorderColor3" or property == "ImageColor3" or 
-               property == "Color") and type(value) ~= "userdata" then
-            safeProperties[property] = SafeColor3(value)
-        else
-            safeProperties[property] = value
-        end
-    end
-    
-    -- Now set the properties with type safety
-    for property, value in pairs(safeProperties) do
         -- Only set properties that exist for the instance type
         if typeof(instance[property]) ~= "nil" then
             -- Handle TextTransparency separately since Images don't have it
@@ -402,7 +315,7 @@ local function Create(className, properties)
                 instance[property] = value
             end
             
-            -- Check if this is a color property that matches a theme color
+            -- Check if this is a color property that matches a theme color (NEW)
             if (property == "BackgroundColor3" or property == "TextColor3" or 
                 property == "BorderColor3" or property == "ImageColor3" or
                 property == "Color") then
@@ -417,7 +330,7 @@ local function Create(className, properties)
         end
     end
     
-    -- Register for theme updates if themeable properties were found
+    -- Register for theme updates if themeable properties were found (NEW)
     if next(themeProperties) then
         TBD:RegisterThemeable(instance, themeProperties)
     end
@@ -591,11 +504,6 @@ end
 local NotificationSystem = {}
 
 function NotificationSystem:Setup()
-    -- Only setup once
-    if self.Container then
-        return self
-    end
-    
     -- Create notification container
     local notificationGui = Create("ScreenGui", {
         Name = LIBRARY_NAME .. "_Notifications",
@@ -604,9 +512,20 @@ function NotificationSystem:Setup()
         DisplayOrder = 100
     })
     
-    -- Always parent to PlayerGui for maximum compatibility with all executors
-    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
-    notificationGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    -- Try to parent to CoreGui
+    local success, result = pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(notificationGui)
+            notificationGui.Parent = CoreGui
+        else
+            notificationGui.Parent = CoreGui
+        end
+        return true
+    end)
+    
+    if not success then
+        notificationGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
     
     local container = Create("Frame", {
         Name = "NotificationContainer",
@@ -674,8 +593,8 @@ function NotificationSystem:CreateNotification(options)
     end
     
     options = options or {}
-    local title = tostring(options.Title or "Notification")
-    local message = tostring(options.Message or "")
+    local title = options.Title or "Notification"
+    local message = options.Message or ""
     local duration = options.Duration or 5
     local type = options.Type or "Info"
     local callback = options.Callback
@@ -959,8 +878,8 @@ local LoadingScreen = {}
 function LoadingScreen:Create(options)
     options = options or {}
     
-    local title = tostring(options.Title or "TBD UI Library")
-    local subtitle = tostring(options.Subtitle or "Loading...")
+    local title = options.Title or "TBD UI Library"
+    local subtitle = options.Subtitle or "Loading..."
     local logoId = options.LogoId
     local logoSize = options.LogoSize or UDim2.new(0, 100, 0, 100)
     local logoPosition = options.LogoPosition or UDim2.new(0.5, 0, 0.4, 0)
@@ -975,9 +894,20 @@ function LoadingScreen:Create(options)
         DisplayOrder = 1000
     })
     
-    -- Always parent to PlayerGui for maximum compatibility with all executors
-    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
-    loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    -- Try to parent to CoreGui
+    local success, result = pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(loadingGui)
+            loadingGui.Parent = CoreGui
+        else
+            loadingGui.Parent = CoreGui
+        end
+        return true
+    end)
+    
+    if not success then
+        loadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
     
     -- Create loading screen background with blur
     local background = Create("Frame", {
@@ -2039,103 +1969,6 @@ function TabSystem:AddTab(tabInfo)
         return sliderObject
     end
     
-    -- CREATE LABEL METHOD
-    tab.CreateLabel = function(_, options)
-        options = options or {}
-        local text = options.Text or "Label"
-        
-        local labelInstance = {}
-        
-        -- Create the label container
-        local container = Create("Frame", {
-            Name = "LabelElement",
-            Size = UDim2.new(1, 0, 0, 30),
-            BackgroundTransparency = 1,
-            Parent = tab.Container
-        })
-        
-        -- Label text
-        local textLabel = Create("TextLabel", {
-            Name = "Text",
-            Size = UDim2.new(1, -20, 1, 0),
-            Position = UDim2.new(0, 10, 0, 0),
-            BackgroundTransparency = 1,
-            Text = text,
-            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextPrimary,
-            TextSize = 15,
-            Font = Enum.Font.SourceSans,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = container
-        })
-        
-        TBD:RegisterThemeable(textLabel, {TextColor3 = "TextPrimary"})
-        
-        -- Methods
-        function labelInstance:SetText(newText)
-            textLabel.Text = newText
-        end
-        
-        return labelInstance
-    end
-    
-    -- CREATE PARAGRAPH METHOD
-    tab.CreateParagraph = function(_, options)
-        options = options or {}
-        local title = options.Title or "Title"
-        local content = options.Content or "Content"
-        
-        local paragraphInstance = {}
-        
-        -- Create the paragraph container
-        local container = Create("Frame", {
-            Name = "ParagraphElement",
-            Size = UDim2.new(1, 0, 0, 60),
-            BackgroundTransparency = 1,
-            Parent = tab.Container
-        })
-        
-        -- Title
-        local titleLabel = Create("TextLabel", {
-            Name = "Title",
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 0, 5),
-            BackgroundTransparency = 1,
-            Text = title,
-            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextPrimary,
-            TextSize = 16,
-            Font = Enum.Font.SourceSansSemibold,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = container
-        })
-        
-        TBD:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
-        
-        -- Content
-        local contentLabel = Create("TextLabel", {
-            Name = "Content",
-            Size = UDim2.new(1, -20, 0, 30),
-            Position = UDim2.new(0, 10, 0, 25),
-            BackgroundTransparency = 1,
-            Text = content,
-            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextSecondary,
-            TextSize = 14,
-            Font = Enum.Font.SourceSans,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextWrapped = true,
-            Parent = container
-        })
-        
-        TBD:RegisterThemeable(contentLabel, {TextColor3 = "TextSecondary"})
-        
-        -- Adjust container size based on content height
-        local textSize = TextService:GetTextSize(content, 14, Enum.Font.SourceSans, Vector2.new(container.AbsoluteSize.X - 20, math.huge))
-        local contentHeight = math.clamp(textSize.Y, 30, 500)
-        contentLabel.Size = UDim2.new(1, -20, 0, contentHeight)
-        container.Size = UDim2.new(1, 0, 0, contentHeight + 30)
-        
-        return paragraphInstance
-    end
-    
     -- CREATE TEXTBOX METHOD
     tab.CreateTextbox = function(_, options)
         options = options or {}
@@ -2293,10 +2126,6 @@ function TabSystem:AddTab(tabInfo)
         
         return textboxObject
     end
-    
-    -- Create Input alias for CreateTextbox
-    tab.CreateInput = tab.CreateTextbox
-    
 -- FIXED DROPDOWN IMPLEMENTATION FOR TBD-COMPLETE-FIXED-V5.lua
 
 -- CREATE DROPDOWN METHOD - Completely revised positioning
@@ -4776,20 +4605,8 @@ function TBD:CreateWindow(options)
     local height = IS_MOBILE and WINDOW_HEIGHT * 0.8 or WINDOW_HEIGHT
     
     if options.Size then
-        -- Handle multiple Size formats: UDim2, table or number
-        if typeof(options.Size) == "UDim2" then
-            -- Extract directly from UDim2
-            width = options.Size.X.Offset
-            height = options.Size.Y.Offset
-        elseif type(options.Size) == "table" then
-            -- Extract from array/table {width, height}
-            width = options.Size[1] or width
-            height = options.Size[2] or height
-        elseif type(options.Size) == "number" then
-            -- Use single number for both dimensions (square)
-            width = options.Size
-            height = options.Size
-        end
+        width = options.Size[1]
+        height = options.Size[2]
     end
     
     local position = options.Position or "Center"
@@ -4827,9 +4644,20 @@ function TBD:CreateWindow(options)
         IgnoreGuiInset = true
     })
     
-    -- Always parent to PlayerGui for maximum compatibility with all executors
-    -- This is the safest approach for executors like AWP.GG that restrict CoreGui access
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    -- Try to parent to CoreGui
+    local success, result = pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(screenGui)
+            screenGui.Parent = CoreGui
+        else
+            screenGui.Parent = CoreGui
+        end
+        return true
+    end)
+    
+    if not success then
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
     
     -- Create main frame
     local mainFrame = Create("Frame", {
@@ -5448,8 +5276,10 @@ end
 
 -- Function to create notification
 function TBD:Notification(options)
-    -- NotificationSystem:CreateNotification will automatically call Setup() if needed
-    -- This ensures maximum compatibility with all executors
+    if not self.NotificationSystem.Container then
+        self.NotificationSystem:Setup()
+    end
+    
     return self.NotificationSystem:CreateNotification(options)
 end
 
