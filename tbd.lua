@@ -1991,14 +1991,14 @@ function TabSystem:AddTab(tabInfo)
             Position = UDim2.new(0, 10, 0, 0),
             BackgroundTransparency = 1,
             Text = text,
-            TextColor3 = Library.Themes[Library.CurrentTheme].TextPrimary,
+            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextPrimary,
             TextSize = 15,
             Font = Enum.Font.SourceSans,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = container
         })
         
-        Library:RegisterThemeable(textLabel, {TextColor3 = "TextPrimary"})
+        TBD:RegisterThemeable(textLabel, {TextColor3 = "TextPrimary"})
         
         -- Methods
         function labelInstance:SetText(newText)
@@ -2031,14 +2031,14 @@ function TabSystem:AddTab(tabInfo)
             Position = UDim2.new(0, 10, 0, 5),
             BackgroundTransparency = 1,
             Text = title,
-            TextColor3 = Library.Themes[Library.CurrentTheme].TextPrimary,
+            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextPrimary,
             TextSize = 16,
             Font = Enum.Font.SourceSansSemibold,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = container
         })
         
-        Library:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
+        TBD:RegisterThemeable(titleLabel, {TextColor3 = "TextPrimary"})
         
         -- Content
         local contentLabel = Create("TextLabel", {
@@ -2047,7 +2047,7 @@ function TabSystem:AddTab(tabInfo)
             Position = UDim2.new(0, 10, 0, 25),
             BackgroundTransparency = 1,
             Text = content,
-            TextColor3 = Library.Themes[Library.CurrentTheme].TextSecondary,
+            TextColor3 = TBD.Themes[TBD.CurrentTheme or "HoHo"].TextSecondary,
             TextSize = 14,
             Font = Enum.Font.SourceSans,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -2055,7 +2055,7 @@ function TabSystem:AddTab(tabInfo)
             Parent = container
         })
         
-        Library:RegisterThemeable(contentLabel, {TextColor3 = "TextSecondary"})
+        TBD:RegisterThemeable(contentLabel, {TextColor3 = "TextSecondary"})
         
         -- Adjust container size based on content height
         local textSize = TextService:GetTextSize(content, 14, Enum.Font.SourceSans, Vector2.new(container.AbsoluteSize.X - 20, math.huge))
