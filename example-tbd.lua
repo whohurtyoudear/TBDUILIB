@@ -1,44 +1,51 @@
 --[[
-    TBD UI Library - V8 Example
-    
-    This example demonstrates all UI elements available in the TBD UI Library V8,
-    including the new Label and Paragraph components.
-    
-    Features demonstrated:
-    - Complete Window and Tab creation
-    - All UI elements including Label and Paragraph
-    - Theme system integration
-    - Dynamic icon selection
-    - Notification system
+    TBD UI Library V9 Example
+    This example demonstrates all key features of the V9 library
+    Works on all Roblox executors
 ]]
 
--- Load the TBD UI Library V8 final version with theme fixes
-local TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
+-- Load the TBD UI Library with proper error handling
+local TBD
+local success, errorMsg = pcall(function()
+    -- Robust loading method to work with all executors
+    TBD = loadstring(game:HttpGet('https://raw.githubusercontent.com/whohurtyoudear/TBDUILIB/refs/heads/main/tbd.lua'))()
+    
+    if type(TBD) ~= "table" or not TBD.Version then
+        error("Failed to initialize TBD UI Library")
+    end
+    
+    return true
+end)
 
--- Create a window
+if not success then
+    -- Better error reporting
+    warn("Error loading TBD UI Library: " .. tostring(errorMsg))
+    return
+end
+
+-- Print version information
+print("TBD UI Library loaded successfully!")
+print("Version: " .. TBD.Version)
+
+-- Create a window with a custom theme
 local Window = TBD:CreateWindow({
     Title = "TBD UI Library",
-    Subtitle = "V8 Enhanced Example",
-    LoadingEnabled = true,
-    Size = {600, 500}, -- Wider layout following HoHo design
-    Theme = "HoHo",    -- Available themes: Default, Midnight, Neon, Aqua, HoHo
-    ShowHomePage = true -- Show the home page with player info
+    Subtitle = "Universal V9",
+    Theme = "HoHo", -- Available themes: Default, HoHo, Midnight, Neon, Aqua
+    Size = {650, 450}, -- Wider design as requested
+    LoadingEnabled = true, -- Enables the fancy loading screen
+    ShowHomePage = true -- Shows a homepage with player info
 })
 
--- Create tabs using icons from the dynamic icon library
-local MainTab = Window:CreateTab({
-    Name = "Main",
-    Icon = "Home" -- Using string icon name instead of direct asset ID
+-- Create tabs
+local HomeTab = Window:CreateTab({
+    Name = "Home",
+    Icon = "Home" -- Built-in icon
 })
 
-local ElementsTab = Window:CreateTab({
-    Name = "Elements",
-    Icon = "Button"
-})
-
-local TextTab = Window:CreateTab({
-    Name = "Text Elements",
-    Icon = "Book" -- For demonstrating Label and Paragraph
+local FeaturesTab = Window:CreateTab({
+    Name = "Features",
+    Icon = "Script"
 })
 
 local SettingsTab = Window:CreateTab({
@@ -46,285 +53,289 @@ local SettingsTab = Window:CreateTab({
     Icon = "Settings"
 })
 
--- MAIN TAB
-MainTab:CreateSection("Library Information")
-
--- Label element - new in V8
-MainTab:CreateLabel({
-    Text = "TBD UI Library v" .. TBD.Version .. " - Enhanced Edition"
+local CreditsTab = Window:CreateTab({
+    Name = "Credits",
+    Icon = "Credit"
 })
 
--- Paragraph element - new in V8
-MainTab:CreateParagraph({
-    Title = "About This Example",
-    Content = "This example demonstrates all UI elements available in the TBD UI Library, including the new Label and Paragraph components. The library is designed for script hubs and executors with a modern, user-friendly interface."
+-- Home Tab Content
+local HomeSection = HomeTab:CreateSection("Welcome")
+
+HomeTab:CreateParagraph({
+    Title = "TBD UI Library V9",
+    Content = "Welcome to the TBD UI Library V9 - Universal Edition. This library is designed to work across all Roblox executors and provides a comprehensive set of UI components."
 })
 
-MainTab:CreateButton({
-    Name = "Show Welcome Notification",
-    Description = "Display a welcome notification",
+HomeTab:CreateButton({
+    Name = "Show Notification",
+    Description = "Click to test the notification system",
     Callback = function()
         TBD:Notification({
-            Title = "Welcome!",
-            Message = "Thanks for using the TBD UI Library V8.",
+            Title = "TBD UI Library",
+            Message = "This is a test notification. The notification system works!",
             Duration = 5,
-            Type = "Success"
+            Type = "Info" -- Types: Success, Error, Warning, Info
         })
     end
 })
 
-MainTab:CreateSection("New Features")
+-- Features Tab Content
+-- Buttons Section
+local ButtonsSection = FeaturesTab:CreateSection("Buttons")
 
-MainTab:CreateButton({
-    Name = "Text Elements (New in V8)",
-    Description = "See new Label and Paragraph elements",
+FeaturesTab:CreateButton({
+    Name = "Simple Button",
     Callback = function()
+        print("Simple button clicked!")
+    end
+})
+
+FeaturesTab:CreateButton({
+    Name = "Button with Description",
+    Description = "This button has a description that explains what it does",
+    Callback = function()
+        print("Button with description clicked!")
         TBD:Notification({
-            Title = "New Text Elements",
-            Message = "Check out the Text Elements tab to see Label and Paragraph components in action!",
-            Duration = 5,
-            Type = "Info"
-        })
-    end
-})
-
--- ELEMENTS TAB
-ElementsTab:CreateSection("Basic Elements")
-
-ElementsTab:CreateButton({
-    Name = "Standard Button",
-    Description = "Click to trigger an action",
-    Callback = function()
-        print("Button clicked!")
-    end
-})
-
-ElementsTab:CreateToggle({
-    Name = "Toggle Feature",
-    Description = "Enable or disable a feature",
-    CurrentValue = false,
-    Callback = function(value)
-        print("Toggle set to:", value)
-    end,
-    Flag = "testToggle" -- Optional flag for accessing this value globally
-})
-
-ElementsTab:CreateSection("Input Elements")
-
-ElementsTab:CreateSlider({
-    Name = "Adjustment Slider",
-    Description = "Adjust a value within a range",
-    Range = {0, 100},
-    Increment = 1,
-    CurrentValue = 50,
-    Callback = function(value)
-        print("Slider value:", value)
-    end,
-    Flag = "testSlider"
-})
-
-ElementsTab:CreateTextbox({
-    Name = "Text Input",
-    Description = "Enter a custom value",
-    PlaceholderText = "Enter text here...",
-    Text = "", -- Initial text
-    Callback = function(text)
-        print("Input text:", text)
-    end
-})
-
--- Using CreateInput (alias for CreateTextbox) - new in V8
-ElementsTab:CreateInput({
-    Name = "Alternative Input",
-    Description = "This uses the CreateInput alias",
-    PlaceholderText = "Type something...",
-    Callback = function(text)
-        print("Alternative input:", text)
-    end
-})
-
-ElementsTab:CreateSection("Selection Elements")
-
-ElementsTab:CreateDropdown({
-    Name = "Options Dropdown",
-    Description = "Select from multiple options",
-    Options = {"Option 1", "Option 2", "Option 3", "Option 4"},
-    CurrentOption = "Option 1",
-    Callback = function(option)
-        print("Selected option:", option)
-    end,
-    Flag = "testDropdown"
-})
-
-ElementsTab:CreateColorPicker({
-    Name = "Color Selection",
-    Description = "Choose a custom color",
-    CurrentColor = Color3.fromRGB(255, 0, 0),
-    Callback = function(color)
-        print("Selected color:", color)
-    end,
-    Flag = "testColor"
-})
-
-ElementsTab:CreateKeybind({
-    Name = "Action Keybind",
-    Description = "Set a key to trigger an action",
-    CurrentKeybind = "F",
-    Callback = function()
-        print("Keybind triggered!")
-    end,
-    Flag = "testKeybind"
-})
-
--- TEXT ELEMENTS TAB (Showcasing new Label and Paragraph)
-TextTab:CreateSection("Label Examples")
-
--- Simple label
-TextTab:CreateLabel({
-    Text = "This is a basic label"
-})
-
--- Informational label
-TextTab:CreateLabel({
-    Text = "Labels are great for displaying static information"
-})
-
--- Dynamic label example
-local statusLabel = TextTab:CreateLabel({
-    Text = "Current Status: Waiting..."
-})
-
--- Button to update label
-TextTab:CreateButton({
-    Name = "Update Status",
-    Callback = function()
-        statusLabel:SetText("Current Status: Active")
-        
-        -- Revert after 3 seconds
-        task.wait(3)
-        statusLabel:SetText("Current Status: Waiting...")
-    end
-})
-
-TextTab:CreateSection("Paragraph Examples")
-
--- Basic paragraph
-TextTab:CreateParagraph({
-    Title = "Basic Paragraph",
-    Content = "This is a simple paragraph that demonstrates how to display longer text content with a title."
-})
-
--- Multi-line paragraph
-TextTab:CreateParagraph({
-    Title = "Instructions",
-    Content = "1. First, select your target from the dropdown menu\n2. Adjust the settings using the sliders\n3. Click the 'Apply' button to execute\n4. Check the console for results"
-})
-
--- Detailed paragraph
-TextTab:CreateParagraph({
-    Title = "About Paragraphs",
-    Content = "Paragraphs are perfect for displaying detailed information, instructions, or explanations to users. They automatically adjust their size based on content length and provide better visual organization than simple labels. Use paragraphs when you need to present complex information in a readable format."
-})
-
--- Combined with other elements
-TextTab:CreateSection("Combining Elements")
-
-TextTab:CreateLabel({
-    Text = "Color Selection Example"
-})
-
-TextTab:CreateParagraph({
-    Title = "How to Use",
-    Content = "Select a color from the color picker below. The selected color will be applied to various UI elements in your game."
-})
-
-TextTab:CreateColorPicker({
-    Name = "UI Element Color",
-    CurrentColor = Color3.fromRGB(0, 120, 255),
-    Callback = function(color)
-        print("Selected UI color:", color)
-    end
-})
-
--- SETTINGS TAB
-SettingsTab:CreateSection("Theme Settings")
-
-local themes = {"Default", "Midnight", "Neon", "Aqua", "HoHo"}
-SettingsTab:CreateDropdown({
-    Name = "UI Theme",
-    Description = "Change the appearance of the interface",
-    Options = themes,
-    CurrentOption = "HoHo",
-    Callback = function(theme)
-        TBD:SetTheme(theme)
-        TBD:Notification({
-            Title = "Theme Changed",
-            Message = "Applied the " .. theme .. " theme to the interface.",
+            Title = "Button Clicked",
+            Message = "You clicked the button with a description",
             Duration = 3,
             Type = "Success"
         })
     end
 })
 
-SettingsTab:CreateSection("Custom Theme")
+-- Toggles Section
+local TogglesSection = FeaturesTab:CreateSection("Toggles")
 
-SettingsTab:CreateColorPicker({
-    Name = "Accent Color",
-    Description = "Change the primary accent color",
-    CurrentColor = TBD.Themes.HoHo.Accent,
-    Callback = function(color)
-        TBD:CustomTheme({
-            Accent = color,
-            DarkAccent = color:Lerp(Color3.fromRGB(0, 0, 0), 0.2)
-        })
+FeaturesTab:CreateToggle({
+    Name = "Simple Toggle",
+    CurrentValue = false,
+    Callback = function(value)
+        print("Simple toggle changed to:", value)
     end
 })
 
-SettingsTab:CreateColorPicker({
-    Name = "Background Color",
-    Description = "Change the background color",
-    CurrentColor = TBD.Themes.HoHo.Background,
-    Callback = function(color)
-        TBD:CustomTheme({
-            Background = color,
-            Primary = color:Lerp(Color3.fromRGB(255, 255, 255), 0.1),
-            Secondary = color:Lerp(Color3.fromRGB(255, 255, 255), 0.05)
-        })
+FeaturesTab:CreateToggle({
+    Name = "Toggle with Description",
+    Description = "This toggle has a description that explains what it does",
+    CurrentValue = true,
+    Callback = function(value)
+        print("Described toggle changed to:", value)
     end
 })
 
-SettingsTab:CreateSection("Notifications")
+-- Sliders Section
+local SlidersSection = FeaturesTab:CreateSection("Sliders")
 
-SettingsTab:CreateButton({
-    Name = "Test Notification",
-    Callback = function()
-        TBD:Notification({
-            Title = "Test Notification",
-            Message = "This is a sample notification from TBD UI Library.",
-            Duration = 5,
-            Type = "Info" 
-        })
+FeaturesTab:CreateSlider({
+    Name = "Simple Slider",
+    Min = 0,
+    Max = 100,
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(value)
+        print("Slider value changed to:", value)
     end
 })
 
-SettingsTab:CreateDropdown({
-    Name = "Notification Type",
-    Options = {"Info", "Success", "Warning", "Error"},
-    CurrentOption = "Info",
+FeaturesTab:CreateSlider({
+    Name = "Custom Slider",
+    Min = 0,
+    Max = 200,
+    Increment = 5,
+    Description = "This slider has a custom range and increment",
+    CurrentValue = 100,
+    Callback = function(value)
+        print("Custom slider value:", value)
+    end
+})
+
+-- Dropdowns Section
+local DropdownsSection = FeaturesTab:CreateSection("Dropdowns")
+
+local fruitDropdown
+FeaturesTab:CreateDropdown({
+    Name = "Fruit Selection",
+    Items = {"Apple", "Banana", "Orange", "Pear", "Grape"},
+    CurrentOption = "Apple",
     Callback = function(option)
+        print("Selected fruit:", option)
+    end
+})
+
+local dropdown, dropdownObject = FeaturesTab:CreateDropdown({
+    Name = "Dynamic Dropdown",
+    Description = "This dropdown's options can be changed dynamically",
+    Items = {"Option 1", "Option 2", "Option 3"},
+    CurrentOption = "Option 1",
+    Callback = function(option)
+        print("Selected option:", option)
+    end
+})
+
+-- Button to refresh dropdown options
+FeaturesTab:CreateButton({
+    Name = "Refresh Dropdown Options",
+    Callback = function()
+        local newOptions = {"New Option A", "New Option B", "New Option C", "New Option D"}
+        dropdownObject:Refresh(newOptions)
+        dropdownObject:SetValue("New Option A")
         TBD:Notification({
-            Title = option .. " Notification",
-            Message = "This is a " .. string.lower(option) .. " notification example.",
-            Duration = 5,
-            Type = option
+            Title = "Dropdown Updated",
+            Message = "The dropdown options have been refreshed",
+            Duration = 3,
+            Type = "Info"
         })
     end
 })
 
--- Show initial notification
+-- Text Input Section
+local InputSection = FeaturesTab:CreateSection("Text Input")
+
+FeaturesTab:CreateTextBox({
+    Name = "Text Input",
+    Placeholder = "Type something here...",
+    CurrentValue = "",
+    Callback = function(text)
+        print("Text input:", text)
+    end
+})
+
+FeaturesTab:CreateTextBox({
+    Name = "Username Input",
+    Description = "Enter a username to search for",
+    Placeholder = "Username",
+    CurrentValue = "",
+    Callback = function(username)
+        print("Username entered:", username)
+        TBD:Notification({
+            Title = "Username Entered",
+            Message = "You entered: " .. username,
+            Duration = 3,
+            Type = "Info"
+        })
+    end
+})
+
+-- Color Picker Section
+local ColorSection = FeaturesTab:CreateSection("Color Selection")
+
+FeaturesTab:CreateColorPicker({
+    Name = "Color Picker",
+    CurrentColor = Color3.fromRGB(255, 0, 0),
+    Callback = function(color)
+        print("Selected color:", color.R, color.G, color.B)
+    end
+})
+
+FeaturesTab:CreateColorPicker({
+    Name = "UI Color",
+    Description = "Select a color for your UI elements",
+    CurrentColor = Color3.fromRGB(0, 120, 255),
+    Callback = function(color)
+        print("UI color selected:", color.R, color.G, color.B)
+    end
+})
+
+-- Labels and Paragraphs
+local InfoSection = FeaturesTab:CreateSection("Information Display")
+
+FeaturesTab:CreateLabel({
+    Text = "This is a simple label"
+})
+
+FeaturesTab:CreateParagraph({
+    Title = "Important Information",
+    Content = "This is a paragraph that can contain longer text. Paragraphs are useful for displaying detailed information to users. They automatically size based on content."
+})
+
+-- Settings Tab Content
+local ThemeSection = SettingsTab:CreateSection("Theme Settings")
+
+local themes = {"Default", "HoHo", "Midnight", "Neon", "Aqua"}
+SettingsTab:CreateDropdown({
+    Name = "Select Theme",
+    Items = themes,
+    CurrentOption = "HoHo",
+    Callback = function(theme)
+        -- Note: Theme switching would normally require recreating the UI
+        -- This is just for demonstration
+        TBD:Notification({
+            Title = "Theme Selected",
+            Message = "Selected the " .. theme .. " theme (would normally change theme)",
+            Duration = 3,
+            Type = "Info"
+        })
+    end
+})
+
+-- Custom theme button
+SettingsTab:CreateButton({
+    Name = "Create Custom Theme",
+    Description = "Shows how to create a custom theme",
+    Callback = function()
+        -- Create a custom theme (in a real scenario, you'd apply this)
+        local customTheme = TBD:CustomTheme({
+            Primary = Color3.fromRGB(30, 30, 35),
+            Secondary = Color3.fromRGB(25, 25, 30),
+            Background = Color3.fromRGB(20, 20, 25),
+            TextPrimary = Color3.fromRGB(240, 240, 240),
+            TextSecondary = Color3.fromRGB(190, 190, 190),
+            Accent = Color3.fromRGB(130, 170, 255),
+            DarkAccent = Color3.fromRGB(110, 150, 230),
+            Success = Color3.fromRGB(60, 200, 120),
+            Warning = Color3.fromRGB(255, 180, 40),
+            Error = Color3.fromRGB(255, 50, 50),
+        })
+        
+        TBD:Notification({
+            Title = "Custom Theme Created",
+            Message = "Custom theme has been created (would normally apply)",
+            Duration = 3,
+            Type = "Success"
+        })
+    end
+})
+
+local UISettingsSection = SettingsTab:CreateSection("UI Settings")
+
+SettingsTab:CreateToggle({
+    Name = "Show Player Avatar",
+    CurrentValue = true,
+    Callback = function(value)
+        print("Show avatar toggled:", value)
+    end
+})
+
+-- Credits Tab Content
+local CreditsSection = CreditsTab:CreateSection("Credits")
+
+CreditsTab:CreateParagraph({
+    Title = "TBD UI Library",
+    Content = "Version: " .. TBD.Version .. "\nCreated by the TBD Development Team\nUniversal Edition - Compatible with all Roblox executors"
+})
+
+CreditsTab:CreateButton({
+    Name = "Join Discord",
+    Description = "Click to get an invite to our Discord server",
+    Callback = function()
+        -- This would normally copy a Discord link to clipboard
+        TBD:Notification({
+            Title = "Discord Invite",
+            Message = "Discord invite would be copied to clipboard",
+            Duration = 3,
+            Type = "Info"
+        })
+    end
+})
+
+-- Final notification to show library is fully loaded
 TBD:Notification({
-    Title = "UI Loaded",
-    Message = "TBD UI Library V8 with Label and Paragraph support has been loaded!",
+    Title = "TBD UI Library V9",
+    Message = "Interface loaded successfully!",
     Duration = 5,
     Type = "Success"
 })
+
+-- Note: To create your own script, simply copy the parts you need
+-- The TBD UI Library is fully modular, allowing you to use only the components you want
