@@ -4,7 +4,7 @@
     A sleek, feature-rich UI library designed specifically for script hubs and executors
     with a wide layout design, smooth animations, and a modern aesthetic.
     
-    Version: 1.0.0
+    Version: 1.1.0
     Author: TBD Development
     License: MIT
     
@@ -13,7 +13,7 @@
 
 -- Main Library Table
 local TBDLib = {
-    Version = "1.0.0",
+    Version = "1.1.0",
     Windows = {},
     ConfigSystem = {
         Folder = "TBDLib",
@@ -42,10 +42,17 @@ local TBDLib = {
         TextLight = Color3.fromRGB(255, 255, 255),  -- Bright Text
         TextDisabled = Color3.fromRGB(150, 150, 165),-- Disabled Text
         
+        -- UI Control Colors
+        ControlBg = Color3.fromRGB(255, 255, 255),  -- Control background (for better contrast)
+        
         -- Border and Other UI Elements
         Border = Color3.fromRGB(50, 55, 75),        -- Border Color
         Background = Color3.fromRGB(20, 22, 35),    -- Outermost Background
-        Divider = Color3.fromRGB(60, 65, 85)        -- Divider Lines
+        Divider = Color3.fromRGB(60, 65, 85),       -- Divider Lines
+        
+        -- Notification Colors
+        NotifBackground = Color3.fromRGB(35, 40, 60),  -- Notification background
+        NotifText = Color3.fromRGB(240, 240, 250)      -- Notification text
     },
     Flags = {},
     Icons = {
@@ -78,6 +85,14 @@ local TBDLib = {
         Error = "rbxassetid://11483018616",
         Info = "rbxassetid://11483020604",
         
+        -- Player Icons
+        Avatar = "rbxassetid://7962146544",
+        Crown = "rbxassetid://7733955740",
+        People = "rbxassetid://7743866529",
+        Server = "rbxassetid://10889391188",
+        Globe = "rbxassetid://9405893280",
+        Clock = "rbxassetid://7733674079",
+        
         -- Misc Icons
         Folder = "rbxassetid://11483033225",
         File = "rbxassetid://11483033657",
@@ -88,12 +103,21 @@ local TBDLib = {
         Lock = "rbxassetid://11483040849",
         Unlock = "rbxassetid://11483041299",
         Clipboard = "rbxassetid://11483044588",
-        Copy = "rbxassetid://11483045117"
+        Copy = "rbxassetid://11483045117",
+        Notification = "rbxassetid://6031075699"
     },
     Animation = {
         DefaultDuration = 0.25,
         DefaultEasingStyle = Enum.EasingStyle.Quint,
         DefaultEasingDirection = Enum.EasingDirection.Out
+    },
+    NotificationSettings = {
+        Position = "TopRight",     -- TopRight, TopLeft, BottomRight, BottomLeft
+        Duration = 3,              -- Default duration in seconds
+        Sound = true,              -- Play notification sound
+        SoundId = "rbxassetid://6518811702",
+        MaxNotifications = 5,      -- Maximum number of visible notifications
+        Style = "Modern"           -- Modern, Compact, Minimal
     }
 }
 
@@ -438,6 +462,52 @@ local function LoadConfig(Name)
     end
     
     return false
+end
+
+-- UI Visibility Toggle
+local UIVisible = true
+
+function TBDLib:ToggleUI()
+    UIVisible = not UIVisible
+    
+    local UIContainer = CoreGui:FindFirstChild("TBDLibContainer")
+    if UIContainer then
+        UIContainer.Enabled = UIVisible
+    end
+    
+    return UIVisible
+end
+
+-- Get Player & Game Info
+function TBDLib:GetPlayerInfo()
+    local Info = {
+        Player = {
+            Name = Player.Name,
+            DisplayName = Player.DisplayName,
+            UserId = Player.UserId,
+            AccountAge = Player.AccountAge,
+            MembershipType = tostring(Player.MembershipType),
+            Avatar = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=420&height=420&format=png"
+        },
+        Game = {
+            Name = "Game",
+            PlaceId = game.PlaceId,
+            PlaceVersion = game.PlaceVersion,
+            JobId = game.JobId
+        },
+        Server = {
+            Players = #Players:GetPlayers(),
+            MaxPlayers = Players.MaxPlayers,
+            Ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()),
+            Uptime = os.time()
+        }
+    }
+    
+    pcall(function()
+        Info.Game.Name = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    end)
+    
+    return Info
 end
 
 -- Notification System
@@ -1753,17 +1823,21 @@ function TBDLib:CreateWindow(Config)
                     Parent = DropdownContainer
                 })
                 
-                -- Create the dropdown menu
+                -- Create the dropdown menu (as child of main GUI to prevent layering issues)
+                local MainGui = CoreGui:FindFirstChild("TBDLibContainer")
                 local DropdownMenu = CreateRoundedFrame(
-                    UDim2.new(1, 0, 0, 0),
-                    UDim2.new(0, 0, 0, DropdownContainer.AbsoluteSize.Y + 5),
+                    UDim2.new(0, DropdownContainer.AbsoluteSize.X, 0, 0),
+                    UDim2.new(0, 0, 0, 0),
                     TBDLib.Theme.Tertiary,
-                    DropdownFrame,
+                    MainGui,
                     6,
-                    "DropdownMenu"
+                    "DropdownMenu_" .. HttpService:GenerateGUID(false)
                 )
                 DropdownMenu.Visible = false
-                DropdownMenu.ZIndex = 10
+                DropdownMenu.ZIndex = 5000
+                
+                -- Store the reference to the dropdown container for positioning
+                DropdownMenu.DropdownContainer = DropdownContainer
                 
                 local MenuList = Create("UIListLayout", {
                     Padding = UDim.new(0, 5),
@@ -1908,8 +1982,27 @@ function TBDLib:CreateWindow(Config)
                     DropdownMenu.Visible = not DropdownMenu.Visible
                     
                     if DropdownMenu.Visible then
+                        -- Update menu position to match dropdown container
+                        local AbsPos = DropdownContainer.AbsolutePosition
+                        local AbsSize = DropdownContainer.AbsoluteSize
+                        DropdownMenu.Position = UDim2.new(0, AbsPos.X, 0, AbsPos.Y + AbsSize.Y + 5)
+                        DropdownMenu.Size = UDim2.new(0, AbsSize.X, 0, 0)
+                        
                         UpdateMenu()
                         Tween(DropdownArrow, {Rotation = 180}, 0.2)
+                        
+                        -- Bring dropdown to front
+                        DropdownMenu.ZIndex = 10000
+                        for _, child in ipairs(DropdownMenu:GetChildren()) do
+                            if child:IsA("GuiObject") then
+                                child.ZIndex = 10001
+                                for _, subchild in ipairs(child:GetChildren()) do
+                                    if subchild:IsA("GuiObject") then
+                                        subchild.ZIndex = 10002
+                                    end
+                                end
+                            end
+                        end
                     else
                         Tween(DropdownArrow, {Rotation = 0}, 0.2)
                     end
@@ -2845,9 +2938,11 @@ end
 -- Configure the library
 function TBDLib:Configure(Config)
     Config = Config or {}
+    local NeedsThemeUpdate = false
     
     -- Update theme
     if Config.Theme then
+        NeedsThemeUpdate = true
         for Key, Value in pairs(Config.Theme) do
             self.Theme[Key] = Value
         end
@@ -2865,7 +2960,73 @@ function TBDLib:Configure(Config)
         end
     end
     
+    -- Update notification settings
+    if Config.NotificationSettings then
+        for Key, Value in pairs(Config.NotificationSettings) do
+            self.NotificationSettings[Key] = Value
+        end
+    end
+    
+    -- Apply theme to all UI elements if theme was updated
+    if NeedsThemeUpdate then
+        self:ApplyTheme()
+    end
+    
     return self
+end
+
+-- Apply the current theme to all UI elements
+function TBDLib:ApplyTheme()
+    local Container = CoreGui:FindFirstChild("TBDLibContainer")
+    if not Container then return end
+    
+    -- Function to update elements based on their type and properties
+    local function UpdateElement(Element)
+        -- Update background colors
+        if Element:IsA("Frame") or Element:IsA("ScrollingFrame") then
+            if Element.Name == "WindowFrame" then
+                Element.BackgroundColor3 = self.Theme.Background
+            elseif Element.Name == "WindowContainer" or Element.Name:find("ContentFrame") then
+                Element.BackgroundColor3 = self.Theme.Primary
+            elseif Element.Name:find("Sidebar") or Element.Name:find("TopBar") or Element.Name:find("Section") or 
+                   Element.Name:find("Content") then
+                Element.BackgroundColor3 = self.Theme.Secondary
+            elseif Element.Name:find("Container") and not Element.Name:find("Window") then
+                Element.BackgroundColor3 = self.Theme.Tertiary
+            elseif Element.Name:find("AccentBar") or Element.Name:find("ColorArea") or
+                   Element.Name:find("Indicator") and Element.BackgroundTransparency < 1 then
+                Element.BackgroundColor3 = self.Theme.Accent
+            end
+        end
+        
+        -- Update text colors
+        if Element:IsA("TextLabel") or Element:IsA("TextButton") or Element:IsA("TextBox") then
+            if Element.Name:find("Title") or Element.Name:find("Label") and not Element.Name:find("Placeholder") then
+                Element.TextColor3 = self.Theme.Text
+            elseif Element.Name:find("Dark") or Element.Name:find("Description") then
+                Element.TextColor3 = self.Theme.TextDark
+            end
+            
+            if Element:IsA("TextBox") then
+                Element.PlaceholderColor3 = self.Theme.TextDark
+            end
+        end
+        
+        -- Update image colors for UI elements
+        if Element:IsA("ImageLabel") or Element:IsA("ImageButton") then
+            if Element.Name:find("Close") or Element.Name:find("Minimize") or Element.Name:find("Maximize") then
+                Element.ImageColor3 = self.Theme.ControlBg
+            end
+        end
+        
+        -- Recursively update children
+        for _, Child in ipairs(Element:GetChildren()) do
+            UpdateElement(Child)
+        end
+    end
+    
+    -- Start the recursive update process
+    UpdateElement(Container)
 end
 
 -- Save and Load configurations
