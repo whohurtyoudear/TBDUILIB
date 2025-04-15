@@ -16,10 +16,9 @@ Recent improvements:
 - Added robust error handling throughout the codebase
 ]]
 
--- Maximum compatibility mode
--- Start the library code with an immediately invoked function expression (IIFE)
--- This is the most reliable pattern for executor compatibility
-return (function()
+-- MAXIMUM COMPATIBILITY STRUCTURE - NO RETURN WRAPPERS
+-- This structure is specifically designed to work with problematic executors
+-- Using direct assignment to a local variable that's returned at the end with no wrapper functions
 -- Create the library table
 local TBDLib = {
     Name = "TBDLib",
@@ -3187,7 +3186,6 @@ OpenFrames = {}
 NotificationCount = 0
 end
 
--- Return the library
--- Return the library as part of the IIFE
+-- Direct return - no closures or IIFE
+-- This is critical for compatibility with certain executors
 return TBDLib
-end)()
