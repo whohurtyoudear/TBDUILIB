@@ -16,15 +16,10 @@ Recent improvements:
 - Added robust error handling throughout the codebase
 ]]
 
--- Create a self-contained module that can be returned by loadstring
-local TBDLibModule = {}
-
--- Initialize the module
-function TBDLibModule.Init()
-    -- Create the main library table
-    local TBDLib = {
-        Name = "TBDLib",
-        Version = "2.0.0",
+-- Direct return approach for better compatibility with different executors 
+local TBDLib = {
+    Name = "TBDLib",
+    Version = "2.0.0",
         Theme = {
             -- Main Colors
             Primary = Color3.fromRGB(28, 33, 54),       -- Main background
@@ -3189,8 +3184,5 @@ NotificationCount = 0
 end
 
 -- Return the library
-    return TBDLib
-end
-
--- Initialize the module and return the library instance
-return TBDLibModule.Init()
+-- Return the library directly for maximum compatibility
+return TBDLib
