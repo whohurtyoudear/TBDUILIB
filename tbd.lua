@@ -144,39 +144,39 @@ local PlayerGui
 
 -- Try multiple methods to get a valid GUI parent
 local function SafeGetGuiParent()
--- Method 1: Try standard CoreGui
-local success1, coreGui = pcall(function()
-return game:GetService("CoreGui")
-end)
+    -- Method 1: Try standard CoreGui
+    local success1, coreGui = pcall(function()
+        return game:GetService("CoreGui")
+    end)
 
--- Method 2: Try getting the PlayerGui
-local success2, playerGui = pcall(function()
-return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-end)
+    -- Method 2: Try getting the PlayerGui
+    local success2, playerGui = pcall(function()
+        return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    end)
 
--- Method 3: Try through gethui() (used by some executors)
-local success3, gethuiGui = pcall(function()
-return gethui and gethui() or nil
-end)
+    -- Method 3: Try through gethui() (used by some executors)
+    local success3, gethuiGui = pcall(function()
+        return gethui and gethui() or nil
+    end)
 
--- Return the first successful method
-if success1 and coreGui then
-return coreGui, "CoreGui" 
-elseif success3 and gethuiGui then
-return gethuiGui, "gethui"
-elseif success2 and playerGui then
-return playerGui, "PlayerGui"
-else
--- Fallback to a direct PlayerGui reference as last resort
-local player = game:GetService("Players").LocalPlayer
-if player and player:FindFirstChildOfClass("PlayerGui") then
-return player:FindFirstChildOfClass("PlayerGui"), "FallbackPlayerGui"
-end
-end
+    -- Return the first successful method
+    if success1 and coreGui then
+        return coreGui, "CoreGui" 
+    elseif success3 and gethuiGui then
+        return gethuiGui, "gethui"
+    elseif success2 and playerGui then
+        return playerGui, "PlayerGui"
+    else
+        -- Fallback to a direct PlayerGui reference as last resort
+        local player = game:GetService("Players").LocalPlayer
+        if player and player:FindFirstChildOfClass("PlayerGui") then
+            return player:FindFirstChildOfClass("PlayerGui"), "FallbackPlayerGui"
+        end
+    end
 
--- If all else fails, return a warning and use CoreGui anyway
-warn("TBDLib: Failed to get a valid GUI parent, using CoreGui as fallback")
-return game:GetService("CoreGui"), "FallbackCoreGui"
+    -- If all else fails, return a warning and use CoreGui anyway
+    warn("TBDLib: Failed to get a valid GUI parent, using CoreGui as fallback")
+    return game:GetService("CoreGui"), "FallbackCoreGui"
 end
 
 -- Get the appropriate GUI parent
@@ -205,45 +205,45 @@ TBDLib.Animation.DefaultEasingDirection
 
 -- Utility Functions
 local function GetTextSize(Text, Size, Font, Resolution)
-return TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1000, 1000))
+    return TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1000, 1000))
 end
 
 local function Tween(Instance, Properties, Duration, Style, Direction, Callback)
-local TweenInfo = TweenInfo.new(
-Duration or TBDLib.Animation.DefaultDuration,
-Style or TBDLib.Animation.DefaultEasingStyle,
-Direction or TBDLib.Animation.DefaultEasingDirection
-)
+    local TweenInfo = TweenInfo.new(
+        Duration or TBDLib.Animation.DefaultDuration,
+        Style or TBDLib.Animation.DefaultEasingStyle,
+        Direction or TBDLib.Animation.DefaultEasingDirection
+    )
 
-local Tween = TweenService:Create(Instance, TweenInfo, Properties)
+    local Tween = TweenService:Create(Instance, TweenInfo, Properties)
 
-if Callback then
-Tween.Completed:Connect(function()
-Callback()
-end)
-end
+    if Callback then
+        Tween.Completed:Connect(function()
+            Callback()
+        end)
+    end
 
-Tween:Play()
-return Tween
+    Tween:Play()
+    return Tween
 end
 
 local function Connect(Signal, Callback)
-if not Signal then
-warn("TBDLib: Attempted to connect to a nil signal")
-return nil
-end
+    if not Signal then
+        warn("TBDLib: Attempted to connect to a nil signal")
+        return nil
+    end
 
-local success, Connection = pcall(function()
-return Signal:Connect(Callback)
-end)
+    local success, Connection = pcall(function()
+        return Signal:Connect(Callback)
+    end)
 
-if success and Connection then
-table.insert(Connections, Connection)
-return Connection
-else
-warn("TBDLib: Failed to connect to signal: " .. tostring(Signal))
-return nil
-end
+    if success and Connection then
+        table.insert(Connections, Connection)
+        return Connection
+    else
+        warn("TBDLib: Failed to connect to signal: " .. tostring(Signal))
+        return nil
+    end
 end
 
 local function Disconnect(Connection)
@@ -340,22 +340,22 @@ end
 end
 
 local function CreateRoundedFrame(Size, Position, Color, Parent, Corner, Name)
-local Frame = Create("Frame", {
-Name = Name or "RoundedFrame",
-Size = Size or UDim2.new(1, 0, 1, 0),
-Position = Position or UDim2.new(0, 0, 0, 0),
-BackgroundColor3 = Color or TBDLib.Theme.Primary,
-BorderSizePixel = 0,
-ZIndex = Parent and (Parent.ZIndex or 1) + 1 or 5, -- Inherit parent's z-index if available
-Parent = Parent
-})
+    local Frame = Create("Frame", {
+        Name = Name or "RoundedFrame",
+        Size = Size or UDim2.new(1, 0, 1, 0),
+        Position = Position or UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color or TBDLib.Theme.Primary,
+        BorderSizePixel = 0,
+        ZIndex = Parent and (Parent.ZIndex or 1) + 1 or 5, -- Inherit parent's z-index if available
+        Parent = Parent
+    })
 
-local UICorner = Create("UICorner", {
-CornerRadius = UDim.new(0, Corner or 8),
-Parent = Frame
-})
+    local UICorner = Create("UICorner", {
+        CornerRadius = UDim.new(0, Corner or 8),
+        Parent = Frame
+    })
 
-return Frame
+    return Frame
 end
 
 local function CreateShadow(Parent, Transparency, Offset)
