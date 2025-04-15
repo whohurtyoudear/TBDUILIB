@@ -212,6 +212,57 @@ local function ProtectGui(gui)
     end
 end
 
+-- FIXED: Added a safe HttpGet function with multiple fallback methods
+local function SafeHttpGet(url)
+    -- Try standard game:HttpGet first
+    local success, result = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if success and result then
+        return result
+    end
+    
+    -- Fallback 1: Try syn.request
+    if typeof(syn) == "table" and typeof(syn.request) == "function" then
+        local response = syn.request({
+            Url = url,
+            Method = "GET"
+        })
+        
+        if response.Success and response.Body then
+            return response.Body
+        end
+    end
+    
+    -- Fallback 2: Try http_request
+    if typeof(http_request) == "function" then
+        local response = http_request({
+            Url = url,
+            Method = "GET"
+        })
+        
+        if response.Success and response.Body then
+            return response.Body
+        end
+    end
+    
+    -- Fallback 3: Try request
+    if typeof(request) == "function" then
+        local response = request({
+            Url = url,
+            Method = "GET"
+        })
+        
+        if response.Success and response.Body then
+            return response.Body
+        end
+    end
+    
+    -- If all methods fail, throw an error
+    error("TBDLib: Failed to make HTTP request. Please ensure your executor supports HTTP requests.")
+end
+
 local Ripples = {}
 
 -- Constants
