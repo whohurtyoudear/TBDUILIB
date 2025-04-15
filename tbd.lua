@@ -1061,8 +1061,10 @@ function TBDLib:CreateWindow(Config)
     end)
     
     -- Add click events to backgrounds as well (for mobile support)
-    Connect(CloseBackground.MouseButton1Click, function()
-        CloseButton.MouseButton1Click:Fire()
+    Connect(CloseBackground.InputBegan, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            CloseButton.MouseButton1Click:Fire()
+        end
     end)
     
     local Minimized = false
@@ -1118,7 +1120,11 @@ function TBDLib:CreateWindow(Config)
     
     -- Connect minimize button to function
     Connect(MinimizeButton.MouseButton1Click, ToggleMinimize)
-    Connect(MinimizeBackground.MouseButton1Click, ToggleMinimize)
+    Connect(MinimizeBackground.InputBegan, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            ToggleMinimize()
+        end
+    end)
     
     local Maximized = false
     
@@ -1151,7 +1157,11 @@ function TBDLib:CreateWindow(Config)
     
     -- Connect maximize button to function
     Connect(MaximizeButton.MouseButton1Click, ToggleMaximize)
-    Connect(MaximizeBackground.MouseButton1Click, ToggleMaximize)
+    Connect(MaximizeBackground.InputBegan, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            ToggleMaximize()
+        end
+    end)
     
     -- Make window draggable from the top bar
     MakeDraggable(WindowFrame, TopBar)
