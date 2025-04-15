@@ -1061,11 +1061,48 @@ GUI:Destroy()
 end)
 end)
 
--- Add click events to backgrounds as well (for mobile support)
+-- Add InputBegan events to backgrounds for mobile support rather than trying to fire MouseButton1Click
+-- This avoids errors when MouseButton1Click is not a valid member
 Connect(CloseBackground.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-CloseButton.MouseButton1Click:Fire()
-end
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        -- Call the same function directly rather than trying to fire an event
+        if WindowConfig.AutoSave then
+            SaveConfig(WindowConfig.SaveConfig)
+        end
+        
+        Tween(WindowFrame, {
+            Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
+            Position = UDim2.new(
+                WindowFrame.Position.X.Scale,
+                WindowFrame.Position.X.Offset,
+                WindowFrame.Position.Y.Scale,
+                WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2
+            )
+        }, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function()
+            DisconnectAll()
+            GUI:Destroy()
+        end)
+    end
+end)
+
+-- Also add a traditional MouseButton1Click event for redundancy
+Connect(CloseBackground.MouseButton1Click, function()
+    if WindowConfig.AutoSave then
+        SaveConfig(WindowConfig.SaveConfig)
+    end
+    
+    Tween(WindowFrame, {
+        Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
+        Position = UDim2.new(
+            WindowFrame.Position.X.Scale,
+            WindowFrame.Position.X.Offset,
+            WindowFrame.Position.Y.Scale,
+            WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2
+        )
+    }, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function()
+        DisconnectAll()
+        GUI:Destroy()
+    end)
 end)
 
 local Minimized = false
@@ -1162,12 +1199,22 @@ local function ToggleMinimize()
     end
 end
 
--- Connect minimize button to function
-Connect(MinimizeButton.MouseButton1Click, ToggleMinimize)
+-- Connect minimize button to function with multiple event handlers for redundancy
+-- First connect the image button
+Connect(MinimizeButton.MouseButton1Click, function()
+    ToggleMinimize()
+end)
+
+-- Then connect the background for touch and mouse input
 Connect(MinimizeBackground.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-ToggleMinimize()
-end
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        ToggleMinimize()
+    end
+end)
+
+-- Also connect mouse click directly
+Connect(MinimizeBackground.MouseButton1Click, function()
+    ToggleMinimize()
 end)
 
 local Maximized = false
@@ -1242,12 +1289,22 @@ local function ToggleMaximize()
     end
 end
 
--- Connect maximize button to function
-Connect(MaximizeButton.MouseButton1Click, ToggleMaximize)
+-- Connect maximize/split button to function with multiple event handlers for redundancy
+-- First connect the image button
+Connect(MaximizeButton.MouseButton1Click, function()
+    ToggleMaximize()
+end)
+
+-- Then connect the background for touch and mouse input
 Connect(MaximizeBackground.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-ToggleMaximize()
-end
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        ToggleMaximize()
+    end
+end)
+
+-- Also connect mouse click directly
+Connect(MaximizeBackground.MouseButton1Click, function()
+    ToggleMaximize()
 end)
 
 -- Make window draggable from the top bar
@@ -2164,8 +2221,14 @@ local DropdownMenu = CreateRoundedFrame(
 DropdownMenu.Visible = false
 DropdownMenu.ZIndex = 10001
 
--- Store the reference to the dropdown container for positioning
-DropdownMenu.DropdownContainer = DropdownContainer
+-- Don't use custom property to store reference, use a proper indexing approach instead
+-- Create a lookup table of container references for dropdown menus
+if not TBDLib.DropdownRefs then
+    TBDLib.DropdownRefs = {}
+end
+local dropdownId = HttpService:GenerateGUID(false)
+TBDLib.DropdownRefs[dropdownId] = DropdownContainer
+DropdownMenu.Name = "DropdownMenu_" .. dropdownId
 
 local MenuList = Create("UIListLayout", {
 Padding = UDim.new(0, 5),
@@ -2307,33 +2370,42 @@ end
 
 -- Toggle the dropdown menu
 function DropdownAPI:Toggle()
-DropdownMenu.Visible = not DropdownMenu.Visible
-
-if DropdownMenu.Visible then
--- Update menu position to match dropdown container
-local AbsPos = DropdownContainer.AbsolutePosition
-local AbsSize = DropdownContainer.AbsoluteSize
-DropdownMenu.Position = UDim2.new(0, AbsPos.X, 0, AbsPos.Y + AbsSize.Y + 5)
-DropdownMenu.Size = UDim2.new(0, AbsSize.X, 0, 0)
-
-UpdateMenu()
-Tween(DropdownArrow, {Rotation = 180}, 0.2)
-
--- Bring dropdown to front
-DropdownMenu.ZIndex = 10000
-for _, child in ipairs(DropdownMenu:GetChildren()) do
-    if child:IsA("GuiObject") then
-        child.ZIndex = 10001
-        for _, subchild in ipairs(child:GetChildren()) do
-            if subchild:IsA("GuiObject") then
-                subchild.ZIndex = 10002
+    DropdownMenu.Visible = not DropdownMenu.Visible
+    
+    if DropdownMenu.Visible then
+        -- Extract the dropdown ID from the menu name
+        local dropdownId = string.match(DropdownMenu.Name, "DropdownMenu_(.+)")
+        local container = TBDLib.DropdownRefs[dropdownId]
+        
+        if container then
+            -- Update menu position to match dropdown container
+            local AbsPos = container.AbsolutePosition
+            local AbsSize = container.AbsoluteSize
+            DropdownMenu.Position = UDim2.new(0, AbsPos.X, 0, AbsPos.Y + AbsSize.Y + 5)
+            DropdownMenu.Size = UDim2.new(0, AbsSize.X, 0, 0)
+            
+            UpdateMenu()
+            Tween(DropdownArrow, {Rotation = 180}, 0.2)
+            
+            -- Bring dropdown to front and ensure proper z-indexing
+            DropdownMenu.ZIndex = 10000
+            for _, child in ipairs(DropdownMenu:GetChildren()) do
+                if child:IsA("GuiObject") then
+                    child.ZIndex = 10001
+                    for _, subchild in ipairs(child:GetChildren()) do
+                        if subchild:IsA("GuiObject") then
+                            subchild.ZIndex = 10002
+                        end
+                    end
+                end
             end
+        else
+            -- Log an error but don't crash
+            print("Warning: Cannot find dropdown container reference for " .. DropdownMenu.Name)
         end
+    else
+        Tween(DropdownArrow, {Rotation = 0}, 0.2)
     end
-end
-else
-Tween(DropdownArrow, {Rotation = 0}, 0.2)
-end
 end
 
 -- Set dropdown value
@@ -2403,21 +2475,31 @@ end)
 
 -- Close dropdown when clicking elsewhere
 Connect(UserInputService.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-local Position = UserInputService:GetMouseLocation()
-local MenuBounds = DropdownMenu.AbsolutePosition.Y + DropdownMenu.AbsoluteSize.Y
-
-if DropdownMenu.Visible and 
-   (Position.Y < DropdownMenu.AbsolutePosition.Y or Position.Y > MenuBounds or
-    Position.X < DropdownMenu.AbsolutePosition.X or Position.X > DropdownMenu.AbsolutePosition.X + DropdownMenu.AbsoluteSize.X) then
-    if not (Position.Y >= DropdownContainer.AbsolutePosition.Y and 
-           Position.Y <= DropdownContainer.AbsolutePosition.Y + DropdownContainer.AbsoluteSize.Y and
-           Position.X >= DropdownContainer.AbsolutePosition.X and 
-           Position.X <= DropdownContainer.AbsolutePosition.X + DropdownContainer.AbsoluteSize.X) then
-        DropdownAPI:Toggle()
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        local Position = UserInputService:GetMouseLocation()
+        local MenuBounds = DropdownMenu.AbsolutePosition.Y + DropdownMenu.AbsoluteSize.Y
+        
+        -- Extract the dropdown ID from the menu name
+        local dropdownId = string.match(DropdownMenu.Name, "DropdownMenu_(.+)")
+        local container = TBDLib.DropdownRefs[dropdownId]
+        
+        if DropdownMenu.Visible and 
+           (Position.Y < DropdownMenu.AbsolutePosition.Y or Position.Y > MenuBounds or
+            Position.X < DropdownMenu.AbsolutePosition.X or Position.X > DropdownMenu.AbsolutePosition.X + DropdownMenu.AbsoluteSize.X) then
+            
+            if container then
+                if not (Position.Y >= container.AbsolutePosition.Y and 
+                       Position.Y <= container.AbsolutePosition.Y + container.AbsoluteSize.Y and
+                       Position.X >= container.AbsolutePosition.X and 
+                       Position.X <= container.AbsolutePosition.X + container.AbsoluteSize.X) then
+                    DropdownAPI:Toggle()
+                end
+            else
+                -- If container reference is gone, close the dropdown anyway
+                DropdownAPI:Toggle()
+            end
+        end
     end
-end
-end
 end)
 
 -- Initialize dropdown state
