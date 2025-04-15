@@ -23,36 +23,36 @@ Recent improvements:
 local TBDLib = {
     Name = "TBDLib",
     Version = "2.0.0",
-        Theme = {
-            -- Main Colors
-            Primary = Color3.fromRGB(28, 33, 54),       -- Main background
-            Secondary = Color3.fromRGB(35, 40, 60),     -- Section backgrounds
-            Tertiary = Color3.fromRGB(42, 48, 70),      -- UI element backgrounds
-            Background = Color3.fromRGB(25, 28, 45),    -- Outermost background
-            
-            -- Accent Colors
-            Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
-            AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
-            AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
-            
-            -- Status Colors
-            Success = Color3.fromRGB(68, 214, 125),     -- Success color
-            Warning = Color3.fromRGB(255, 170, 0),      -- Warning color 
-            Error = Color3.fromRGB(255, 80, 80),        -- Error color
-            Info = Color3.fromRGB(80, 170, 245),        -- Info color
-            
-            -- Text Colors
-            Text = Color3.fromRGB(240, 240, 250),       -- Primary text color
-            TextDark = Color3.fromRGB(180, 180, 190),   -- Secondary text color
-            TextLight = Color3.fromRGB(255, 255, 255),  -- Bright text color
-            TextDisabled = Color3.fromRGB(140, 140, 150),-- Disabled text color
+    Theme = {
+        -- Main Colors
+        Primary = Color3.fromRGB(28, 33, 54),       -- Main background
+        Secondary = Color3.fromRGB(35, 40, 60),     -- Section backgrounds
+        Tertiary = Color3.fromRGB(42, 48, 70),      -- UI element backgrounds
+        Background = Color3.fromRGB(25, 28, 45),    -- Outermost background
+        
+        -- Accent Colors
+        Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
+        AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
+        AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
+        
+        -- Status Colors
+        Success = Color3.fromRGB(68, 214, 125),     -- Success color
+        Warning = Color3.fromRGB(255, 170, 0),      -- Warning color 
+        Error = Color3.fromRGB(255, 80, 80),        -- Error color
+        Info = Color3.fromRGB(80, 170, 245),        -- Info color
+        
+        -- Text Colors
+        Text = Color3.fromRGB(240, 240, 250),       -- Primary text color
+        TextDark = Color3.fromRGB(180, 180, 190),   -- Secondary text color
+        TextLight = Color3.fromRGB(255, 255, 255),  -- Bright text color
+        TextDisabled = Color3.fromRGB(140, 140, 150),-- Disabled text color
 
-            -- Misc
-            ControlBg = Color3.fromRGB(255, 255, 255),  -- Control elements
-            Border = Color3.fromRGB(50, 55, 75),        -- Border color
-            Divider = Color3.fromRGB(60, 65, 85),       -- Divider color
-            NotifBackground = Color3.fromRGB(35, 40, 60),-- Notif background
-            NotifText = Color3.fromRGB(240, 240, 250)   -- Notif text
+        -- Misc
+        ControlBg = Color3.fromRGB(255, 255, 255),  -- Control elements
+        Border = Color3.fromRGB(50, 55, 75),        -- Border color
+        Divider = Color3.fromRGB(60, 65, 85),       -- Divider color
+        NotifBackground = Color3.fromRGB(35, 40, 60),-- Notif background
+        NotifText = Color3.fromRGB(240, 240, 250)   -- Notif text
 },
     Windows = {},
     Flags = {},
