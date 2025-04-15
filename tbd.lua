@@ -199,6 +199,19 @@ local ConfigFolder = "TBDLib" -- Default hardcoded value
 if TBDLib and TBDLib.ConfigSystem and TBDLib.ConfigSystem.Folder then
     ConfigFolder = TBDLib.ConfigSystem.Folder
 end
+
+-- FIXED: Added a helper function to protect GUIs with proper error handling
+local function ProtectGui(gui)
+    if gui and typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
+        local success, err = pcall(function()
+            syn.protect_gui(gui)
+        end)
+        if not success then
+            warn("TBDLib: Failed to protect GUI - " .. tostring(err))
+        end
+    end
+end
+
 local Ripples = {}
 
 -- Constants
@@ -705,7 +718,8 @@ local tempContainer = Create("ScreenGui", {
 
 -- Set parent based on environment with error handling
 if typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
-    syn.protect_gui(tempContainer)
+    -- FIXED: Use ProtectGui function for better error handling
+    ProtectGui(tempContainer)
     tempContainer.Parent = CoreGui
 elseif typeof(gethui) == "function" then
     tempContainer.Parent = gethui()
@@ -996,8 +1010,9 @@ ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Set parent based on environment
 if typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
-syn.protect_gui(Container)
-Container.Parent = CoreGui
+    -- FIXED: Use ProtectGui function for better error handling
+    ProtectGui(Container)
+    Container.Parent = CoreGui
 elseif typeof(gethui) == "function" then
 Container.Parent = gethui()
 elseif typeof(PlayerGui) == "Instance" then
