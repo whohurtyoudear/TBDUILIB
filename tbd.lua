@@ -32,101 +32,101 @@ local TBDLib = {
             
             -- Accent Colors
             Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
-AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
-AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
+            AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
+            AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
+            
+            -- Status Colors
+            Success = Color3.fromRGB(68, 214, 125),     -- Success color
+            Warning = Color3.fromRGB(255, 170, 0),      -- Warning color 
+            Error = Color3.fromRGB(255, 80, 80),        -- Error color
+            Info = Color3.fromRGB(80, 170, 245),        -- Info color
+            
+            -- Text Colors
+            Text = Color3.fromRGB(240, 240, 250),       -- Primary text color
+            TextDark = Color3.fromRGB(180, 180, 190),   -- Secondary text color
+            TextLight = Color3.fromRGB(255, 255, 255),  -- Bright text color
+            TextDisabled = Color3.fromRGB(140, 140, 150),-- Disabled text color
 
--- Status Colors
-Success = Color3.fromRGB(68, 214, 125),     -- Success color
-Warning = Color3.fromRGB(255, 170, 0),      -- Warning color 
-Error = Color3.fromRGB(255, 80, 80),        -- Error color
-Info = Color3.fromRGB(80, 170, 245),        -- Info color
-
--- Text Colors
-Text = Color3.fromRGB(240, 240, 250),       -- Primary text color
-TextDark = Color3.fromRGB(180, 180, 190),   -- Secondary text color
-TextLight = Color3.fromRGB(255, 255, 255),  -- Bright text color
-TextDisabled = Color3.fromRGB(140, 140, 150),-- Disabled text color
-
--- Misc
-ControlBg = Color3.fromRGB(255, 255, 255),  -- Control elements
-Border = Color3.fromRGB(50, 55, 75),        -- Border color
-Divider = Color3.fromRGB(60, 65, 85),       -- Divider color
-NotifBackground = Color3.fromRGB(35, 40, 60),-- Notif background
-NotifText = Color3.fromRGB(240, 240, 250)   -- Notif text
+            -- Misc
+            ControlBg = Color3.fromRGB(255, 255, 255),  -- Control elements
+            Border = Color3.fromRGB(50, 55, 75),        -- Border color
+            Divider = Color3.fromRGB(60, 65, 85),       -- Divider color
+            NotifBackground = Color3.fromRGB(35, 40, 60),-- Notif background
+            NotifText = Color3.fromRGB(240, 240, 250)   -- Notif text
 },
-Windows = {},
-Flags = {},
-ConfigSystem = {
-Folder = "TBDLib",
-CurrentConfig = "default",
-AutoSave = true
-},
-Icons = {
--- Window controls
-Close = "rbxassetid://11436284823",
-Minimize = "rbxassetid://11436290535",
-Maximize = "rbxassetid://11436293815",
-Split = "rbxassetid://11436357091",
-Restore = "rbxassetid://11436348454",
-
--- Navigation
-Home = "rbxassetid://11482892823",
-Settings = "rbxassetid://11482911926", 
-Scripts = "rbxassetid://11482983864",
-Hub = "rbxassetid://11482975131",
-Plugins = "rbxassetid://11482999950",
-Games = "rbxassetid://11483008454",
-Search = "rbxassetid://11483028465",
-
--- UI Elements
-Toggle = "rbxassetid://11482968672",
-ToggleEnabled = "rbxassetid://11482969091",
-Dropdown = "rbxassetid://11482971699",
-Slider = "rbxassetid://11482993241",
-ColorPicker = "rbxassetid://11483009289",
-Checkbox = "rbxassetid://11483015967",
-CheckboxChecked = "rbxassetid://11483016401",
-
--- Status Icons
-Success = "rbxassetid://11483017272",
-Warning = "rbxassetid://11483017830",
-Error = "rbxassetid://11483018616",
-Info = "rbxassetid://11483020604",
-
--- Player Icons
-Avatar = "rbxassetid://7962146544",
-Crown = "rbxassetid://7733955740",
-People = "rbxassetid://7743866529",
-Server = "rbxassetid://10889391188",
-Globe = "rbxassetid://9405893280",
-Clock = "rbxassetid://7733674079",
-
--- Misc Icons
-Folder = "rbxassetid://11483033225",
-File = "rbxassetid://11483033657",
-Code = "rbxassetid://11483037364",
-Bolt = "rbxassetid://11483038654",
-Star = "rbxassetid://11483039206",
-Key = "rbxassetid://11483040349",
-Lock = "rbxassetid://11483040849",
-Unlock = "rbxassetid://11483041299",
-Clipboard = "rbxassetid://11483044588",
-Copy = "rbxassetid://11483045117",
-Notification = "rbxassetid://6031075699"
-},
-Animation = {
-DefaultDuration = 0.25,
-DefaultEasingStyle = Enum.EasingStyle.Quint,
-DefaultEasingDirection = Enum.EasingDirection.Out
-},
-NotificationSettings = {
-Position = "TopRight",     -- TopRight, TopLeft, BottomRight, BottomLeft
-Duration = 3,              -- Default duration in seconds
-Sound = true,              -- Play notification sound
-SoundId = "rbxassetid://6518811702",
-MaxNotifications = 5,      -- Maximum number of visible notifications
-Style = "Modern"           -- Modern, Compact, Minimal
-}
+    Windows = {},
+    Flags = {},
+    ConfigSystem = {
+        Folder = "TBDLib",
+        CurrentConfig = "default",
+        AutoSave = true
+    },
+    Icons = {
+        -- Window controls
+        Close = "rbxassetid://11436284823",
+        Minimize = "rbxassetid://11436290535",
+        Maximize = "rbxassetid://11436293815",
+        Split = "rbxassetid://11436357091",
+        Restore = "rbxassetid://11436348454",
+        
+        -- Navigation
+        Home = "rbxassetid://11482892823",
+        Settings = "rbxassetid://11482911926", 
+        Scripts = "rbxassetid://11482983864",
+        Hub = "rbxassetid://11482975131",
+        Plugins = "rbxassetid://11482999950",
+        Games = "rbxassetid://11483008454",
+        Search = "rbxassetid://11483028465",
+        
+        -- UI Elements
+        Toggle = "rbxassetid://11482968672",
+        ToggleEnabled = "rbxassetid://11482969091",
+        Dropdown = "rbxassetid://11482971699",
+        Slider = "rbxassetid://11482993241",
+        ColorPicker = "rbxassetid://11483009289",
+        Checkbox = "rbxassetid://11483015967",
+        CheckboxChecked = "rbxassetid://11483016401",
+        
+        -- Status Icons
+        Success = "rbxassetid://11483017272",
+        Warning = "rbxassetid://11483017830",
+        Error = "rbxassetid://11483018616",
+        Info = "rbxassetid://11483020604",
+        
+        -- Player Icons
+        Avatar = "rbxassetid://7962146544",
+        Crown = "rbxassetid://7733955740",
+        People = "rbxassetid://7743866529",
+        Server = "rbxassetid://10889391188",
+        Globe = "rbxassetid://9405893280",
+        Clock = "rbxassetid://7733674079",
+        
+        -- Misc Icons
+        Folder = "rbxassetid://11483033225",
+        File = "rbxassetid://11483033657",
+        Code = "rbxassetid://11483037364",
+        Bolt = "rbxassetid://11483038654",
+        Star = "rbxassetid://11483039206",
+        Key = "rbxassetid://11483040349",
+        Lock = "rbxassetid://11483040849",
+        Unlock = "rbxassetid://11483041299",
+        Clipboard = "rbxassetid://11483044588",
+        Copy = "rbxassetid://11483045117",
+        Notification = "rbxassetid://6031075699"
+    },
+    Animation = {
+        DefaultDuration = 0.25,
+        DefaultEasingStyle = Enum.EasingStyle.Quint,
+        DefaultEasingDirection = Enum.EasingDirection.Out
+    },
+    NotificationSettings = {
+        Position = "TopRight",     -- TopRight, TopLeft, BottomRight, BottomLeft
+        Duration = 3,              -- Default duration in seconds
+        Sound = true,              -- Play notification sound
+        SoundId = "rbxassetid://6518811702",
+        MaxNotifications = 5,      -- Maximum number of visible notifications
+        Style = "Modern"           -- Modern, Compact, Minimal
+    }
 }
 
 -- Services
