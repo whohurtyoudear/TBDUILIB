@@ -217,9 +217,22 @@ return Tween
 end
 
 local function Connect(Signal, Callback)
-local Connection = Signal:Connect(Callback)
-table.insert(Connections, Connection)
-return Connection
+if not Signal then
+    warn("TBDLib: Attempted to connect to a nil signal")
+    return nil
+end
+
+local success, Connection = pcall(function()
+    return Signal:Connect(Callback)
+end)
+
+if success and Connection then
+    table.insert(Connections, Connection)
+    return Connection
+else
+    warn("TBDLib: Failed to connect to signal: " .. tostring(Signal))
+    return nil
+end
 end
 
 local function Disconnect(Connection)
@@ -1041,57 +1054,49 @@ Tween(CloseBackground, {BackgroundColor3 = Color3.fromRGB(231, 76, 101)}, 0.2)
 Tween(CloseButton, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
 end)
 
--- Button click effects
-Connect(CloseButton.MouseButton1Click, function()
-if WindowConfig.AutoSave then
-SaveConfig(WindowConfig.SaveConfig)
-end
-
-Tween(WindowFrame, {
-Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
-Position = UDim2.new(
-WindowFrame.Position.X.Scale,
-WindowFrame.Position.X.Offset,
-WindowFrame.Position.Y.Scale,
-WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2
-)
-}, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function()
-DisconnectAll()
-GUI:Destroy()
-end)
-end)
-
--- Add InputBegan events to backgrounds for mobile support rather than trying to fire MouseButton1Click
--- This avoids errors when MouseButton1Click is not a valid member
-Connect(CloseBackground.InputBegan, function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        -- Call the same function directly rather than trying to fire an event
-        if WindowConfig.AutoSave then
-            SaveConfig(WindowConfig.SaveConfig)
-        end
-        
-        Tween(WindowFrame, {
-            Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
-            Position = UDim2.new(
-                WindowFrame.Position.X.Scale,
-                WindowFrame.Position.X.Offset,
-                WindowFrame.Position.Y.Scale,
-                WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2
-            )
-        }, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function()
-            DisconnectAll()
-            GUI:Destroy()
-        end)
-    end
-end)
-
--- Also add a traditional MouseButton1Click event for redundancy
-Connect(CloseBackground.MouseButton1Click, function()
+-- Button click effects - Use InputBegan for reliable cross-platform support
+-- Create a function to handle the close action to avoid code repetition
+local function CloseWindowFunction()
     if WindowConfig.AutoSave then
         SaveConfig(WindowConfig.SaveConfig)
     end
     
     Tween(WindowFrame, {
+        Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
+        Position = UDim2.new(
+            WindowFrame.Position.X.Scale,
+            WindowFrame.Position.X.Offset,
+            WindowFrame.Position.Y.Scale,
+            WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2
+        )
+    }, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In, function()
+        DisconnectAll()
+        GUI:Destroy()
+    end)
+end
+
+-- Connect to button's InputBegan instead of MouseButton1Click for better mobile compatibility
+Connect(CloseButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        CloseWindowFunction()
+    end
+end)
+
+-- Connect to background's InputBegan for a larger click/touch area
+Connect(CloseBackground.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        CloseWindowFunction()
+    end
+end)
+
+-- For compatibility with platforms that properly support MouseButton1Click
+pcall(function()
+    Connect(CloseButton.MouseButton1Click, CloseWindowFunction)
+    Connect(CloseBackground.MouseButton1Click, CloseWindowFunction)
+end)
+
+-- Optionally add Frame Activation method for even more redundancy
+Tween(WindowFrame, {
         Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 0),
         Position = UDim2.new(
             WindowFrame.Position.X.Scale,
@@ -1199,10 +1204,12 @@ local function ToggleMinimize()
     end
 end
 
--- Connect minimize button to function with multiple event handlers for redundancy
--- First connect the image button
-Connect(MinimizeButton.MouseButton1Click, function()
-    ToggleMinimize()
+-- Connect minimize button with cross-platform compatibility
+-- First connect the button InputBegan (most reliable)
+Connect(MinimizeButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        ToggleMinimize()
+    end
 end)
 
 -- Then connect the background for touch and mouse input
@@ -1212,9 +1219,10 @@ Connect(MinimizeBackground.InputBegan, function(Input)
     end
 end)
 
--- Also connect mouse click directly
-Connect(MinimizeBackground.MouseButton1Click, function()
-    ToggleMinimize()
+-- Use pcall for MouseButton1Click connections to avoid errors on platforms where it's not supported
+pcall(function()
+    Connect(MinimizeButton.MouseButton1Click, ToggleMinimize)
+    Connect(MinimizeBackground.MouseButton1Click, ToggleMinimize)
 end)
 
 local Maximized = false
@@ -1289,10 +1297,12 @@ local function ToggleMaximize()
     end
 end
 
--- Connect maximize/split button to function with multiple event handlers for redundancy
--- First connect the image button
-Connect(MaximizeButton.MouseButton1Click, function()
-    ToggleMaximize()
+-- Connect maximize/split button with cross-platform compatibility
+-- First connect the button InputBegan (most reliable)
+Connect(MaximizeButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        ToggleMaximize()
+    end
 end)
 
 -- Then connect the background for touch and mouse input
@@ -1302,9 +1312,10 @@ Connect(MaximizeBackground.InputBegan, function(Input)
     end
 end)
 
--- Also connect mouse click directly
-Connect(MaximizeBackground.MouseButton1Click, function()
-    ToggleMaximize()
+-- Use pcall for MouseButton1Click connections to avoid errors on platforms where it's not supported
+pcall(function()
+    Connect(MaximizeButton.MouseButton1Click, ToggleMaximize)
+    Connect(MaximizeBackground.MouseButton1Click, ToggleMaximize)
 end)
 
 -- Make window draggable from the top bar
@@ -1560,16 +1571,42 @@ NavButton,
 )
 Indicator.BackgroundTransparency = 1
 
--- Tab content frame
-local TabContentFrame = CreateRoundedFrame(
-UDim2.new(1, 0, 1, 0),
-nil,
-TBDLib.Theme.Secondary,
-TabContainer,
-8,
-"TabContent_" .. TabId
-)
-TabContentFrame.Visible = false
+-- Tab content frame - with error handling to ensure it's created properly
+local TabContentFrame
+local success, err = pcall(function()
+    TabContentFrame = CreateRoundedFrame(
+        UDim2.new(1, 0, 1, 0),
+        nil,
+        TBDLib.Theme.Secondary,
+        TabContainer,
+        8,
+        "TabContent_" .. TabId
+    )
+    -- Only set to invisible if we're not on the first tab
+    TabContentFrame.Visible = (TabId == 1)
+    -- Ensure the frame is properly configured and has correct z-index
+    TabContentFrame.ZIndex = 5
+    TabContentFrame.ClipsDescendants = true
+end)
+
+if not success then
+    warn("TBDLib: Failed to create TabContentFrame - " .. tostring(err))
+    -- Create a recovery frame if primary creation fails
+    TabContentFrame = Create("Frame", {
+        Name = "TabContent_" .. TabId,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = TBDLib.Theme.Secondary,
+        BorderSizePixel = 0,
+        Visible = false,
+        Parent = TabContainer
+    })
+    
+    -- Add rounded corners
+    local UICorner = Create("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = TabContentFrame
+    })
+end
 
 -- Create a scrolling frame for the content
 local ScrollingContent = Create("ScrollingFrame", {
@@ -1612,9 +1649,19 @@ Text = "",
 Parent = NavButton
 })
 
--- Tab button click handler
-Connect(TabButton.MouseButton1Click, function()
-WindowAPI:SelectTab(TabId)
+-- Tab button click handler with cross-platform compatibility
+-- First use InputBegan for better compatibility
+Connect(TabButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        WindowAPI:SelectTab(TabId)
+    end
+end)
+
+-- Also try MouseButton1Click for redundancy
+pcall(function()
+    Connect(TabButton.MouseButton1Click, function()
+        WindowAPI:SelectTab(TabId)
+    end)
 end)
 
 -- Hover effects
@@ -1766,71 +1813,116 @@ end
 
 -- Add Button
 function SectionAPI:AddButton(Config)
-Config = Config or {}
-local ButtonText = Config.Text or "Button"
-local ButtonCallback = Config.Callback or function() end
+    Config = Config or {}
+    local ButtonText = Config.Text or "Button"
+    local ButtonCallback = Config.Callback or function() end
 
-local ButtonFrame = Create("Frame", {
-Name = "Button",
-BackgroundTransparency = 1,
-Size = UDim2.new(1, 0, 0, 36),
-Parent = SectionContent
-})
+    local ButtonFrame = Create("Frame", {
+        Name = "Button",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 36),
+        Parent = SectionContent
+    })
 
--- Set element order if specified
-if Config.Order then
-ButtonFrame.LayoutOrder = Config.Order
-end
+    -- Set element order if specified
+    if Config.Order then
+        ButtonFrame.LayoutOrder = Config.Order
+    end
 
-local Button = CreateRoundedFrame(
-UDim2.new(1, 0, 1, 0),
-nil,
-Config.Color or TBDLib.Theme.Accent,
-ButtonFrame,
-6
-)
+    local Button = CreateRoundedFrame(
+        UDim2.new(1, 0, 1, 0),
+        nil,
+        Config.Color or TBDLib.Theme.Accent,
+        ButtonFrame,
+        6
+    )
 
-local ButtonLabel = Create("TextLabel", {
-BackgroundTransparency = 1,
-Size = UDim2.new(1, 0, 1, 0),
-Font = Enum.Font.GothamBold,
-Text = ButtonText,
-TextColor3 = TBDLib.Theme.TextLight,
-TextSize = 14,
-Parent = Button
-})
+    local ButtonLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = ButtonText,
+        TextColor3 = TBDLib.Theme.TextLight,
+        TextSize = 14,
+        Parent = Button
+    })
 
-local ButtonButton = Create("TextButton", {
-BackgroundTransparency = 1,
-Size = UDim2.new(1, 0, 1, 0),
-Text = "",
-Parent = Button
-})
+    local ButtonButton = Create("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        Parent = Button
+    })
 
--- Add ripple effect
-CreateRipple(Button)
+    -- Add ripple effect
+    CreateRipple(Button)
 
--- Button hover effects
-Connect(ButtonButton.MouseEnter, function()
-Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.2)
-end)
+    -- Button hover effects
+    Connect(ButtonButton.MouseEnter, function()
+        Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.2)
+    end)
 
-Connect(ButtonButton.MouseLeave, function()
-Tween(Button, {BackgroundColor3 = Config.Color or TBDLib.Theme.Accent}, 0.2)
-end)
+    Connect(ButtonButton.MouseLeave, function()
+        Tween(Button, {BackgroundColor3 = Config.Color or TBDLib.Theme.Accent}, 0.2)
+    end)
 
--- Button click effects
-Connect(ButtonButton.MouseButton1Down, function()
-Tween(Button, {BackgroundColor3 = Config.PressColor or TBDLib.Theme.AccentDark}, 0.1)
-end)
+    -- Button click effects with improved cross-platform handling
+    local function handleButtonPress()
+        Tween(Button, {BackgroundColor3 = Config.PressColor or TBDLib.Theme.AccentDark}, 0.1)
+    end
+    
+    local function handleButtonRelease()
+        Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.1)
+    end
+    
+    local function executeCallback()
+        -- Use pcall to prevent callback errors from breaking the UI
+        pcall(function()
+            task.spawn(ButtonCallback)
+        end)
+    end
 
-Connect(ButtonButton.MouseButton1Up, function()
-Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.1)
-end)
+    -- Mouse down event
+    Connect(ButtonButton.MouseButton1Down, handleButtonPress)
+    
+    -- Also try InputBegan for better touch support
+    Connect(ButtonButton.InputBegan, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            handleButtonPress()
+            
+            -- For touch events, we need to track when the input ends to simulate button release
+            if Input.UserInputType == Enum.UserInputType.Touch then
+                local connection
+                connection = Input.Changed:Connect(function()
+                    if Input.UserInputState == Enum.UserInputState.End then
+                        handleButtonRelease()
+                        executeCallback()
+                        -- Cleanup the temporary connection
+                        if connection then
+                            connection:Disconnect()
+                            connection = nil
+                        end
+                    end
+                end)
+            end
+        end
+    end)
 
-Connect(ButtonButton.MouseButton1Click, function()
-task.spawn(ButtonCallback)
-end)
+    -- Mouse up event
+    Connect(ButtonButton.MouseButton1Up, function()
+        handleButtonRelease()
+    end)
+    
+    -- Traditional click event (works on most platforms)
+    Connect(ButtonButton.MouseButton1Click, executeCallback)
+    
+    -- Input ended for mobile platforms
+    Connect(ButtonButton.InputEnded, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- We handle touch release separately through the Changed event above
+            executeCallback()
+        end
+    end)
 
 -- Button API
 local ButtonAPI = {}
@@ -1934,9 +2026,19 @@ end
 -- Initialize the toggle state
 ToggleAPI:Set(ToggleDefault)
 
--- Connect toggle interaction
-Connect(ToggleButton.MouseButton1Click, function()
-ToggleAPI:Set(not State)
+-- Connect toggle interaction with cross-platform compatibility
+-- Use InputBegan for better compatibility
+Connect(ToggleButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        ToggleAPI:Set(not State)
+    end
+end)
+
+-- Also try traditional MouseButton1Click for redundancy
+pcall(function()
+    Connect(ToggleButton.MouseButton1Click, function()
+        ToggleAPI:Set(not State)
+    end)
 end)
 
 -- Register the flag if specified
@@ -2468,9 +2570,19 @@ UpdateMenu()
 end
 end
 
--- Connect dropdown interactions
-Connect(DropdownButton.MouseButton1Click, function()
-DropdownAPI:Toggle()
+-- Connect dropdown interactions with cross-platform compatibility
+-- Use InputBegan for better compatibility
+Connect(DropdownButton.InputBegan, function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+        DropdownAPI:Toggle()
+    end
+end)
+
+-- Also try traditional MouseButton1Click for redundancy
+pcall(function()
+    Connect(DropdownButton.MouseButton1Click, function()
+        DropdownAPI:Toggle()
+    end)
 end)
 
 -- Close dropdown when clicking elsewhere
@@ -3393,61 +3505,107 @@ end
 
 -- Select a tab by ID
 function WindowAPI:SelectTab(TabId)
-if Tabs[TabId] and ActiveTab ~= TabId then
--- Hide all tab contents
-for _, Tab in pairs(Tabs) do
-if Tab.Id ~= TabId then
-Tab.Content.Visible = false
-
--- Reset button appearance
-Tween(Tab.Button, {BackgroundColor3 = TBDLib.Theme.Primary}, 0.2)
-
-local TitleLabel = Tab.Button:FindFirstChild("Title")
-if TitleLabel then
-Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextDark}, 0.2)
-end
-
-local IconLabel = Tab.Button:FindFirstChild("Icon")
-if IconLabel then
-Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
-end
-
-local Indicator = Tab.Button:FindFirstChild("Indicator")
-if Indicator then
-Tween(Indicator, {BackgroundTransparency = 1}, 0.2)
-end
-end
-end
-
--- Show selected tab content
-Tabs[TabId].Content.Visible = true
-
--- Update button appearance
-Tween(Tabs[TabId].Button, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
-
-local TitleLabel = Tabs[TabId].Button:FindFirstChild("Title")
-if TitleLabel then
-Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextLight}, 0.2)
-end
-
-local IconLabel = Tabs[TabId].Button:FindFirstChild("Icon")
-if IconLabel then
-Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextLight}, 0.2)
-end
-
-local Indicator = Tabs[TabId].Button:FindFirstChild("Indicator")
-if Indicator then
-Tween(Indicator, {BackgroundTransparency = 0}, 0.2)
-end
-
--- Update active tab
-ActiveTab = TabId
+    -- Add diagnostics for tab selection
+    if not Tabs then
+        warn("TBDLib: Tab container is nil in SelectTab")
+        return
+    end
+    
+    if not Tabs[TabId] then
+        warn("TBDLib: Invalid tab ID in SelectTab: " .. tostring(TabId))
+        return
+    end
+    
+    if ActiveTab == TabId then
+        -- Tab is already selected, just ensure it's visible
+        if Tabs[TabId].Content then
+            Tabs[TabId].Content.Visible = true
+        end
+        return
+    end
+    
+    -- Hide all tab contents with error handling
+    for _, Tab in pairs(Tabs) do
+        if Tab.Id ~= TabId then
+            pcall(function()
+                Tab.Content.Visible = false
+            
+                -- Reset button appearance
+                Tween(Tab.Button, {BackgroundColor3 = TBDLib.Theme.Primary}, 0.2)
+            
+                local TitleLabel = Tab.Button:FindFirstChild("Title")
+                if TitleLabel then
+                    Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextDark}, 0.2)
+                end
+            
+                local IconLabel = Tab.Button:FindFirstChild("Icon")
+                if IconLabel then
+                    Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
+                end
+            
+                local Indicator = Tab.Button:FindFirstChild("Indicator")
+                if Indicator then
+                    Tween(Indicator, {BackgroundTransparency = 1}, 0.2)
+                end
+            end)
+        end
+    end
+    
+    -- Show selected tab content with error handling
+    pcall(function()
+        -- Ensure the tab content exists and is properly configured
+        if Tabs[TabId].Content then
+            Tabs[TabId].Content.Visible = true
+            Tabs[TabId].Content.ZIndex = 5 -- Ensure proper z-index
+            
+            -- Force update layouts for child elements
+            for _, child in pairs(Tabs[TabId].Content:GetDescendants()) do
+                if child:IsA("UIListLayout") or child:IsA("UIGridLayout") then
+                    child.Parent:GetPropertyChangedSignal("AbsoluteSize"):Wait()
+                end
+            end
+        else
+            warn("TBDLib: Tab content is missing for TabId: " .. tostring(TabId))
+        end
+        
+        -- Update button appearance
+        Tween(Tabs[TabId].Button, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
+        
+        local TitleLabel = Tabs[TabId].Button:FindFirstChild("Title")
+        if TitleLabel then
+            Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextLight}, 0.2)
+        end
+        
+        local IconLabel = Tabs[TabId].Button:FindFirstChild("Icon")
+        if IconLabel then
+            Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextLight}, 0.2)
+        end
+        
+        local Indicator = Tabs[TabId].Button:FindFirstChild("Indicator")
+        if Indicator then
+            Tween(Indicator, {BackgroundTransparency = 0}, 0.2)
+        end
+    end)
+    
+    -- Update active tab reference
+    ActiveTab = TabId
 end
 end
 
 -- Select first tab by default if no default tab is specified
-if #Tabs > 0 then
-WindowAPI:SelectTab(1)
+if Tabs and #Tabs > 0 then
+    -- Use pcall to handle any errors during initial tab selection
+    local success, err = pcall(function()
+        WindowAPI:SelectTab(1)
+    end)
+    
+    if not success then
+        warn("TBDLib: Failed to select default tab - " .. tostring(err))
+        -- Try to set visibility directly as a fallback
+        if Tabs[1] and Tabs[1].Content then
+            Tabs[1].Content.Visible = true
+        end
+    end
 end
 
 return WindowAPI
