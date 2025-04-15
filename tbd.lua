@@ -129,7 +129,52 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local TextService = game:GetService("TextService")
 local GuiService = game:GetService("GuiService")
-local CoreGui = game:GetService("CoreGui")
+
+-- Safe CoreGui reference (handles edge cases with executors)
+local CoreGui
+local PlayerGui
+
+-- Try multiple methods to get a valid GUI parent
+local function SafeGetGuiParent()
+    -- Method 1: Try standard CoreGui
+    local success1, coreGui = pcall(function()
+        return game:GetService("CoreGui")
+    end)
+    
+    -- Method 2: Try getting the PlayerGui
+    local success2, playerGui = pcall(function()
+        return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    end)
+    
+    -- Method 3: Try through gethui() (used by some executors)
+    local success3, gethuiGui = pcall(function()
+        return gethui and gethui() or nil
+    end)
+    
+    -- Return the first successful method
+    if success1 and coreGui then
+        return coreGui, "CoreGui" 
+    elseif success3 and gethuiGui then
+        return gethuiGui, "gethui"
+    elseif success2 and playerGui then
+        return playerGui, "PlayerGui"
+    else
+        -- Fallback to a direct PlayerGui reference as last resort
+        local player = game:GetService("Players").LocalPlayer
+        if player and player:FindFirstChildOfClass("PlayerGui") then
+            return player:FindFirstChildOfClass("PlayerGui"), "FallbackPlayerGui"
+        end
+    end
+    
+    -- If all else fails, return a warning and use CoreGui anyway
+    warn("TBDLib: Failed to get a valid GUI parent, using CoreGui as fallback")
+    return game:GetService("CoreGui"), "FallbackCoreGui"
+end
+
+-- Get the appropriate GUI parent
+local guiParentType
+CoreGui, guiParentType = SafeGetGuiParent()
+PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -517,24 +562,82 @@ function TBDLib:Notify(Title, Message, Duration, Type)
     Type = Type or "Info"
     Duration = Duration or 5
     
-    if not NotificationHolder then
-        -- Create the notification container if it doesn't exist
-        NotificationHolder = Create("Frame", {
-            Name = "NotificationHolder",
-            AnchorPoint = Vector2.new(1, 0),
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, -20, 0, 20),
-            Size = UDim2.new(0, 300, 1, -40),
-            Parent = CoreGui:FindFirstChild("TBDLibContainer")
-        })
+    -- Safety check for function parameters
+    if type(Title) ~= "string" then Title = tostring(Title) or "Notification" end
+    if type(Message) ~= "string" then Message = tostring(Message) or "" end
+    if type(Duration) ~= "number" then Duration = 5 end
+    
+    -- Ensure we have a valid container for notifications
+    local container
+    
+    -- Ensure TBDLibContainer exists with reliable error handling
+    local success = pcall(function()
+        container = CoreGui:FindFirstChild("TBDLibContainer")
+    end)
+    
+    if not success or not container then
+        -- Create the container if it doesn't exist
+        local newContainerSuccess, newContainer = pcall(function()
+            local tempContainer = Create("ScreenGui", {
+                Name = "TBDLibContainer",
+                ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+            })
+            
+            -- Set parent based on environment with error handling
+            if typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
+                syn.protect_gui(tempContainer)
+                tempContainer.Parent = CoreGui
+            elseif typeof(gethui) == "function" then
+                tempContainer.Parent = gethui()
+            elseif typeof(PlayerGui) == "Instance" then
+                tempContainer.Parent = PlayerGui
+            else
+                tempContainer.Parent = CoreGui
+            end
+            
+            return tempContainer
+        end)
         
-        local UIListLayout = Create("UIListLayout", {
-            Padding = UDim.new(0, 10),
-            HorizontalAlignment = Enum.HorizontalAlignment.Center,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            VerticalAlignment = Enum.VerticalAlignment.Top,
-            Parent = NotificationHolder
-        })
+        if newContainerSuccess then
+            container = newContainer
+        else
+            -- If we still can't create a container, we need to bail out
+            warn("TBDLib: Failed to create notification container")
+            return nil
+        end
+    end
+    
+    -- Validate NotificationHolder with error handling
+    if not NotificationHolder or not NotificationHolder.Parent then
+        local holderSuccess, newHolder = pcall(function()
+            -- Create the notification container if it doesn't exist
+            local tempHolder = Create("Frame", {
+                Name = "NotificationHolder",
+                AnchorPoint = Vector2.new(1, 0),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -20, 0, 20),
+                Size = UDim2.new(0, 300, 1, -40),
+                Parent = container
+            })
+            
+            local UIListLayout = Create("UIListLayout", {
+                Padding = UDim.new(0, 10),
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                VerticalAlignment = Enum.VerticalAlignment.Top,
+                Parent = tempHolder
+            })
+            
+            return tempHolder
+        end)
+        
+        if holderSuccess then
+            NotificationHolder = newHolder
+        else
+            -- If we can't create the holder, bail out
+            warn("TBDLib: Failed to create notification holder")
+            return nil
+        end
     end
     
     NotificationCount = NotificationCount + 1
@@ -687,6 +790,20 @@ function TBDLib:Notify(Title, Message, Duration, Type)
         CloseNotification(NotifFrame)
     end)
     
+    -- Setup notification closing function (defined before usage)
+    local function CloseNotification(Frame)
+        if Frame and Frame:IsA("GuiObject") then
+            Tween(Frame, {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, 0, 0, Frame.Position.Y.Offset)
+            }, 0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, function()
+                if Frame and Frame.Parent then
+                    Frame:Destroy()
+                end
+            end)
+        end
+    end
+    
     -- Add progress bar
     local ProgressBarBackground = CreateRoundedFrame(
         UDim2.new(1, -32, 0, 3),
@@ -710,19 +827,11 @@ function TBDLib:Notify(Title, Message, Duration, Type)
     NotifFrame.Size = UDim2.new(1, 0, 0, 0)
     Tween(NotifFrame, {BackgroundTransparency = 0}, 0.3)
     
-    -- Setup automatically closing after duration
-    local function CloseNotification(Frame)
-        Tween(Frame, {
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, 0, 0, Frame.Position.Y.Offset)
-        }, 0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, function()
-            Frame:Destroy()
-        end)
-    end
-    
     -- Animate progress bar
     Tween(ProgressBar, {Size = UDim2.new(0, 0, 1, 0)}, Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, function()
-        CloseNotification(NotifFrame)
+        if NotifFrame and NotifFrame.Parent then
+            CloseNotification(NotifFrame)
+        end
     end)
     
     return NotifFrame
@@ -851,51 +960,85 @@ function TBDLib:CreateWindow(Config)
     local ControlsHolder = Create("Frame", {
         Name = "Controls",
         BackgroundTransparency = 1,
-        Position = UDim2.new(1, -90, 0, 0),
-        Size = UDim2.new(0, 90, 1, 0),
+        Position = UDim2.new(1, -105, 0, 0),
+        Size = UDim2.new(0, 105, 1, 0),
         Parent = TopBar
     })
     
-    local MinimizeButton = Create("ImageButton", {
-        Name = "Minimize",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0.5, -10),
-        Size = UDim2.new(0, 20, 0, 20),
-        Image = TBDLib.Icons.Minimize,
-        ImageColor3 = TBDLib.Theme.TextDark,
-        Parent = ControlsHolder
-    })
+    -- Create circular background for buttons to make them more visible
+    local function CreateControlButton(Name, Icon, Position, Color)
+        local ButtonBackground = CreateRoundedFrame(
+            UDim2.new(0, 26, 0, 26),
+            Position,
+            Color or TBDLib.Theme.Tertiary,
+            ControlsHolder,
+            13,
+            Name .. "Background"
+        )
+        
+        local Button = Create("ImageButton", {
+            Name = Name,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 16, 0, 16),
+            Image = Icon,
+            ImageColor3 = TBDLib.Theme.Text,
+            Parent = ButtonBackground
+        })
+        
+        return Button, ButtonBackground
+    end
     
-    local MaximizeButton = Create("ImageButton", {
-        Name = "Maximize",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 40, 0.5, -10),
-        Size = UDim2.new(0, 20, 0, 20),
-        Image = TBDLib.Icons.Maximize,
-        ImageColor3 = TBDLib.Theme.TextDark,
-        Parent = ControlsHolder
-    })
+    local MinimizeButton, MinimizeBackground = CreateControlButton(
+        "Minimize", 
+        TBDLib.Icons.Minimize, 
+        UDim2.new(0, 10, 0.5, -13)
+    )
     
-    local CloseButton = Create("ImageButton", {
-        Name = "Close",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 70, 0.5, -10),
-        Size = UDim2.new(0, 20, 0, 20),
-        Image = TBDLib.Icons.Close,
-        ImageColor3 = TBDLib.Theme.TextDark,
-        Parent = ControlsHolder
-    })
+    local MaximizeButton, MaximizeBackground = CreateControlButton(
+        "Maximize", 
+        TBDLib.Icons.Maximize, 
+        UDim2.new(0, 42, 0.5, -13)
+    )
+    
+    local CloseButton, CloseBackground = CreateControlButton(
+        "Close", 
+        TBDLib.Icons.Close, 
+        UDim2.new(0, 74, 0.5, -13),
+        Color3.fromRGB(231, 76, 101)  -- Red background for close button
+    )
     
     -- Button hover effects
-    for _, Button in pairs({MinimizeButton, MaximizeButton, CloseButton}) do
-        Connect(Button.MouseEnter, function()
-            Tween(Button, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
-        end)
-        
-        Connect(Button.MouseLeave, function()
-            Tween(Button, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
-        end)
-    end
+    Connect(MinimizeBackground.MouseEnter, function()
+        Tween(MinimizeBackground, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
+        Tween(MinimizeButton, {ImageColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+    end)
+    
+    Connect(MinimizeBackground.MouseLeave, function()
+        Tween(MinimizeBackground, {BackgroundColor3 = TBDLib.Theme.Tertiary}, 0.2)
+        Tween(MinimizeButton, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
+    end)
+    
+    Connect(MaximizeBackground.MouseEnter, function()
+        Tween(MaximizeBackground, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
+        Tween(MaximizeButton, {ImageColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+    end)
+    
+    Connect(MaximizeBackground.MouseLeave, function()
+        Tween(MaximizeBackground, {BackgroundColor3 = TBDLib.Theme.Tertiary}, 0.2)
+        Tween(MaximizeButton, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
+    end)
+    
+    Connect(CloseBackground.MouseEnter, function()
+        Tween(CloseBackground, {BackgroundColor3 = Color3.fromRGB(255, 90, 110)}, 0.2)
+        Tween(CloseButton, {ImageColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+    end)
+    
+    Connect(CloseBackground.MouseLeave, function()
+        Tween(CloseBackground, {BackgroundColor3 = Color3.fromRGB(231, 76, 101)}, 0.2)
+        Tween(CloseButton, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
+    end)
     
     -- Button click effects
     Connect(CloseButton.MouseButton1Click, function()
@@ -917,23 +1060,70 @@ function TBDLib:CreateWindow(Config)
         end)
     end)
     
+    -- Add click events to backgrounds as well (for mobile support)
+    Connect(CloseBackground.MouseButton1Click, function()
+        CloseButton.MouseButton1Click:Fire()
+    end)
+    
     local Minimized = false
-    Connect(MinimizeButton.MouseButton1Click, function()
+    
+    -- Add minimize button functionality
+    local function ToggleMinimize()
         Minimized = not Minimized
         
         if Minimized then
+            -- Hide content except topbar when minimized
             Tween(WindowFrame, {
                 Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, 50)
             }, 0.4)
+            
+            -- Hide sidebar search
+            if SidebarSearch then
+                SidebarSearch.Visible = false
+            end
+            
+            -- Make search box invisible
+            for _, child in pairs(WindowContainer:GetChildren()) do
+                if child ~= TopBar and child.Name ~= "Shadow" then
+                    if child:IsA("GuiObject") then
+                        child.Visible = false
+                    end
+                end
+            end
+            
+            -- Ensure the TopBar stays visible
+            TopBar.Visible = true
+            
         else
+            -- Restore full window
             Tween(WindowFrame, {
                 Size = UDim2.new(0, WindowFrame.Size.X.Offset, 0, WindowConfig.Size.Height)
             }, 0.4)
+            
+            -- Show all UI elements with a slight delay to ensure animation completes
+            task.delay(0.1, function()
+                for _, child in pairs(WindowContainer:GetChildren()) do
+                    if child:IsA("GuiObject") then
+                        child.Visible = true
+                    end
+                end
+                
+                -- Make search box visible again
+                if SidebarSearch then
+                    SidebarSearch.Visible = true
+                end
+            end)
         end
-    end)
+    end
+    
+    -- Connect minimize button to function
+    Connect(MinimizeButton.MouseButton1Click, ToggleMinimize)
+    Connect(MinimizeBackground.MouseButton1Click, ToggleMinimize)
     
     local Maximized = false
-    Connect(MaximizeButton.MouseButton1Click, function()
+    
+    -- Add maximize button functionality
+    local function ToggleMaximize()
         Maximized = not Maximized
         
         if Maximized then
@@ -957,7 +1147,11 @@ function TBDLib:CreateWindow(Config)
                 Position = WindowFrame.OldPosition
             }, 0.4)
         end
-    end)
+    end
+    
+    -- Connect maximize button to function
+    Connect(MaximizeButton.MouseButton1Click, ToggleMaximize)
+    Connect(MaximizeBackground.MouseButton1Click, ToggleMaximize)
     
     -- Make window draggable from the top bar
     MakeDraggable(WindowFrame, TopBar)
@@ -2865,6 +3059,114 @@ function TBDLib:CreateWindow(Config)
                 end
                 
                 return KeybindAPI
+            end
+            
+            -- Add Player Info component
+            function SectionAPI:AddPlayerInfo(PlayerInfo)
+                PlayerInfo = PlayerInfo or {
+                    Player = {
+                        Name = "Player",
+                        DisplayName = "Player",
+                        AccountAge = 0,
+                        Avatar = TBDLib.Icons.Avatar
+                    },
+                    Game = {
+                        Name = "Game",
+                        PlaceId = 0
+                    }
+                }
+                
+                -- Create player info frame
+                local PlayerInfoFrame = Create("Frame", {
+                    Name = "PlayerInfo",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 100),
+                    Parent = SectionContent
+                })
+                
+                -- Create avatar container
+                local AvatarImageContainer = CreateRoundedFrame(
+                    UDim2.new(0, 80, 0, 80),
+                    UDim2.new(0, 10, 0.5, -40),
+                    Color3.fromRGB(40, 40, 40),
+                    PlayerInfoFrame,
+                    40,
+                    "AvatarContainer"
+                )
+                
+                -- Add avatar image
+                local AvatarImage = Create("ImageLabel", {
+                    Name = "Avatar",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, -10, 1, -10),
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Image = PlayerInfo.Player.Avatar,
+                    Parent = AvatarImageContainer
+                })
+                
+                -- Add rounded corners to avatar
+                Create("UICorner", {
+                    CornerRadius = UDim.new(1, 0),
+                    Parent = AvatarImage
+                })
+                
+                -- Create player name
+                local PlayerName = Create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 100, 0, 10),
+                    Size = UDim2.new(1, -110, 0, 25),
+                    Font = Enum.Font.GothamBold,
+                    Text = PlayerInfo.Player.DisplayName .. " (@" .. PlayerInfo.Player.Name .. ")",
+                    TextColor3 = TBDLib.Theme.Text,
+                    TextSize = 16,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = PlayerInfoFrame
+                })
+                
+                -- Account age info
+                local AccountAge = Create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 100, 0, 35),
+                    Size = UDim2.new(1, -110, 0, 20),
+                    Font = Enum.Font.Gotham,
+                    Text = "Account Age: " .. PlayerInfo.Player.AccountAge .. " days",
+                    TextColor3 = TBDLib.Theme.TextDark,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = PlayerInfoFrame
+                })
+                
+                -- Game info
+                local GameInfo = Create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 100, 0, 55),
+                    Size = UDim2.new(1, -110, 0, 20),
+                    Font = Enum.Font.Gotham,
+                    Text = "Game: " .. PlayerInfo.Game.Name,
+                    TextColor3 = TBDLib.Theme.TextDark,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = PlayerInfoFrame
+                })
+                
+                -- Place ID info
+                local PlaceID = Create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 100, 0, 75),
+                    Size = UDim2.new(1, -110, 0, 20),
+                    Font = Enum.Font.Gotham,
+                    Text = "Place ID: " .. PlayerInfo.Game.PlaceId,
+                    TextColor3 = TBDLib.Theme.TextDark,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = PlayerInfoFrame
+                })
+                
+                -- Set layout order if needed
+                PlayerInfoFrame.LayoutOrder = 0
+                
+                return PlayerInfoFrame
             end
             
             return SectionAPI
