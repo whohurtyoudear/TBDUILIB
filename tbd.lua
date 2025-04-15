@@ -16,18 +16,24 @@ Recent improvements:
 - Added robust error handling throughout the codebase
 ]]
 
-local TBDLib = {
-Name = "TBDLib",
-Version = "2.0.0",
-Theme = {
--- Main Colors
-Primary = Color3.fromRGB(28, 33, 54),       -- Main background
-Secondary = Color3.fromRGB(35, 40, 60),     -- Section backgrounds
-Tertiary = Color3.fromRGB(42, 48, 70),      -- UI element backgrounds
-Background = Color3.fromRGB(25, 28, 45),    -- Outermost background
+-- Create a self-contained module that can be returned by loadstring
+local TBDLibModule = {}
 
--- Accent Colors
-Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
+-- Initialize the module
+function TBDLibModule.Init()
+    -- Create the main library table
+    local TBDLib = {
+        Name = "TBDLib",
+        Version = "2.0.0",
+        Theme = {
+            -- Main Colors
+            Primary = Color3.fromRGB(28, 33, 54),       -- Main background
+            Secondary = Color3.fromRGB(35, 40, 60),     -- Section backgrounds
+            Tertiary = Color3.fromRGB(42, 48, 70),      -- UI element backgrounds
+            Background = Color3.fromRGB(25, 28, 45),    -- Outermost background
+            
+            -- Accent Colors
+            Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
 AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
 AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
 
@@ -3183,4 +3189,8 @@ NotificationCount = 0
 end
 
 -- Return the library
-return TBDLib
+    return TBDLib
+end
+
+-- Initialize the module and return the library instance
+return TBDLibModule.Init()
