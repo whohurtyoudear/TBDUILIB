@@ -16,7 +16,11 @@ Recent improvements:
 - Added robust error handling throughout the codebase
 ]]
 
--- Direct return approach for better compatibility with different executors 
+-- Maximum compatibility mode
+-- Start the library code with an immediately invoked function expression (IIFE)
+-- This is the most reliable pattern for executor compatibility
+return (function()
+-- Create the library table
 local TBDLib = {
     Name = "TBDLib",
     Version = "2.0.0",
@@ -3184,5 +3188,6 @@ NotificationCount = 0
 end
 
 -- Return the library
--- Return the library directly for maximum compatibility
+-- Return the library as part of the IIFE
 return TBDLib
+end)()
