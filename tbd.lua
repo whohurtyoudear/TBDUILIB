@@ -534,40 +534,84 @@ end
 local UIVisible = true
 
 function TBDLib:ToggleUI()
-UIVisible = not UIVisible
-
-local UIContainer = CoreGui:FindFirstChild("TBDLibContainer")
-if UIContainer then
+    -- Toggle visibility state
+    UIVisible = not UIVisible
+    
+    local UIContainer = CoreGui:FindFirstChild("TBDLibContainer")
+    if not UIContainer then return UIVisible end
+    
+    -- Maintain a reference to the main window frame
+    local MainFrame = UIContainer:FindFirstChild("MainFrame")
+    if not MainFrame then return UIVisible end
+    
     -- Use Tween for smoother transitions
     if UIVisible then
+        -- Show UI
         UIContainer.Enabled = true
+        
+        -- Restore all UI elements
         for _, child in pairs(UIContainer:GetDescendants()) do
             if child:IsA("GuiObject") and child.Name ~= "Shadow" then
-                if not child:GetAttribute("DefaultTransparency") then
-                    child:SetAttribute("DefaultTransparency", child.BackgroundTransparency)
+                -- Restore background transparency
+                if child:GetAttribute("DefaultTransparency") ~= nil then
+                    Tween(child, {BackgroundTransparency = child:GetAttribute("DefaultTransparency")}, 0.3)
                 end
-                child.BackgroundTransparency = 1
-                Tween(child, {BackgroundTransparency = child:GetAttribute("DefaultTransparency") or 0}, 0.3)
+                
+                -- Special handling for ImageLabels and ImageButtons
+                if (child:IsA("ImageLabel") or child:IsA("ImageButton")) and child:GetAttribute("DefaultImageTransparency") ~= nil then
+                    Tween(child, {ImageTransparency = child:GetAttribute("DefaultImageTransparency")}, 0.3)
+                end
+                
+                -- Special handling for TextLabels and TextButtons
+                if (child:IsA("TextLabel") or child:IsA("TextButton")) and child:GetAttribute("DefaultTextTransparency") ~= nil then
+                    Tween(child, {TextTransparency = child:GetAttribute("DefaultTextTransparency")}, 0.3)
+                end
             end
         end
+        
+        -- Smoothly fade in main frame
+        MainFrame.Visible = true
+        MainFrame.BackgroundTransparency = 1
+        Tween(MainFrame, {BackgroundTransparency = 0}, 0.3)
     else
+        -- Hide UI
+        -- Store default properties and fade out all UI elements
         for _, child in pairs(UIContainer:GetDescendants()) do
             if child:IsA("GuiObject") and child.Name ~= "Shadow" then
-                -- Store default transparency if not already stored
+                -- Store and animate background transparency
                 if not child:GetAttribute("DefaultTransparency") then
                     child:SetAttribute("DefaultTransparency", child.BackgroundTransparency)
                 end
-                Tween(child, {BackgroundTransparency = 1}, 0.3, nil, nil, function()
-                    if not UIVisible then
-                        UIContainer.Enabled = false
+                Tween(child, {BackgroundTransparency = 1}, 0.3)
+                
+                -- Special handling for ImageLabels and ImageButtons
+                if child:IsA("ImageLabel") or child:IsA("ImageButton") then
+                    if not child:GetAttribute("DefaultImageTransparency") then
+                        child:SetAttribute("DefaultImageTransparency", child.ImageTransparency)
                     end
-                end)
+                    Tween(child, {ImageTransparency = 1}, 0.3)
+                end
+                
+                -- Special handling for TextLabels and TextButtons
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    if not child:GetAttribute("DefaultTextTransparency") then
+                        child:SetAttribute("DefaultTextTransparency", child.TextTransparency)
+                    end
+                    Tween(child, {TextTransparency = 1}, 0.3)
+                end
             end
         end
+        
+        -- Smoothly fade out main frame and disable container
+        Tween(MainFrame, {BackgroundTransparency = 1}, 0.3, nil, nil, function()
+            if not UIVisible then
+                MainFrame.Visible = false
+                UIContainer.Enabled = false
+            end
+        end)
     end
-end
-
-return UIVisible
+    
+    return UIVisible
 end
 
 -- Get Player & Game Info
@@ -2152,13 +2196,19 @@ function SectionAPI:AddDropdown(Config)
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
-            ZIndex = 50000, -- Extremely high z-index to ensure it's always on top
             Parent = MainGui
         })
+        
+        -- Set ZIndex after creation to avoid errors
+        pcall(function()
+            DropdownLayer.ZIndex = 9000
+        end)
     else
         DropdownLayer = MainGui:FindFirstChild("DropdownLayer")
         -- Ensure existing layer has high z-index
-        DropdownLayer.ZIndex = 50000
+        pcall(function()
+            DropdownLayer.ZIndex = 9000 
+        end)
     end
 
     local DropdownMenu = CreateRoundedFrame(
@@ -2170,7 +2220,10 @@ function SectionAPI:AddDropdown(Config)
         "DropdownMenu_" .. HttpService:GenerateGUID(false)
     )
     DropdownMenu.Visible = false
-    DropdownMenu.ZIndex = 50001 -- Even higher z-index to ensure it's above the layer
+    -- Set ZIndex safely
+    pcall(function()
+        DropdownMenu.ZIndex = 9001 -- Even higher z-index to ensure it's above the layer
+    end)
 
     -- Don't use custom property to store reference, use a proper indexing approach instead
     -- Create a lookup table of container references for dropdown menus
@@ -2251,7 +2304,10 @@ function SectionAPI:AddDropdown(Config)
                 4,
                 "Item_" .. i
             )
-            ItemButton.ZIndex = 11000
+            -- Set ZIndex safely
+            pcall(function()
+                ItemButton.ZIndex = 11000
+            end)
 
             local ItemText = Create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -2263,16 +2319,24 @@ function SectionAPI:AddDropdown(Config)
                             and TBDLib.Theme.Accent or TBDLib.Theme.Text,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                ZIndex = 11001,
                 Parent = ItemButton
+            })
+            
+            -- Set ZIndex safely after creation
+            pcall(function()
+                ItemText.ZIndex = 11001
             })
 
             local ItemButtonObj = Create("TextButton", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 1, 0),
                 Text = "",
-                ZIndex = 11002,
                 Parent = ItemButton
+            })
+            
+            -- Set ZIndex safely after creation
+            pcall(function()
+                ItemButtonObj.ZIndex = 11002
             })
 
             -- Item click handler with touch support
@@ -2344,8 +2408,12 @@ function SectionAPI:AddDropdown(Config)
                 ScrollBarThickness = 4,
                 ScrollingDirection = Enum.ScrollingDirection.Y,
                 BorderSizePixel = 0,
-                ZIndex = 11000,
                 Parent = DropdownMenu
+            })
+            
+            -- Set ZIndex safely
+            pcall(function()
+                ScrollFrame.ZIndex = 11000
             })
 
             -- Move all children to the scroll frame
@@ -2402,7 +2470,10 @@ function SectionAPI:AddDropdown(Config)
             -- Focus the menu to catch outside clicks
             DropdownLayer.BackgroundTransparency = 1
             DropdownLayer.Visible = true
-            DropdownLayer.ZIndex = 10000
+            -- Set ZIndex safely
+            pcall(function()
+                DropdownLayer.ZIndex = 10000
+            end)
         end
     end
 
