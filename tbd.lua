@@ -193,9 +193,11 @@ local Connections = {}
 local OpenFrames = {}
 local NotificationCount = 0
 local DraggingObject = nil
--- Define ConfigFolder function to avoid circular reference
-local function GetConfigFolder()
-    return TBDLib.ConfigSystem.Folder
+-- FIXED: Define ConfigFolder directly as a string to avoid circular reference
+local ConfigFolder = "TBDLib" -- Default hardcoded value
+-- Then conditionally update it if TBDLib properties exist
+if TBDLib and TBDLib.ConfigSystem and TBDLib.ConfigSystem.Folder then
+    ConfigFolder = TBDLib.ConfigSystem.Folder
 end
 local Ripples = {}
 
@@ -475,7 +477,7 @@ local function SaveConfig(Name)
 if not isfolder then return false end
 
 Name = Name or TBDLib.ConfigSystem.CurrentConfig
-local ConfigFolder = GetConfigFolder()
+-- ConfigFolder is already defined above, no need to call GetConfigFolder()
 
 if not isfolder(ConfigFolder) then
     makefolder(ConfigFolder)
@@ -501,8 +503,8 @@ return HttpService:JSONEncode(Config)
 end)
 
 if Success then
-local folder = GetConfigFolder()
-writefile(folder .. "/" .. Name .. ".json", Result)
+-- Use ConfigFolder directly instead of GetConfigFolder
+writefile(ConfigFolder .. "/" .. Name .. ".json", Result)
 return true
 end
 
@@ -513,7 +515,10 @@ local function LoadConfig(Name)
 if not isfile then return false end
 
 Name = Name or TBDLib.ConfigSystem.CurrentConfig
-local ConfigFolder = GetConfigFolder()
+if type(Name) ~= "string" then
+    Name = tostring(Name)
+end
+-- Use ConfigFolder directly instead of GetConfigFolder
 local Path = ConfigFolder .. "/" .. Name .. ".json"
 
 if isfile(Path) then
