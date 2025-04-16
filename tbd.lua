@@ -1,11 +1,11 @@
 --[[
-    TBD UI Library V13 Final
+    TBD UI Library V13 Final (v2)
     A comprehensive UI library designed for Roblox script hubs and executors
-    Version: 3.0.0-V13
+    Version: 3.0.0-V13.1
 ]]
 
 local TBD = {
-    Version = "3.0.0-V13",
+    Version = "3.0.0-V13.1",
     Windows = {},
     _initialized = false,
     _theme = nil
@@ -101,6 +101,34 @@ local function Create(instanceType, properties)
     
     -- Return nil if failed
     return nil
+end
+
+-- Helper function for tweening properties
+local function CreateTween(instance, propertyTable, easingDirection, easingStyle, duration, delay, callback)
+    if not instance or typeof(instance) ~= "Instance" then return end
+    
+    -- Create TweenInfo
+    local tweenInfo = TweenInfo.new(
+        duration or 0.2, 
+        easingStyle or Enum.EasingStyle.Quad, 
+        easingDirection or Enum.EasingDirection.Out,
+        0, -- RepeatCount
+        false, -- Reverses
+        delay or 0 -- DelayTime
+    )
+    
+    -- Create and play tween
+    local tween = services.TweenService:Create(instance, tweenInfo, propertyTable)
+    tween:Play()
+    
+    -- Connect to Completed event if callback provided
+    if callback and typeof(callback) == "function" then
+        tween.Completed:Connect(function()
+            pcall(callback)
+        end)
+    end
+    
+    return tween
 end
 
 -- Safe text size calculation
@@ -580,25 +608,23 @@ TBD.NotificationSystem = {
         -- Add hover effect
         notification.MouseEnter:Connect(function()
             -- Change background color slightly
-            notification:TweenProperty(
-                "BackgroundColor3",
-                theme.Secondary:Lerp(theme.Primary, 0.5),
+            CreateTween(
+                notification,
+                {BackgroundColor3 = theme.Secondary:Lerp(theme.Primary, 0.5)},
                 Enum.EasingDirection.Out,
                 Enum.EasingStyle.Quad,
-                0.2,
-                true
+                0.2
             )
         end)
         
         notification.MouseLeave:Connect(function()
             -- Restore background color
-            notification:TweenProperty(
-                "BackgroundColor3",
-                theme.Secondary,
+            CreateTween(
+                notification,
+                {BackgroundColor3 = theme.Secondary},
                 Enum.EasingDirection.Out,
                 Enum.EasingStyle.Quad,
-                0.2,
-                true
+                0.2
             )
         end)
         
@@ -1085,18 +1111,18 @@ function TBD:CreateWindow(options)
         Position = UDim2.new(1, -35, 0, 10),
         Size = UDim2.new(0, 20, 0, 20),
         Image = Icons.close,
-        ImageColor3 = windowObj._theme.TextSecondary,
+        ImageColor3 = Color3.fromRGB(200, 200, 200), -- More visible gray
         Parent = header
     })
     
-    -- Minimize button
+    -- Minimize button - Now more visible
     local minimizeButton = Create("ImageButton", {
         Name = "MinimizeButton",
         BackgroundTransparency = 1,
         Position = UDim2.new(1, -65, 0, 10),
         Size = UDim2.new(0, 20, 0, 20),
         Image = Icons.minimize,
-        ImageColor3 = windowObj._theme.TextSecondary,
+        ImageColor3 = Color3.fromRGB(200, 200, 200), -- Same as close button for consistency
         Parent = header
     })
     
@@ -1106,7 +1132,7 @@ function TBD:CreateWindow(options)
     end)
     
     closeButton.MouseLeave:Connect(function()
-        closeButton.ImageColor3 = windowObj._theme.TextSecondary
+        closeButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
     end)
     
     closeButton.MouseButton1Click:Connect(function()
@@ -1144,7 +1170,7 @@ function TBD:CreateWindow(options)
     end)
     
     minimizeButton.MouseLeave:Connect(function()
-        minimizeButton.ImageColor3 = windowObj._theme.TextSecondary
+        minimizeButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
     end)
     
     minimizeButton.MouseButton1Click:Connect(toggleMinimize)
@@ -1656,24 +1682,22 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             buttonClickArea.MouseEnter:Connect(function()
-                button:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    button,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             buttonClickArea.MouseLeave:Connect(function()
-                button:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    button,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
@@ -1808,24 +1832,22 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             toggleClickArea.MouseEnter:Connect(function()
-                toggle:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    toggle,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             toggleClickArea.MouseLeave:Connect(function()
-                toggle:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    toggle,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
@@ -2011,8 +2033,13 @@ function TBD:CreateWindow(options)
                     true
                 )
                 
-                -- Update value label
-                valueLabel.Text = tostring(sliderValue) .. options.ValueSuffix
+                -- Update value label - safely convert to string
+                local displayValue = tostring(sliderValue)
+                if options.ValueSuffix then
+                    displayValue = displayValue .. options.ValueSuffix
+                end
+                
+                valueLabel.Text = displayValue
                 
                 -- Call callback
                 SafeCall(options.Callback, sliderValue)
@@ -2060,24 +2087,22 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             slider.MouseEnter:Connect(function()
-                slider:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    slider,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             slider.MouseLeave:Connect(function()
-                slider:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    slider,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
@@ -2212,13 +2237,12 @@ function TBD:CreateWindow(options)
                     true
                 )
                 
-                dropdownArrow:TweenProperty(
-                    "Rotation",
-                    0,
+                CreateTween(
+                    dropdownArrow,
+                    {Rotation = 0},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end
             
@@ -2238,13 +2262,12 @@ function TBD:CreateWindow(options)
                     true
                 )
                 
-                dropdownArrow:TweenProperty(
-                    "Rotation",
-                    180,
+                CreateTween(
+                    dropdownArrow,
+                    {Rotation = 180},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end
             
@@ -2325,26 +2348,24 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             dropdownButton.MouseEnter:Connect(function()
-                dropdown:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    dropdown,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
                 dropdownArrow.ImageColor3 = windowObj._theme.TextPrimary
             end)
             
             dropdownButton.MouseLeave:Connect(function()
-                dropdown:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    dropdown,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
                 dropdownArrow.ImageColor3 = windowObj._theme.TextSecondary
@@ -2692,24 +2713,22 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             colorPickerButton.MouseEnter:Connect(function()
-                colorPicker:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    colorPicker,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             colorPickerButton.MouseLeave:Connect(function()
-                colorPicker:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    colorPicker,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
@@ -2810,42 +2829,38 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             textBoxContainer.MouseEnter:Connect(function()
-                textBoxContainer:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    textBoxContainer,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
-                textBoxBackground:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    textBoxBackground,
+                    {BackgroundColor3 = windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             textBoxContainer.MouseLeave:Connect(function()
-                textBoxContainer:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    textBoxContainer,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
-                textBoxBackground:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Secondary,
+                CreateTween(
+                    textBoxBackground,
+                    {BackgroundColor3 = windowObj._theme.Secondary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
@@ -2955,42 +2970,38 @@ function TBD:CreateWindow(options)
             
             -- Hover effects
             keybind.MouseEnter:Connect(function()
-                keybind:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    keybind,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
-                keybindButton:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1),
+                CreateTween(
+                    keybindButton,
+                    {BackgroundColor3 = windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
             keybind.MouseLeave:Connect(function()
-                keybind:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Primary,
+                CreateTween(
+                    keybind,
+                    {BackgroundColor3 = windowObj._theme.Primary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
                 
-                keybindButton:TweenProperty(
-                    "BackgroundColor3",
-                    windowObj._theme.Secondary,
+                CreateTween(
+                    keybindButton,
+                    {BackgroundColor3 = windowObj._theme.Secondary},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
-                    0.2,
-                    true
+                    0.2
                 )
             end)
             
