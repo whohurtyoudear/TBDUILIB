@@ -1,11 +1,13 @@
 --[[
-    TBD UI Library V13 Final (v4)
+    TBD UI Library V13 Final (v5)
     A comprehensive UI library designed for Roblox script hubs and executors
-    Version: 3.0.0-V13.3
+    Version: 3.0.0-V13.5
+    
+    Debug: Fixed content visibility and layout issues
 ]]
 
 local TBD = {
-    Version = "3.0.0-V13.3",
+    Version = "3.0.0-V13.5",
     Windows = {},
     _initialized = false,
     _theme = nil
@@ -23,6 +25,14 @@ local services = {
     ContextActionService = nil,
     GuiService = nil,
 }
+
+-- Debug Logs (will appear in Roblox output)
+local DEBUG_MODE = false
+local function debug_log(...)
+    if DEBUG_MODE then
+        print("[TBD UI Debug]", ...)
+    end
+end
 
 -- Safe function to get services
 local function GetService(serviceName)
@@ -1281,13 +1291,29 @@ function TBD:CreateWindow(options)
         Parent = contentContainer
     })
     
+    -- DEBUG: Add diagnostic frame to ensure content frame is visible
+    local diagnosticFrame = Create("Frame", {
+        Name = "DiagnosticBorder",
+        BackgroundTransparency = 0.8,
+        BackgroundColor3 = Color3.fromRGB(0, 255, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        BorderSizePixel = 2,
+        BorderColor3 = Color3.fromRGB(0, 255, 0),
+        Parent = content
+    })
+    
+    -- Create tabs table to store tabs
+    windowObj.Tabs = {}
+    
     -- Create home page
     if options.ShowHomePage then
         local homePageFrame = Create("Frame", {
             Name = "HomePage",
             BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 0),
             Size = UDim2.new(1, 0, 1, 0),
             Visible = true, -- Start with HomePage visible
+            ZIndex = 2,
             Parent = content
         })
         
@@ -1455,7 +1481,8 @@ function TBD:CreateWindow(options)
         -- Store home page
         windowObj.Tabs["HomePage"] = {
             Frame = homePageFrame,
-            Button = homeButton
+            Button = homeButton,
+            Name = "HomePage"
         }
         
         -- Home button events
@@ -1477,37 +1504,56 @@ function TBD:CreateWindow(options)
 
         -- Set HomePage as active tab initially
         windowObj.ActiveTab = "HomePage"
+        debug_log("HomePage created and set as active")
     end
     
     -- Function to set active tab
     function windowObj:SetActiveTab(tabName)
-        -- Hide current active tab
-        if self.ActiveTab and self.Tabs[self.ActiveTab] then
-            -- Safe access to Frame
-            if self.Tabs[self.ActiveTab].Frame then
-                self.Tabs[self.ActiveTab].Frame.Visible = false
+        debug_log("Switching to tab:", tabName)
+        
+        -- If no tab name provided, use the first available
+        if not tabName then
+            for name, _ in pairs(self.Tabs) do
+                tabName = name
+                break
             end
             
-            -- Update button color
-            if self.ActiveTab == "HomePage" then
-                if homeButton then
-                    homeButton.ImageColor3 = windowObj._theme.TextSecondary
-                end
-            else
-                if self.Tabs[self.ActiveTab].Button then
-                    self.Tabs[self.ActiveTab].Button.ImageColor3 = windowObj._theme.TextSecondary
+            -- If still no tab name, return
+            if not tabName then
+                debug_log("No tabs found to set active")
+                return
+            end
+        end
+        
+        -- Hide all tabs first
+        for name, tab in pairs(self.Tabs) do
+            if tab and tab.Frame then
+                tab.Frame.Visible = false
+                
+                -- Update button color
+                if name == "HomePage" then
+                    if homeButton then
+                        homeButton.ImageColor3 = windowObj._theme.TextSecondary
+                    end
+                elseif tab.Button then
+                    tab.Button.ImageColor3 = windowObj._theme.TextSecondary
                 end
             end
         end
         
         -- Set active tab
         self.ActiveTab = tabName
+        debug_log("Active tab set to:", tabName)
         
-        -- Show new active tab
+        -- Show the active tab
         if tabName and self.Tabs[tabName] then
-            -- Safe access to Frame
+            debug_log("Showing tab:", tabName)
+            
             if self.Tabs[tabName].Frame then
                 self.Tabs[tabName].Frame.Visible = true
+                
+                -- Bring to front
+                self.Tabs[tabName].Frame.ZIndex = 10
             end
             
             -- Update button color
@@ -1515,11 +1561,11 @@ function TBD:CreateWindow(options)
                 if homeButton then
                     homeButton.ImageColor3 = windowObj._theme.Accent
                 end
-            else
-                if self.Tabs[tabName].Button then
-                    self.Tabs[tabName].Button.ImageColor3 = windowObj._theme.Accent
-                end
+            elseif self.Tabs[tabName].Button then
+                self.Tabs[tabName].Button.ImageColor3 = windowObj._theme.Accent
             end
+        else
+            debug_log("Tab not found:", tabName)
         end
     end
     
@@ -1533,6 +1579,8 @@ function TBD:CreateWindow(options)
         options = options or {}
         options.Name = options.Name or "Tab"
         options.Icon = options.Icon or "home"
+        
+        debug_log("Creating tab:", options.Name)
         
         -- Get icon
         local iconId = Icons[options.Icon] or options.Icon
@@ -1578,7 +1626,17 @@ function TBD:CreateWindow(options)
             Parent = tabTooltip
         })
         
-        -- Tab page
+        -- Tab content frame (non-scrolling container)
+        local tabContent = Create("Frame", {
+            Name = options.Name .. "Content",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            Visible = false,
+            Parent = content
+        })
+        
+        -- Tab page (scrolling frame inside content)
         local tabPage = Create("ScrollingFrame", {
             Name = options.Name .. "Page",
             BackgroundTransparency = 1,
@@ -1586,8 +1644,8 @@ function TBD:CreateWindow(options)
             CanvasSize = UDim2.new(0, 0, 0, 0),
             ScrollBarThickness = 4,
             ScrollBarImageColor3 = windowObj._theme.Accent,
-            Visible = false,
-            Parent = content
+            BorderSizePixel = 0,
+            Parent = tabContent
         })
         
         -- Add padding to tab page
@@ -1634,6 +1692,7 @@ function TBD:CreateWindow(options)
         -- Create tab object
         local tab = {
             Button = tabButton,
+            Content = tabContent,
             Page = tabPage,
             Elements = {},
             Name = options.Name
@@ -1641,9 +1700,11 @@ function TBD:CreateWindow(options)
         
         -- Store tab in window
         windowObj.Tabs[options.Name] = tab
+        debug_log("Tab created:", options.Name)
         
         -- If it's the first non-homepage tab, make it active if HomePage is not showing
-        if not windowObj.ActiveTab or windowObj.ActiveTab == nil then
+        if (not windowObj.ActiveTab or windowObj.ActiveTab == "HomePage") and not options.ShowHomePage then
+            debug_log("First tab - setting active:", options.Name)
             windowObj:SetActiveTab(options.Name)
         end
         
@@ -1653,11 +1714,14 @@ function TBD:CreateWindow(options)
             options.Name = options.Name or "Button"
             options.Callback = options.Callback or function() end
             
+            debug_log("Creating button:", options.Name)
+            
             -- Create button container
             local button = Create("Frame", {
                 Name = "Button",
                 BackgroundColor3 = windowObj._theme.Primary,
                 Size = UDim2.new(1, 0, 0, 40),
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
@@ -1707,6 +1771,7 @@ function TBD:CreateWindow(options)
                 end)
                 
                 -- Call callback
+                debug_log("Button clicked:", options.Name)
                 SafeCall(options.Callback)
             end)
             
@@ -1753,11 +1818,14 @@ function TBD:CreateWindow(options)
             options.Default = options.Default or false
             options.Callback = options.Callback or function() end
             
+            debug_log("Creating toggle:", options.Name)
+            
             -- Create toggle container
             local toggle = Create("Frame", {
                 Name = "Toggle",
                 BackgroundColor3 = windowObj._theme.Primary,
                 Size = UDim2.new(1, 0, 0, 40),
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
@@ -1788,6 +1856,7 @@ function TBD:CreateWindow(options)
                 Position = UDim2.new(1, -50, 0.5, 0),
                 AnchorPoint = Vector2.new(0, 0.5),
                 Size = UDim2.new(0, 40, 0, 20),
+                BorderSizePixel = 0,
                 Parent = toggle
             })
             
@@ -1857,6 +1926,7 @@ function TBD:CreateWindow(options)
                 end
                 
                 -- Call callback
+                debug_log("Toggle changed:", options.Name, "Value:", isToggled)
                 SafeCall(options.Callback, isToggled)
             end)
             
@@ -1940,6 +2010,8 @@ function TBD:CreateWindow(options)
             options.ValueSuffix = options.ValueSuffix or ""
             options.Callback = options.Callback or function() end
             
+            debug_log("Creating slider:", options.Name)
+            
             -- Validate default value
             options.Default = math.clamp(options.Default, options.Min, options.Max)
             
@@ -1948,6 +2020,7 @@ function TBD:CreateWindow(options)
                 Name = "Slider",
                 BackgroundColor3 = windowObj._theme.Primary,
                 Size = UDim2.new(1, 0, 0, 55),
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
@@ -1991,6 +2064,7 @@ function TBD:CreateWindow(options)
                 BackgroundColor3 = windowObj._theme.Secondary,
                 Position = UDim2.new(0, 10, 0, 35),
                 Size = UDim2.new(1, -20, 0, 6),
+                BorderSizePixel = 0,
                 Parent = slider
             })
             
@@ -2005,6 +2079,7 @@ function TBD:CreateWindow(options)
                 Name = "Fill",
                 BackgroundColor3 = windowObj._theme.Accent,
                 Size = UDim2.new((options.Default - options.Min) / (options.Max - options.Min), 0, 1, 0),
+                BorderSizePixel = 0,
                 Parent = sliderBar
             })
             
@@ -2021,6 +2096,7 @@ function TBD:CreateWindow(options)
                 Position = UDim2.new((options.Default - options.Min) / (options.Max - options.Min), 0, 0.5, 0),
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 Size = UDim2.new(0, 14, 0, 14),
+                BorderSizePixel = 0,
                 Parent = sliderBar
             })
             
@@ -2072,6 +2148,7 @@ function TBD:CreateWindow(options)
                 valueLabel.Text = displayValue
                 
                 -- Call callback
+                debug_log("Slider changed:", options.Name, "Value:", sliderValue)
                 SafeCall(options.Callback, sliderValue)
             end
             
@@ -2161,12 +2238,15 @@ function TBD:CreateWindow(options)
             options.Default = options.Default or (options.Options[1] or "")
             options.Callback = options.Callback or function() end
             
+            debug_log("Creating dropdown:", options.Name)
+            
             -- Create dropdown container
             local dropdown = Create("Frame", {
                 Name = "Dropdown",
                 BackgroundColor3 = windowObj._theme.Primary,
                 Size = UDim2.new(1, 0, 0, 40),
                 ClipsDescendants = true,
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
@@ -2223,6 +2303,7 @@ function TBD:CreateWindow(options)
                 BackgroundColor3 = windowObj._theme.Secondary,
                 Position = UDim2.new(0, 0, 0, 45),
                 Size = UDim2.new(1, 0, 0, 0), -- Will be updated based on options
+                BorderSizePixel = 0,
                 Parent = dropdown
             })
             
@@ -2320,6 +2401,7 @@ function TBD:CreateWindow(options)
                     Text = optionText,
                     TextColor3 = windowObj._theme.TextPrimary,
                     TextSize = 14,
+                    BorderSizePixel = 0,
                     Parent = optionsContainer
                 })
                 
@@ -2348,6 +2430,7 @@ function TBD:CreateWindow(options)
                     closeDropdown()
                     
                     -- Call callback
+                    debug_log("Dropdown selected:", optionText)
                     SafeCall(options.Callback, selectedOption)
                 end)
                 
@@ -2485,571 +2568,14 @@ function TBD:CreateWindow(options)
             return dropdownObj
         end
         
-        -- Create color picker
-        function tab:CreateColorPicker(options)
-            options = options or {}
-            options.Name = options.Name or "Color Picker"
-            options.Default = options.Default or Color3.fromRGB(255, 0, 0)
-            options.Callback = options.Callback or function() end
-            
-            -- Create color picker container
-            local colorPicker = Create("Frame", {
-                Name = "ColorPicker",
-                BackgroundColor3 = windowObj._theme.Primary,
-                Size = UDim2.new(1, 0, 0, 40),
-                ClipsDescendants = true,
-                Parent = self.Page
-            })
-            
-            -- Add corner radius
-            local colorPickerCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = colorPicker
-            })
-            
-            -- Add color picker label
-            local colorPickerLabel = Create("TextLabel", {
-                Name = "Label",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -60, 1, 0),
-                Font = Enum.Font.GothamBold,
-                Text = options.Name,
-                TextColor3 = windowObj._theme.TextPrimary,
-                TextSize = 15,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = colorPicker
-            })
-            
-            -- Add color display
-            local colorDisplay = Create("Frame", {
-                Name = "ColorDisplay",
-                BackgroundColor3 = options.Default,
-                Position = UDim2.new(1, -40, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 30, 0, 30),
-                Parent = colorPicker
-            })
-            
-            -- Add corner radius
-            local colorDisplayCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = colorDisplay
-            })
-            
-            -- Add expanded container (initially collapsed)
-            local expandedContainer = Create("Frame", {
-                Name = "ExpandedContainer",
-                BackgroundColor3 = windowObj._theme.Secondary,
-                Position = UDim2.new(0, 0, 0, 45),
-                Size = UDim2.new(1, 0, 0, 120),
-                Parent = colorPicker
-            })
-            
-            -- Add corner radius
-            local expandedContainerCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = expandedContainer
-            })
-            
-            -- Create color picker UI
-            
-            -- Add color gradient
-            local colorGradient = Create("ImageLabel", {
-                Name = "ColorGradient",
-                BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-                Position = UDim2.new(0, 10, 0, 10),
-                Size = UDim2.new(1, -20, 0, 60),
-                Image = "rbxassetid://4155801252",
-                Parent = expandedContainer
-            })
-            
-            -- Add corner radius
-            local colorGradientCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = colorGradient
-            })
-            
-            -- Add color picker cursor
-            local colorCursor = Create("ImageLabel", {
-                Name = "Cursor",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0.5, 0, 0.5, 0),
-                Size = UDim2.new(0, 10, 0, 10),
-                Image = "rbxassetid://621908517",
-                Parent = colorGradient
-            })
-            
-            -- Create RGB sliders
-            local sliderR = Create("Frame", {
-                Name = "SliderR",
-                BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-                Position = UDim2.new(0, 10, 0, 80),
-                Size = UDim2.new(0.3, -15, 0, 20),
-                Parent = expandedContainer
-            })
-            
-            local sliderG = Create("Frame", {
-                Name = "SliderG",
-                BackgroundColor3 = Color3.fromRGB(0, 255, 0),
-                Position = UDim2.new(0.35, 0, 0, 80),
-                Size = UDim2.new(0.3, -15, 0, 20),
-                Parent = expandedContainer
-            })
-            
-            local sliderB = Create("Frame", {
-                Name = "SliderB",
-                BackgroundColor3 = Color3.fromRGB(0, 0, 255),
-                Position = UDim2.new(0.7, 0, 0, 80),
-                Size = UDim2.new(0.3, -10, 0, 20),
-                Parent = expandedContainer
-            })
-            
-            -- Add corner radius to sliders
-            Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = sliderR })
-            Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = sliderG })
-            Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = sliderB })
-            
-            -- Current color state
-            local currentColor = options.Default
-            
-            -- Color picker state
-            local isOpen = false
-            
-            -- Function to close color picker
-            local function closeColorPicker()
-                isOpen = false
-                
-                -- Animate closure
-                colorPicker:TweenSize(
-                    UDim2.new(1, 0, 0, 40),
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2,
-                    true
-                )
-            end
-            
-            -- Function to open color picker
-            local function openColorPicker()
-                isOpen = true
-                
-                -- Animate opening
-                colorPicker:TweenSize(
-                    UDim2.new(1, 0, 0, 170),
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2,
-                    true
-                )
-            end
-            
-            -- Function to toggle color picker
-            local function toggleColorPicker()
-                if isOpen then
-                    closeColorPicker()
-                else
-                    openColorPicker()
-                end
-            end
-            
-            -- Create color picker button
-            local colorPickerButton = Create("TextButton", {
-                Name = "ColorPickerButton",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 40),
-                Font = Enum.Font.SourceSans,
-                Text = "",
-                TextColor3 = Color3.fromRGB(0, 0, 0),
-                TextSize = 1,
-                Parent = colorPicker
-            })
-            
-            -- Color picker click event
-            colorPickerButton.MouseButton1Click:Connect(toggleColorPicker)
-            
-            -- Function to update color
-            local function updateColor(color)
-                currentColor = color
-                
-                -- Update color display
-                colorDisplay.BackgroundColor3 = color
-                
-                -- Call callback
-                SafeCall(options.Callback, color)
-            end
-            
-            -- Color gradient mouse events
-            colorGradient.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    local isDraggingGradient = true
-                    
-                    local function updateColorGradient()
-                        -- Calculate color from position
-                        local mousePos = services.UserInputService:GetMouseLocation() - Vector2.new(0, 36)
-                        local gradientPos = colorGradient.AbsolutePosition
-                        local gradientSize = colorGradient.AbsoluteSize
-                        
-                        local percentX = math.clamp((mousePos.X - gradientPos.X) / gradientSize.X, 0, 1)
-                        local percentY = math.clamp((mousePos.Y - gradientPos.Y) / gradientSize.Y, 0, 1)
-                        
-                        -- Update cursor position
-                        colorCursor.Position = UDim2.new(percentX, 0, percentY, 0)
-                        
-                        -- Calculate color
-                        local baseColor = Color3.fromHSV(1, 1, 1)
-                        local newColor = Color3.fromHSV(
-                            baseColor.Hue,
-                            percentX,
-                            1 - percentY
-                        )
-                        
-                        -- Update color
-                        updateColor(newColor)
-                    end
-                    
-                    -- Update immediately
-                    updateColorGradient()
-                    
-                    -- Connect to moved event
-                    local moveConnection
-                    moveConnection = services.UserInputService.InputChanged:Connect(function(moveInput)
-                        if moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch then
-                            updateColorGradient()
-                        end
-                    end)
-                    
-                    -- Connect to ended event
-                    local endConnection
-                    endConnection = services.UserInputService.InputEnded:Connect(function(endInput)
-                        if (endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch) and isDraggingGradient then
-                            isDraggingGradient = false
-                            moveConnection:Disconnect()
-                            endConnection:Disconnect()
-                        end
-                    end)
-                end
-            end)
-            
-            -- Hover effects
-            colorPickerButton.MouseEnter:Connect(function()
-                CreateTween(
-                    colorPicker,
-                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            colorPickerButton.MouseLeave:Connect(function()
-                CreateTween(
-                    colorPicker,
-                    {BackgroundColor3 = windowObj._theme.Primary},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            -- Store color picker object
-            local colorPickerObj = {
-                Frame = colorPicker,
-                Label = colorPickerLabel,
-                Display = colorDisplay,
-                Value = currentColor,
-                
-                -- Set color
-                Set = function(self, color)
-                    updateColor(color)
-                    self.Value = color
-                end
-            }
-            
-            table.insert(self.Elements, colorPickerObj)
-            return colorPickerObj
-        end
-        
-        -- Create textbox
-        function tab:CreateTextBox(options)
-            options = options or {}
-            options.Name = options.Name or "TextBox"
-            options.PlaceholderText = options.PlaceholderText or "Enter text..."
-            options.ClearOnFocus = options.ClearOnFocus ~= nil and options.ClearOnFocus or true
-            options.Callback = options.Callback or function() end
-            
-            -- Create textbox container
-            local textBoxContainer = Create("Frame", {
-                Name = "TextBox",
-                BackgroundColor3 = windowObj._theme.Primary,
-                Size = UDim2.new(1, 0, 0, 40),
-                Parent = self.Page
-            })
-            
-            -- Add corner radius
-            local textBoxContainerCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = textBoxContainer
-            })
-            
-            -- Add textbox label
-            local textBoxLabel = Create("TextLabel", {
-                Name = "Label",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -20, 0, 20),
-                Font = Enum.Font.GothamBold,
-                Text = options.Name,
-                TextColor3 = windowObj._theme.TextPrimary,
-                TextSize = 15,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = textBoxContainer
-            })
-            
-            -- Create textbox background
-            local textBoxBackground = Create("Frame", {
-                Name = "Background",
-                BackgroundColor3 = windowObj._theme.Secondary,
-                Position = UDim2.new(0, 10, 0, 20),
-                Size = UDim2.new(1, -20, 0, 20),
-                Parent = textBoxContainer
-            })
-            
-            -- Add corner radius
-            local textBoxBackgroundCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = textBoxBackground
-            })
-            
-            -- Create textbox
-            local textBox = Create("TextBox", {
-                Name = "Input",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 5, 0, 0),
-                Size = UDim2.new(1, -10, 1, 0),
-                Font = Enum.Font.Gotham,
-                PlaceholderText = options.PlaceholderText,
-                Text = "",
-                TextColor3 = windowObj._theme.TextPrimary,
-                TextSize = 14,
-                ClearTextOnFocus = options.ClearOnFocus,
-                Parent = textBoxBackground
-            })
-            
-            -- Current text
-            local currentText = ""
-            
-            -- Textbox focus events
-            textBox.FocusLost:Connect(function(enterPressed)
-                currentText = textBox.Text
-                
-                -- Call callback
-                SafeCall(options.Callback, currentText)
-            end)
-            
-            -- Hover effects
-            textBoxContainer.MouseEnter:Connect(function()
-                CreateTween(
-                    textBoxContainer,
-                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-                
-                CreateTween(
-                    textBoxBackground,
-                    {BackgroundColor3 = windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1)},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            textBoxContainer.MouseLeave:Connect(function()
-                CreateTween(
-                    textBoxContainer,
-                    {BackgroundColor3 = windowObj._theme.Primary},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-                
-                CreateTween(
-                    textBoxBackground,
-                    {BackgroundColor3 = windowObj._theme.Secondary},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            -- Store textbox object
-            local textBoxObj = {
-                Frame = textBoxContainer,
-                Label = textBoxLabel,
-                Input = textBox,
-                Value = currentText,
-                
-                -- Set text
-                Set = function(self, text)
-                    textBox.Text = text
-                    currentText = text
-                    self.Value = text
-                end
-            }
-            
-            table.insert(self.Elements, textBoxObj)
-            return textBoxObj
-        end
-        
-        -- Create keybind
-        function tab:CreateKeybind(options)
-            options = options or {}
-            options.Name = options.Name or "Keybind"
-            options.Default = options.Default or Enum.KeyCode.F
-            options.Callback = options.Callback or function() end
-            options.ChangedCallback = options.ChangedCallback or function() end
-            
-            -- Create keybind container
-            local keybind = Create("Frame", {
-                Name = "Keybind",
-                BackgroundColor3 = windowObj._theme.Primary,
-                Size = UDim2.new(1, 0, 0, 40),
-                Parent = self.Page
-            })
-            
-            -- Add corner radius
-            local keybindCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 6),
-                Parent = keybind
-            })
-            
-            -- Add keybind label
-            local keybindLabel = Create("TextLabel", {
-                Name = "Label",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -110, 1, 0),
-                Font = Enum.Font.GothamBold,
-                Text = options.Name,
-                TextColor3 = windowObj._theme.TextPrimary,
-                TextSize = 15,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = keybind
-            })
-            
-            -- Create keybind button
-            local keybindButton = Create("TextButton", {
-                Name = "Button",
-                BackgroundColor3 = windowObj._theme.Secondary,
-                Position = UDim2.new(1, -100, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 90, 0, 30),
-                Font = Enum.Font.Gotham,
-                Text = options.Default.Name,
-                TextColor3 = windowObj._theme.TextPrimary,
-                TextSize = 14,
-                Parent = keybind
-            })
-            
-            -- Add corner radius
-            local keybindButtonCorner = Create("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = keybindButton
-            })
-            
-            -- Current key
-            local currentKey = options.Default
-            local isChangingKey = false
-            
-            -- Keybind button events
-            keybindButton.MouseButton1Click:Connect(function()
-                isChangingKey = true
-                keybindButton.Text = "..."
-            end)
-            
-            -- Key press event
-            services.UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if isChangingKey and not gameProcessed then
-                    -- Check if key is valid
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        -- Update key
-                        currentKey = input.KeyCode
-                        keybindButton.Text = currentKey.Name
-                        isChangingKey = false
-                        
-                        -- Call changed callback
-                        SafeCall(options.ChangedCallback, currentKey)
-                    end
-                elseif not isChangingKey and not gameProcessed and input.KeyCode == currentKey and currentKey ~= options.MinimizeKey then
-                    -- Call callback
-                    SafeCall(options.Callback)
-                end
-            end)
-            
-            -- Hover effects
-            keybind.MouseEnter:Connect(function()
-                CreateTween(
-                    keybind,
-                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-                
-                CreateTween(
-                    keybindButton,
-                    {BackgroundColor3 = windowObj._theme.Secondary:Lerp(windowObj._theme.Accent, 0.1)},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            keybind.MouseLeave:Connect(function()
-                CreateTween(
-                    keybind,
-                    {BackgroundColor3 = windowObj._theme.Primary},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-                
-                CreateTween(
-                    keybindButton,
-                    {BackgroundColor3 = windowObj._theme.Secondary},
-                    Enum.EasingDirection.Out,
-                    Enum.EasingStyle.Quad,
-                    0.2
-                )
-            end)
-            
-            -- Store keybind object
-            local keybindObj = {
-                Frame = keybind,
-                Label = keybindLabel,
-                Button = keybindButton,
-                Value = currentKey,
-                
-                -- Set key
-                Set = function(self, key)
-                    currentKey = key
-                    keybindButton.Text = key.Name
-                    self.Value = key
-                end
-            }
-            
-            table.insert(self.Elements, keybindObj)
-            return keybindObj
-        end
-        
         -- Create label
         function tab:CreateLabel(options)
             options = options or {}
             options.Text = options.Text or "Label"
             
-            -- Create label
+            debug_log("Creating label:", options.Text)
+            
+            -- Create label container
             local label = Create("Frame", {
                 Name = "Label",
                 BackgroundTransparency = 1,
@@ -3084,16 +2610,39 @@ function TBD:CreateWindow(options)
             return labelObj
         end
         
+        -- Create separator
+        function tab:CreateSeparator()
+            debug_log("Creating separator")
+            
+            -- Create separator
+            local separator = Create("Frame", {
+                Name = "Separator",
+                BackgroundColor3 = windowObj._theme.Secondary,
+                Size = UDim2.new(1, 0, 0, 1),
+                BorderSizePixel = 0,
+                Parent = self.Page
+            })
+            
+            -- Store separator object
+            local separatorObj = {
+                Frame = separator
+            }
+            
+            table.insert(self.Elements, separatorObj)
+            return separatorObj
+        end
+        
         -- Create paragraph
         function tab:CreateParagraph(options)
             options = options or {}
             options.Title = options.Title or "Title"
             options.Content = options.Content or "Content"
             
+            debug_log("Creating paragraph:", options.Title)
+            
             -- Calculate height based on content
             local titleHeight = 22
-            local contentLines = 1
-            local contentHeight = 0
+            local contentHeight = 40 -- Default height
             
             pcall(function()
                 local maxWidth = self.Page.AbsoluteSize.X - 30
@@ -3106,6 +2655,7 @@ function TBD:CreateWindow(options)
                 Name = "Paragraph",
                 BackgroundColor3 = windowObj._theme.Primary,
                 Size = UDim2.new(1, 0, 0, titleHeight + contentHeight + 20), -- Padding
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
@@ -3175,23 +2725,145 @@ function TBD:CreateWindow(options)
             return paragraphObj
         end
         
-        -- Create separator
-        function tab:CreateSeparator()
-            -- Create separator
-            local separator = Create("Frame", {
-                Name = "Separator",
-                BackgroundColor3 = windowObj._theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 1),
+        -- Create color picker (simplified version for now)
+        function tab:CreateColorPicker(options)
+            options = options or {}
+            options.Name = options.Name or "Color Picker"
+            options.Default = options.Default or Color3.fromRGB(255, 0, 0)
+            options.Callback = options.Callback or function() end
+            
+            debug_log("Creating color picker:", options.Name)
+            
+            -- Create color picker container
+            local colorPicker = Create("Frame", {
+                Name = "ColorPicker",
+                BackgroundColor3 = windowObj._theme.Primary,
+                Size = UDim2.new(1, 0, 0, 40),
+                BorderSizePixel = 0,
                 Parent = self.Page
             })
             
-            -- Store separator object
-            local separatorObj = {
-                Frame = separator
+            -- Add corner radius
+            local colorPickerCorner = Create("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+                Parent = colorPicker
+            })
+            
+            -- Add color picker label
+            local colorPickerLabel = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 0),
+                Size = UDim2.new(1, -60, 1, 0),
+                Font = Enum.Font.GothamBold,
+                Text = options.Name,
+                TextColor3 = windowObj._theme.TextPrimary,
+                TextSize = 15,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = colorPicker
+            })
+            
+            -- Add color display
+            local colorDisplay = Create("Frame", {
+                Name = "ColorDisplay",
+                BackgroundColor3 = options.Default,
+                Position = UDim2.new(1, -40, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                Size = UDim2.new(0, 30, 0, 30),
+                BorderSizePixel = 0,
+                Parent = colorPicker
+            })
+            
+            -- Add corner radius
+            local colorDisplayCorner = Create("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+                Parent = colorDisplay
+            })
+            
+            -- Current color value
+            local currentColor = options.Default
+            
+            -- Color picker click functionality (simplified)
+            local colorPickerButton = Create("TextButton", {
+                Name = "ColorPickerButton",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Text = "",
+                Parent = colorPicker
+            })
+            
+            colorPickerButton.MouseButton1Click:Connect(function()
+                -- In a real implementation, this would open a color picker UI
+                -- For now, just cycle through some colors on click
+                local colors = {
+                    Color3.fromRGB(255, 0, 0),   -- Red
+                    Color3.fromRGB(0, 255, 0),   -- Green
+                    Color3.fromRGB(0, 0, 255),   -- Blue
+                    Color3.fromRGB(255, 255, 0), -- Yellow
+                    Color3.fromRGB(255, 0, 255), -- Magenta
+                    Color3.fromRGB(0, 255, 255)  -- Cyan
+                }
+                
+                -- Find current color index
+                local currentIndex = 1
+                for i, color in ipairs(colors) do
+                    if color == currentColor then
+                        currentIndex = i
+                        break
+                    end
+                end
+                
+                -- Move to next color
+                currentIndex = currentIndex % #colors + 1
+                currentColor = colors[currentIndex]
+                
+                -- Update display
+                colorDisplay.BackgroundColor3 = currentColor
+                
+                -- Call callback
+                debug_log("Color picker changed:", options.Name, "Color:", currentColor)
+                SafeCall(options.Callback, currentColor)
+            end)
+            
+            -- Hover effects
+            colorPickerButton.MouseEnter:Connect(function()
+                CreateTween(
+                    colorPicker,
+                    {BackgroundColor3 = windowObj._theme.Primary:Lerp(windowObj._theme.Accent, 0.1)},
+                    Enum.EasingDirection.Out,
+                    Enum.EasingStyle.Quad,
+                    0.2
+                )
+            end)
+            
+            colorPickerButton.MouseLeave:Connect(function()
+                CreateTween(
+                    colorPicker,
+                    {BackgroundColor3 = windowObj._theme.Primary},
+                    Enum.EasingDirection.Out,
+                    Enum.EasingStyle.Quad,
+                    0.2
+                )
+            end)
+            
+            -- Store color picker object
+            local colorPickerObj = {
+                Frame = colorPicker,
+                Label = colorPickerLabel,
+                Display = colorDisplay,
+                Value = currentColor,
+                
+                -- Set color
+                Set = function(self, color)
+                    currentColor = color
+                    colorDisplay.BackgroundColor3 = color
+                    self.Value = color
+                    SafeCall(options.Callback, color)
+                end
             }
             
-            table.insert(self.Elements, separatorObj)
-            return separatorObj
+            table.insert(self.Elements, colorPickerObj)
+            return colorPickerObj
         end
         
         -- For compatibility with both CreateColorPicker and CreateColorpicker names
