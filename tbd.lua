@@ -1427,13 +1427,20 @@ function TBD:CreateWindow(options)
     function windowObj:SetActiveTab(tabName)
         -- Hide current active tab
         if self.ActiveTab and self.Tabs[self.ActiveTab] then
-            self.Tabs[self.ActiveTab].Frame.Visible = false
+            -- Safe access to Frame
+            if self.Tabs[self.ActiveTab].Frame then
+                self.Tabs[self.ActiveTab].Frame.Visible = false
+            end
             
             -- Update button color
             if self.ActiveTab == "HomePage" then
-                homeButton.ImageColor3 = windowObj._theme.TextSecondary
+                if homeButton then
+                    homeButton.ImageColor3 = windowObj._theme.TextSecondary
+                end
             else
-                self.Tabs[self.ActiveTab].Button.ImageColor3 = windowObj._theme.TextSecondary
+                if self.Tabs[self.ActiveTab].Button then
+                    self.Tabs[self.ActiveTab].Button.ImageColor3 = windowObj._theme.TextSecondary
+                end
             end
         end
         
@@ -1442,13 +1449,20 @@ function TBD:CreateWindow(options)
         
         -- Show new active tab
         if tabName and self.Tabs[tabName] then
-            self.Tabs[tabName].Frame.Visible = true
+            -- Safe access to Frame
+            if self.Tabs[tabName].Frame then
+                self.Tabs[tabName].Frame.Visible = true
+            end
             
             -- Update button color
             if tabName == "HomePage" then
-                homeButton.ImageColor3 = windowObj._theme.Accent
+                if homeButton then
+                    homeButton.ImageColor3 = windowObj._theme.Accent
+                end
             else
-                self.Tabs[tabName].Button.ImageColor3 = windowObj._theme.Accent
+                if self.Tabs[tabName].Button then
+                    self.Tabs[tabName].Button.ImageColor3 = windowObj._theme.Accent
+                end
             end
         end
     end
@@ -3160,75 +3174,120 @@ function TBD:CreateWindow(options)
         local theme = TBD._theme
         
         pcall(function()
+            -- Safe element access
+            local function safeAccess(parent, property, value)
+                if parent and typeof(parent) == "Instance" then
+                    pcall(function()
+                        parent[property] = value
+                    end)
+                end
+            end
+            
             -- Update window elements
-            self.Window.BackgroundColor3 = theme.Background
-            self.Header.BackgroundColor3 = theme.Primary
-            self.Header.Cover.BackgroundColor3 = theme.Primary
-            self.ContentContainer.Sidebar.BackgroundColor3 = theme.Primary
-            self.ContentContainer.Sidebar.Cover.BackgroundColor3 = theme.Primary
+            safeAccess(self.Window, "BackgroundColor3", theme.Background)
             
-            -- Update text elements
-            self.Header.Title.TextColor3 = theme.TextPrimary
-            self.Header.Subtitle.TextColor3 = theme.TextSecondary
+            if self.Header then
+                safeAccess(self.Header, "BackgroundColor3", theme.Primary)
+                
+                if self.Header:FindFirstChild("Cover") then
+                    safeAccess(self.Header.Cover, "BackgroundColor3", theme.Primary)
+                end
+                
+                safeAccess(self.Header:FindFirstChild("Title"), "TextColor3", theme.TextPrimary)
+                safeAccess(self.Header:FindFirstChild("Subtitle"), "TextColor3", theme.TextSecondary)
+            end
             
-            -- Update home button
-            if self.ActiveTab == "HomePage" then
-                self.ContentContainer.Sidebar.HomeButton.ImageColor3 = theme.Accent
-            else
-                self.ContentContainer.Sidebar.HomeButton.ImageColor3 = theme.TextSecondary
+            if self.ContentContainer and self.ContentContainer:FindFirstChild("Sidebar") then
+                local sidebar = self.ContentContainer.Sidebar
+                safeAccess(sidebar, "BackgroundColor3", theme.Primary)
+                
+                if sidebar:FindFirstChild("Cover") then
+                    safeAccess(sidebar.Cover, "BackgroundColor3", theme.Primary)
+                end
+                
+                -- Update home button if it exists
+                if sidebar:FindFirstChild("HomeButton") then
+                    if self.ActiveTab == "HomePage" then
+                        safeAccess(sidebar.HomeButton, "ImageColor3", theme.Accent)
+                    else
+                        safeAccess(sidebar.HomeButton, "ImageColor3", theme.TextSecondary)
+                    end
+                end
             end
             
             -- Update tab buttons
             for name, tab in pairs(self.Tabs) do
-                if name == self.ActiveTab then
-                    tab.Button.ImageColor3 = theme.Accent
-                else
-                    tab.Button.ImageColor3 = theme.TextSecondary
-                end
-                
-                -- Update tab page scrollbar
-                tab.Page.ScrollBarImageColor3 = theme.Accent
-                
-                -- Update elements
-                for _, element in ipairs(tab.Elements) do
-                    if element.Frame then
-                        -- Common properties
-                        if element.Frame.BackgroundTransparency <= 0 then
-                            element.Frame.BackgroundColor3 = theme.Primary
-                        end
-                        
-                        -- Update text colors
-                        if element.Label then
-                            element.Label.TextColor3 = theme.TextPrimary
-                        end
-                        
-                        if element.Text then
-                            element.Text.TextColor3 = theme.TextPrimary
-                        end
-                        
-                        -- Update specialized elements
-                        if element.Frame.Name:find("Toggle") then
-                            element.Background.BackgroundColor3 = theme.Secondary
-                            
-                            if element.Value then
-                                element.Background.BackgroundColor3 = theme.Accent
-                                element.Indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-                            else
-                                element.Indicator.BackgroundColor3 = theme.TextSecondary
+                -- Make sure tab and button exist
+                if tab and tab.Button then
+                    if name == self.ActiveTab then
+                        safeAccess(tab.Button, "ImageColor3", theme.Accent)
+                    else
+                        safeAccess(tab.Button, "ImageColor3", theme.TextSecondary)
+                    end
+                    
+                    -- Update tab page scrollbar if page exists
+                    if tab.Page then
+                        safeAccess(tab.Page, "ScrollBarImageColor3", theme.Accent)
+                    end
+                    
+                    -- Update elements if they exist
+                    if tab.Elements then
+                        for _, element in ipairs(tab.Elements) do
+                            if element and element.Frame then
+                                -- Common properties
+                                pcall(function()
+                                    if element.Frame.BackgroundTransparency <= 0 then
+                                        element.Frame.BackgroundColor3 = theme.Primary
+                                    end
+                                end)
+                                
+                                -- Update text colors
+                                if element.Label then
+                                    safeAccess(element.Label, "TextColor3", theme.TextPrimary)
+                                end
+                                
+                                if element.Text then
+                                    safeAccess(element.Text, "TextColor3", theme.TextPrimary)
+                                end
+                                
+                                -- Update specialized elements
+                                pcall(function()
+                                    if element.Frame.Name:find("Toggle") then
+                                        if element.Background then
+                                            element.Background.BackgroundColor3 = theme.Secondary
+                                            
+                                            if element.Value then
+                                                element.Background.BackgroundColor3 = theme.Accent
+                                                if element.Indicator then
+                                                    element.Indicator.BackgroundColor3 = Color3.new(1, 1, 1)
+                                                end
+                                            else
+                                                if element.Indicator then
+                                                    element.Indicator.BackgroundColor3 = theme.TextSecondary
+                                                end
+                                            end
+                                        end
+                                    elseif element.Frame.Name:find("Slider") then
+                                        if element.Frame:FindFirstChild("SliderBar") then
+                                            element.Frame.SliderBar.BackgroundColor3 = theme.Secondary
+                                            
+                                            if element.Frame.SliderBar:FindFirstChild("Fill") then
+                                                element.Frame.SliderBar.Fill.BackgroundColor3 = theme.Accent
+                                            end
+                                        end
+                                    elseif element.Frame.Name:find("Dropdown") then
+                                        if element.Frame:FindFirstChild("OptionsContainer") then
+                                            element.Frame.OptionsContainer.BackgroundColor3 = theme.Secondary
+                                        end
+                                    elseif element.Frame.Name:find("ColorPicker") or element.Frame.Name:find("Colorpicker") then
+                                        if element.Frame:FindFirstChild("ExpandedContainer") then
+                                            element.Frame.ExpandedContainer.BackgroundColor3 = theme.Secondary
+                                        end
+                                    elseif element.Display then  -- For color pickers
+                                        -- No specific updates needed
+                                    end
+                                end)
                             end
-                        elseif element.Frame.Name:find("Slider") then
-                            element.Frame.SliderBar.BackgroundColor3 = theme.Secondary
-                            element.Frame.SliderBar.Fill.BackgroundColor3 = theme.Accent
-                        elseif element.Frame.Name:find("Dropdown") then
-                            if element.Frame:FindFirstChild("OptionsContainer") then
-                                element.Frame.OptionsContainer.BackgroundColor3 = theme.Secondary
-                            end
-                        elseif element.Frame.Name:find("ColorPicker") or element.Frame.Name:find("Colorpicker") then
-                            if element.Frame:FindFirstChild("ExpandedContainer") then
-                                element.Frame.ExpandedContainer.BackgroundColor3 = theme.Secondary
-                            end
-                        elseif element.Display then  -- For color pickers
-                            -- No specific updates needed
                         end
                     end
                 end
