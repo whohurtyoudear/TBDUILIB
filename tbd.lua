@@ -1,11 +1,11 @@
 --[[
-    TBD UI Library V13 Final (v3)
+    TBD UI Library V13 Final (v4)
     A comprehensive UI library designed for Roblox script hubs and executors
-    Version: 3.0.0-V13.2
+    Version: 3.0.0-V13.3
 ]]
 
 local TBD = {
-    Version = "3.0.0-V13.2",
+    Version = "3.0.0-V13.3",
     Windows = {},
     _initialized = false,
     _theme = nil
@@ -699,8 +699,9 @@ TBD.LoadingScreen = {
         
         -- Add logo if provided
         local logoHeight = 0
+        local logo = nil
         if logoId then
-            local logo = Create("ImageLabel", {
+            logo = Create("ImageLabel", {
                 Name = "Logo",
                 BackgroundTransparency = 1,
                 Size = UDim2.new(0, 80, 0, 80),
@@ -792,6 +793,7 @@ TBD.LoadingScreen = {
         loadingScreenObj._subtitleLabel = subtitleLabel
         loadingScreenObj._progressBarFill = progressBarFill
         loadingScreenObj._progressPercent = progressPercent
+        loadingScreenObj._logo = logo
         
         -- Update progress
         function loadingScreenObj:UpdateProgress(progress)
@@ -838,7 +840,6 @@ TBD.LoadingScreen = {
             
             -- Fade out all elements with proper property handling for each type
             for _, element in pairs(self._container:GetDescendants()) do
-                -- Different properties based on instance type
                 if element:IsA("TextLabel") then
                     -- For text labels, tween text transparency
                     services.TweenService:Create(element, tweenInfo, {
@@ -986,6 +987,9 @@ function TBD:CreateWindow(options)
         Parent = window
     })
     
+    -- Store the window in windowObj
+    windowObj.Window = window
+    
     -- Ensure window stays within screen bounds
     local function updateWindowBounds()
         local viewportSize = workspace.CurrentCamera.ViewportSize
@@ -1019,6 +1023,9 @@ function TBD:CreateWindow(options)
         Size = UDim2.new(1, 0, 0, 40),
         Parent = window
     })
+    
+    -- Store header in windowObj
+    windowObj.Header = header
     
     -- Add corner radius to header
     local headerCorner = Create("UICorner", {
@@ -1208,6 +1215,9 @@ function TBD:CreateWindow(options)
         Parent = window
     })
     
+    -- Store content container in windowObj
+    windowObj.ContentContainer = contentContainer
+    
     -- Create sidebar
     local sidebar = Create("Frame", {
         Name = "Sidebar",
@@ -1277,7 +1287,7 @@ function TBD:CreateWindow(options)
             Name = "HomePage",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
-            Visible = false,
+            Visible = true, -- Start with HomePage visible
             Parent = content
         })
         
@@ -1464,6 +1474,9 @@ function TBD:CreateWindow(options)
         homeButton.MouseButton1Click:Connect(function()
             windowObj:SetActiveTab("HomePage")
         end)
+
+        -- Set HomePage as active tab initially
+        windowObj.ActiveTab = "HomePage"
     end
     
     -- Function to set active tab
@@ -1629,8 +1642,8 @@ function TBD:CreateWindow(options)
         -- Store tab in window
         windowObj.Tabs[options.Name] = tab
         
-        -- If it's the first tab, make it active
-        if not windowObj.ActiveTab or windowObj.ActiveTab == "HomePage" and not options.ShowHomePage then
+        -- If it's the first non-homepage tab, make it active if HomePage is not showing
+        if not windowObj.ActiveTab or windowObj.ActiveTab == nil then
             windowObj:SetActiveTab(options.Name)
         end
         
@@ -3316,9 +3329,7 @@ function TBD:CreateWindow(options)
     -- Add window to windows table
     table.insert(TBD.Windows, windowObj)
     
-    -- Initialize home page
-    windowObj:SetActiveTab(options.ShowHomePage and "HomePage" or nil)
-    
+    -- Return the window object
     return windowObj
 end
 
