@@ -21,10 +21,10 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local MarketplaceService = game:GetService("MarketplaceService")
-local TextService = game:GetService("TextService")
 
 -- Constants
 local Player = Players.LocalPlayer
@@ -267,8 +267,12 @@ function BillsLib:CreateWindow(title, size)
     titleBar.ZIndex = 11
     
     -- Only round the top corners of title bar
-    local titleBarCorner = titleBar:FindFirstChild("UICorner")
-    titleBarCorner.CornerRadius = UDim.new(0, 8)
+    if titleBar then
+        local titleBarCorner = titleBar:FindFirstChild("UICorner")
+        if titleBarCorner then
+            titleBarCorner.CornerRadius = UDim.new(0, 8)
+        end
+    end
     
     -- Make title bar draggable
     local dragging = false
@@ -304,170 +308,132 @@ function BillsLib:CreateWindow(title, size)
     end)
     
     -- Title text
-    local titleText = self:CreateLabel("Title", title, UDim2.new(1, -100, 1, 0), UDim2.new(0, 15, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansBold, titleBar, 16)
+    local titleText = self:CreateLabel("TitleText", title or "Bills Lib", UDim2.new(1, -130, 1, 0), UDim2.new(0, 15, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansBold, titleBar, 18)
     
-    -- Close button
-    local closeButton = self:CreateTextButton("CloseButton", "✕", UDim2.new(0, 30, 0, 30), UDim2.new(1, -40, 0, 5), self.Theme.Secondary, self.Theme.TextColor, function()
-        window:Destroy()
-        table.remove(self.Windows, table.find(self.Windows, window))
-        
-        -- Clean up all objects
-        for _, obj in pairs(self.Objects) do
-            if obj.Instance and obj.Instance:IsA("Instance") and obj.Window == window then
-                pcall(function() obj.Instance:Destroy() end)
-            end
-        end
-    end, titleBar, 6)
+    -- Window controls (minimize, close)
+    local closeButton = Instance.new("ImageButton")
+    closeButton.Name = "CloseButton"
+    closeButton.BackgroundTransparency = 1
+    closeButton.Position = UDim2.new(1, -35, 0.5, -10)
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Image = self.Icons.Close
+    closeButton.ImageColor3 = self.Theme.TextColor
+    closeButton.ZIndex = 12
+    closeButton.Parent = titleBar
     
-    -- Style close button on hover
     closeButton.MouseEnter:Connect(function()
-        CreateTween(closeButton, 0.2, {BackgroundColor3 = self.Theme.Error}):Play()
+        CreateTween(closeButton, 0.2, {ImageColor3 = self.Theme.Error}):Play()
     end)
     
     closeButton.MouseLeave:Connect(function()
-        CreateTween(closeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary}):Play()
+        CreateTween(closeButton, 0.2, {ImageColor3 = self.Theme.TextColor}):Play()
     end)
     
-    -- Minimize button
-    local minimizeButton = self:CreateTextButton("MinimizeButton", "–", UDim2.new(0, 30, 0, 30), UDim2.new(1, -80, 0, 5), self.Theme.Secondary, self.Theme.TextColor, function()
-        if window.Size == windowSize then
-            CreateTween(window, 0.3, {Size = UDim2.new(windowSize.X.Scale, windowSize.X.Offset, 0, 40)}):Play()
-        else
-            CreateTween(window, 0.3, {Size = windowSize}):Play()
-        end
-    end, titleBar, 6)
+    closeButton.MouseButton1Click:Connect(function()
+        window.Visible = false
+    end)
     
-    -- Style minimize button on hover
+    local minimizeButton = Instance.new("ImageButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.BackgroundTransparency = 1
+    minimizeButton.Position = UDim2.new(1, -65, 0.5, -10)
+    minimizeButton.Size = UDim2.new(0, 20, 0, 20)
+    minimizeButton.Image = self.Icons.Minimize
+    minimizeButton.ImageColor3 = self.Theme.TextColor
+    minimizeButton.ZIndex = 12
+    minimizeButton.Parent = titleBar
+    
     minimizeButton.MouseEnter:Connect(function()
-        CreateTween(minimizeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary:Lerp(Color3.fromRGB(255, 255, 255), 0.2)}):Play()
+        CreateTween(minimizeButton, 0.2, {ImageColor3 = self.Theme.Accent}):Play()
     end)
     
     minimizeButton.MouseLeave:Connect(function()
-        CreateTween(minimizeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary}):Play()
+        CreateTween(minimizeButton, 0.2, {ImageColor3 = self.Theme.TextColor}):Play()
     end)
     
-    -- Container for tabs
-    local tabContainer = self:CreateRoundFrame("TabContainer", UDim2.new(0, 120, 1, -50), UDim2.new(0, 10, 0, 50), self.Theme.Secondary, window, 6)
-    tabContainer.ZIndex = 11
+    -- Logo in title bar
+    local logo = Instance.new("ImageLabel")
+    logo.Name = "Logo"
+    logo.BackgroundTransparency = 1
+    logo.Size = UDim2.new(0, 24, 0, 24)
+    logo.Position = UDim2.new(0, 10, 0.5, -12)
+    logo.Image = self.Icons.Logo
+    logo.ZIndex = 12
+    logo.Parent = titleBar
     
-    local tabListLayout = Instance.new("UIListLayout")
-    tabListLayout.Padding = UDim.new(0, 5)
-    tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    tabListLayout.Parent = tabContainer
-    
-    local tabPadding = Instance.new("UIPadding")
-    tabPadding.PaddingTop = UDim.new(0, 10)
-    tabPadding.PaddingBottom = UDim.new(0, 10)
-    tabPadding.PaddingLeft = UDim.new(0, 10)
-    tabPadding.PaddingRight = UDim.new(0, 10)
-    tabPadding.Parent = tabContainer
-    
-    -- Content container
-    local contentContainer = self:CreateRoundFrame("ContentContainer", UDim2.new(1, -150, 1, -50), UDim2.new(0, 140, 0, 50), self.Theme.Secondary, window, 6)
+    -- Content area
+    local contentContainer = self:CreateRoundFrame("ContentContainer", UDim2.new(1, 0, 1, -80), UDim2.new(0, 0, 0, 70), self.Theme.Secondary, window, 8)
+    contentContainer.ClipsDescendants = true
     contentContainer.ZIndex = 11
     
-    -- Initialize Dashboard (Home tab)
-    local dashboardTab, dashboardPage = self:CreateTab(window, tabContainer, contentContainer, "Dashboard", 1)
+    -- Tab container
+    local tabContainer = self:CreateRoundFrame("TabContainer", UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 40), self.Theme.Secondary, window, 0)
+    tabContainer.ZIndex = 12
     
-    -- Dashboard content
-    local avatarContainer = self:CreateRoundFrame("AvatarContainer", UDim2.new(0, 80, 0, 80), UDim2.new(0, 20, 0, 20), self.Theme.Primary, dashboardPage, 40)
-    avatarContainer.ClipsDescendants = true
+    -- Tab container layout
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.Parent = tabContainer
     
-    local avatarImage = Instance.new("ImageLabel")
-    avatarImage.Name = "AvatarImage"
-    avatarImage.BackgroundTransparency = 1
-    avatarImage.Size = UDim2.new(1, 0, 1, 0)
-    avatarImage.Position = UDim2.new(0, 0, 0, 0)
-    avatarImage.Parent = avatarContainer
+    -- Tab container padding
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingLeft = UDim.new(0, 10)
+    tabPadding.Parent = tabContainer
     
-    -- Load player avatar
-    local userId = Player.UserId
-    local thumbnailType = Enum.ThumbnailType.HeadShot
-    local thumbnailSize = Enum.ThumbnailSize.Size420x420
+    -- Window object for returning
+    local windowObj = {
+        Instance = window,
+        Title = titleText,
+        ContentContainer = contentContainer,
+        TabContainer = tabContainer,
+        Tabs = {},
+        TabButtons = {},
+        ActiveTab = nil
+    }
     
-    local success, avatar = pcall(function()
-        return Players:GetUserThumbnailAsync(userId, thumbnailType, thumbnailSize)
-    end)
-    
-    if success and avatar then
-        avatarImage.Image = avatar
-    else
-        avatarImage.Image = "rbxassetid://7962146544" -- Default avatar
-    end
-    
-    -- Player info
-    local playerNameLabel = self:CreateLabel("PlayerName", Player.DisplayName, UDim2.new(0, 200, 0, 20), UDim2.new(0, 120, 0, 30), self.Theme.TextColor, Enum.Font.SourceSansBold, dashboardPage, 18)
-    
-    local playerUsernameLabel = self:CreateLabel("PlayerUsername", "@" .. Player.Name, UDim2.new(0, 200, 0, 20), UDim2.new(0, 120, 0, 55), self.Theme.PlaceholderColor, Enum.Font.SourceSans, dashboardPage, 14)
-    
-    -- Divider
-    local divider = Instance.new("Frame")
-    divider.Name = "Divider"
-    divider.Size = UDim2.new(1, -40, 0, 1)
-    divider.Position = UDim2.new(0, 20, 0, 120)
-    divider.BackgroundColor3 = self.Theme.DividerColor
-    divider.BorderSizePixel = 0
-    divider.Parent = dashboardPage
-    
-    -- Game info
-    local gameInfoContainer = self:CreateRoundFrame("GameInfoContainer", UDim2.new(1, -40, 0, 80), UDim2.new(0, 20, 0, 140), self.Theme.Primary, dashboardPage, 6)
-    
-    -- Load game info
-    local gameNameLabel = self:CreateLabel("GameName", "Loading...", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 10), self.Theme.TextColor, Enum.Font.SourceSansBold, gameInfoContainer, 16)
-    
-    local playersLabel = self:CreateLabel("PlayersInfo", "Players: Loading...", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 40), self.Theme.TextColor, Enum.Font.SourceSans, gameInfoContainer, 14)
-    
-    -- Get place name asynchronously
-    spawn(function()
-        local success, gameInfo = pcall(function()
-            return MarketplaceService:GetProductInfo(game.PlaceId)
-        end)
-        
-        if success and gameInfo then
-            gameNameLabel.Text = gameInfo.Name
-        else
-            gameNameLabel.Text = "Game Info Unavailable"
-        end
-        
-        -- Set player count
-        playersLabel.Text = "Players: " .. #Players:GetPlayers() .. " / " .. Players.MaxPlayers
-    end)
-    
-    -- Create window metatable
-    local windowObj = {}
-    windowObj.Instance = window
-    windowObj.Tabs = {Dashboard = dashboardPage}
-    windowObj.TabButtons = {Dashboard = dashboardTab}
+    -- Add default dashboard tab
+    local dashboardTab = self:CreateTab(windowObj, "Dashboard")
+    dashboardTab.Instance.Visible = true
     windowObj.ActiveTab = "Dashboard"
-    windowObj.TabCount = 1
     
-    -- AddTab method
-    function windowObj:AddTab(name)
-        local tab, page = BillsLib:CreateTab(self.Instance, tabContainer, contentContainer, name, self.TabCount + 1)
-        self.Tabs[name] = page
-        self.TabButtons[name] = tab
-        self.TabCount = self.TabCount + 1
-        return page
-    end
+    -- Welcome label in dashboard
+    local welcomeLabel = self:CreateLabel(
+        "WelcomeLabel", 
+        "Welcome to Bills Lib", 
+        UDim2.new(1, -40, 0, 40), 
+        UDim2.new(0, 20, 0, 20), 
+        self.Theme.TextColor, 
+        Enum.Font.SourceSansBold, 
+        dashboardTab.Instance, 
+        24
+    )
     
-    -- SetActiveTab method
-    function windowObj:SetActiveTab(name)
-        if self.Tabs[name] then
-            -- Hide all tabs
-            for tabName, tabPage in pairs(self.Tabs) do
-                tabPage.Visible = false
-                CreateTween(self.TabButtons[tabName], 0.2, {BackgroundColor3 = BillsLib.Theme.TabBackground}):Play()
-            end
-            
-            -- Show selected tab
-            self.Tabs[name].Visible = true
-            CreateTween(self.TabButtons[name], 0.2, {BackgroundColor3 = BillsLib.Theme.TabBackgroundSelected}):Play()
-            self.ActiveTab = name
-        end
-    end
+    -- Description text
+    local descLabel = self:CreateLabel(
+        "DescriptionLabel", 
+        "A comprehensive UI Library for Roblox with a retro/neon style.", 
+        UDim2.new(1, -40, 0, 20), 
+        UDim2.new(0, 20, 0, 70), 
+        self.Theme.TextColor, 
+        Enum.Font.SourceSans, 
+        dashboardTab.Instance, 
+        16
+    )
     
-    -- Initialize first tab as visible
-    windowObj:SetActiveTab("Dashboard")
+    -- Version text
+    local versionLabel = self:CreateLabel(
+        "VersionLabel", 
+        "Version " .. self.Version, 
+        UDim2.new(1, -40, 0, 20), 
+        UDim2.new(0, 20, 0, 100), 
+        self.Theme.AccentGradient1, 
+        Enum.Font.SourceSans, 
+        dashboardTab.Instance, 
+        14
+    )
     
     -- Add to windows table
     table.insert(self.Windows, windowObj)
@@ -475,137 +441,132 @@ function BillsLib:CreateWindow(title, size)
     return windowObj
 end
 
--- Create tab method
-function BillsLib:CreateTab(window, tabContainer, contentContainer, name, order)
+-- Create tab
+function BillsLib:CreateTab(window, name)
     -- Tab button
-    local tabButton = self:CreateRoundFrame("Tab_" .. name, UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, ((order - 1) * 35)), self.Theme.TabBackground, tabContainer, 6)
-    tabButton.ZIndex = 12
+    local tabButton = Instance.new("TextButton")
+    tabButton.Name = "Tab_" .. name
+    tabButton.Text = name
+    tabButton.Font = Enum.Font.SourceSansSemibold
+    tabButton.TextSize = 14
+    tabButton.TextColor3 = self.Theme.TextColor
+    tabButton.Size = UDim2.new(0, 100, 1, 0)
+    tabButton.BackgroundColor3 = window.ActiveTab == name and self.Theme.TabBackgroundSelected or self.Theme.TabBackground
+    tabButton.BorderSizePixel = 0
+    tabButton.ZIndex = 13
+    tabButton.Parent = window.TabContainer
     
-    local tabText = self:CreateLabel("TabText", name, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansSemibold, tabButton, 14, Enum.TextXAlignment.Center)
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 6)
+    tabCorner.Parent = tabButton
     
-    -- Content page
-    local contentPage = self:CreateRoundFrame("Page_" .. name, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), self.Theme.Secondary, contentContainer, 6)
-    contentPage.ZIndex = 12
-    contentPage.BackgroundTransparency = 1
-    contentPage.Visible = false
+    -- Tab content container
+    local tabContent = Instance.new("ScrollingFrame")
+    tabContent.Name = name
+    tabContent.Size = UDim2.new(1, -20, 1, -20)
+    tabContent.Position = UDim2.new(0, 10, 0, 10)
+    tabContent.BackgroundTransparency = 1
+    tabContent.ScrollBarThickness = 5
+    tabContent.ScrollBarImageColor3 = self.Theme.Accent
+    tabContent.BorderSizePixel = 0
+    tabContent.ZIndex = 12
+    tabContent.Visible = window.ActiveTab == name
+    tabContent.Parent = window.ContentContainer
     
-    -- Scroll frame for content
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
-    scrollFrame.Position = UDim2.new(0, 0, 0, 0)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.ScrollBarThickness = 3
-    scrollFrame.ScrollBarImageColor3 = self.Theme.Accent
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollFrame.Parent = contentPage
-    
+    -- Content layout
     local contentLayout = Instance.new("UIListLayout")
     contentLayout.Padding = UDim.new(0, 10)
     contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    contentLayout.Parent = scrollFrame
+    contentLayout.Parent = tabContent
     
-    local contentPadding = Instance.new("UIPadding")
-    contentPadding.PaddingTop = UDim.new(0, 10)
-    contentPadding.PaddingBottom = UDim.new(0, 10)
-    contentPadding.PaddingLeft = UDim.new(0, 10)
-    contentPadding.PaddingRight = UDim.new(0, 10)
-    contentPadding.Parent = scrollFrame
-    
-    -- Update canvas size when content changes
+    -- Auto-size content
     contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
     end)
     
-    -- Add click event to tab button
-    tabButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            -- Find parent window object
-            for _, windowObj in pairs(self.Windows) do
-                if windowObj.Instance == window then
-                    windowObj:SetActiveTab(name)
-                    break
-                end
+    -- Click to switch tabs
+    tabButton.MouseButton1Click:Connect(function()
+        -- Hide all tabs
+        for _, tab in pairs(window.Tabs) do
+            tab.Visible = false
+        end
+        
+        -- Update tab button colors
+        for tabName, button in pairs(window.TabButtons) do
+            if tabName == name then
+                CreateTween(button, 0.2, {BackgroundColor3 = self.Theme.TabBackgroundSelected}):Play()
+            else
+                CreateTween(button, 0.2, {BackgroundColor3 = self.Theme.TabBackground}):Play()
             end
         end
+        
+        -- Show selected tab
+        tabContent.Visible = true
+        window.ActiveTab = name
     end)
     
-    return tabButton, contentPage
+    -- Store references
+    window.Tabs[name] = tabContent
+    window.TabButtons[name] = tabButton
+    
+    -- Tab object for API
+    local tabObj = {
+        Instance = tabContent,
+        Name = name,
+        Sections = {}
+    }
+    
+    return tabObj
 end
 
 -- Create section
 function BillsLib:CreateSection(tab, title)
-    local sectionContainer = self:CreateRoundFrame("Section_" .. title, UDim2.new(1, -20, 0, 36), UDim2.new(0, 0, 0, 0), self.Theme.SectionBackground, tab:FindFirstChild("ScrollFrame"), 6)
+    local sectionContainer = Instance.new("Frame")
+    sectionContainer.Name = "Section_" .. title
+    sectionContainer.Size = UDim2.new(1, 0, 0, 36) -- Initial height, will grow
+    sectionContainer.BackgroundColor3 = self.Theme.SectionBackground
+    sectionContainer.BorderSizePixel = 0
     sectionContainer.ZIndex = 13
-    sectionContainer.ClipsDescendants = true
-    sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
+    sectionContainer.LayoutOrder = #tab.Instance:GetChildren()
+    sectionContainer.Parent = tab.Instance
     
-    -- Section title
-    local sectionTitle = self:CreateLabel("SectionTitle", title, UDim2.new(1, -40, 0, 30), UDim2.new(0, 15, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansBold, sectionContainer, 15)
+    local sectionCorner = Instance.new("UICorner")
+    sectionCorner.CornerRadius = UDim.new(0, 6)
+    sectionCorner.Parent = sectionContainer
     
-    -- Expand/collapse button
-    local expandButton = self:CreateTextButton("ExpandButton", "▼", UDim2.new(0, 20, 0, 20), UDim2.new(1, -30, 0, 5), self.Theme.SectionBackground, self.Theme.TextColor, function()
-        -- Toggle section content visibility
-        local contentContainer = sectionContainer:FindFirstChild("ContentContainer")
-        local isExpanded = contentContainer.Visible
-        
-        if isExpanded then
-            -- Collapse
-            contentContainer.Visible = false
-            expandButton.Text = "▶"
-            CreateTween(sectionContainer, 0.3, {Size = UDim2.new(1, -20, 0, 36)}):Play()
-        else
-            -- Expand
-            contentContainer.Visible = true
-            expandButton.Text = "▼"
-            
-            -- Calculate required height
-            local contentLayout = contentContainer:FindFirstChildOfClass("UIListLayout")
-            local requiredHeight = contentLayout.AbsoluteContentSize.Y + 46 -- 36 + 10 padding
-            
-            CreateTween(sectionContainer, 0.3, {Size = UDim2.new(1, -20, 0, requiredHeight)}):Play()
-        end
-    end, sectionContainer, 4)
+    local sectionTitle = self:CreateLabel("Title", title, UDim2.new(1, -20, 0, 30), UDim2.new(0, 10, 0, 3), self.Theme.TextColor, Enum.Font.SourceSansBold, sectionContainer, 16)
     
-    -- Content container
     local contentContainer = Instance.new("Frame")
     contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(1, -20, 1, -36)
+    contentContainer.Size = UDim2.new(1, -20, 0, 0) -- Will be resized based on content
     contentContainer.Position = UDim2.new(0, 10, 0, 36)
     contentContainer.BackgroundTransparency = 1
+    contentContainer.ZIndex = 14
     contentContainer.Parent = sectionContainer
     
-    local contentLayout = Instance.new("UIListLayout")
-    contentLayout.Padding = UDim.new(0, 8)
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.Parent = contentContainer
+    local elementLayout = Instance.new("UIListLayout")
+    elementLayout.Padding = UDim.new(0, 8)
+    elementLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    elementLayout.Parent = contentContainer
     
-    local contentPadding = Instance.new("UIPadding")
-    contentPadding.PaddingTop = UDim.new(0, 0)
-    contentPadding.PaddingBottom = UDim.new(0, 10)
-    contentPadding.PaddingLeft = UDim.new(0, 0)
-    contentPadding.PaddingRight = UDim.new(0, 0)
-    contentPadding.Parent = contentContainer
-    
-    -- Update section height when content changes
-    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if contentContainer.Visible then
-            local requiredHeight = contentLayout.AbsoluteContentSize.Y + 46 -- 36 + 10 padding
-            sectionContainer.Size = UDim2.new(1, -20, 0, requiredHeight)
-        end
+    -- Auto-size content and update section height
+    elementLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        contentContainer.Size = UDim2.new(1, -20, 0, elementLayout.AbsoluteContentSize.Y)
+        sectionContainer.Size = UDim2.new(1, 0, 0, 36 + elementLayout.AbsoluteContentSize.Y + 10)
     end)
     
-    -- Initialize expanded
-    contentContainer.Visible = true
-    expandButton.Text = "▼"
+    -- Section object for API
+    local sectionObj = {
+        Instance = sectionContainer,
+        ContentContainer = contentContainer,
+        Title = title,
+        ElementCount = 0
+    }
     
-    -- Section functions
-    local sectionObj = {}
-    sectionObj.Instance = sectionContainer
-    sectionObj.ContentContainer = contentContainer
-    sectionObj.ElementCount = 0
+    -- Add to tab's sections
+    tab.Sections[title] = sectionObj
+    
+    -- Section API methods
     
     -- AddLabel
     function sectionObj:AddLabel(text)
@@ -613,19 +574,28 @@ function BillsLib:CreateSection(tab, title)
         
         local labelContainer = Instance.new("Frame")
         labelContainer.Name = "Label_" .. self.ElementCount
-        labelContainer.Size = UDim2.new(1, 0, 0, 25)
+        labelContainer.Size = UDim2.new(1, 0, 0, 24)
         labelContainer.BackgroundTransparency = 1
         labelContainer.LayoutOrder = self.ElementCount
         labelContainer.Parent = self.ContentContainer
         
-        local labelText = BillsLib:CreateLabel("LabelText", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, labelContainer, 14)
+        local label = BillsLib:CreateLabel("TextLabel", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, labelContainer, 14)
         
-        return labelText
+        -- Label API
+        local labelObj = {}
+        labelObj.Instance = labelContainer
+        
+        function labelObj:SetText(newText)
+            label.Text = newText
+        end
+        
+        return labelObj
     end
     
     -- AddButton
     function sectionObj:AddButton(text, callback)
         self.ElementCount = self.ElementCount + 1
+        callback = callback or function() end
         
         local buttonContainer = Instance.new("Frame")
         buttonContainer.Name = "Button_" .. self.ElementCount
@@ -634,23 +604,42 @@ function BillsLib:CreateSection(tab, title)
         buttonContainer.LayoutOrder = self.ElementCount
         buttonContainer.Parent = self.ContentContainer
         
-        local button = BillsLib:CreateTextButton("Button", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.Accent, BillsLib.Theme.TextColor, callback, buttonContainer, 6)
+        local button = BillsLib:CreateTextButton("Button", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.Accent, BillsLib.Theme.TextColor, callback, buttonContainer, 4)
         
+        -- Button ripple effect
+        button.MouseButton1Down:Connect(function()
+            local ripple = Instance.new("Frame")
+            ripple.Name = "Ripple"
+            ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+            ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+            ripple.BorderSizePixel = 0
+            ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            ripple.BackgroundTransparency = 0.8
+            ripple.ZIndex = button.ZIndex + 1
+            ripple.Parent = button
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(1, 0) -- Circle
+            corner.Parent = ripple
+            
+            -- Animate ripple
+            ripple.Size = UDim2.new(0, 0, 0, 0)
+            local targetSize = UDim2.new(0, button.AbsoluteSize.X * 1.5, 0, button.AbsoluteSize.X * 1.5)
+            
+            local growTween = CreateTween(ripple, 0.5, {Size = targetSize, BackgroundTransparency = 1})
+            growTween:Play()
+            
+            growTween.Completed:Connect(function()
+                ripple:Destroy()
+            end)
+        end)
+        
+        -- Button API
         local buttonObj = {}
-        buttonObj.Instance = button
+        buttonObj.Instance = buttonContainer
         
         function buttonObj:SetText(newText)
             button.Text = newText
-        end
-        
-        function buttonObj:SetCallback(newCallback)
-            -- Remove old connections
-            for _, connection in pairs(getconnections(button.MouseButton1Click)) do
-                connection:Disconnect()
-            end
-            
-            -- Add new callback
-            button.MouseButton1Click:Connect(newCallback)
         end
         
         return buttonObj
@@ -659,6 +648,8 @@ function BillsLib:CreateSection(tab, title)
     -- AddToggle
     function sectionObj:AddToggle(text, default, callback)
         self.ElementCount = self.ElementCount + 1
+        default = default or false
+        callback = callback or function() end
         
         local toggleContainer = Instance.new("Frame")
         toggleContainer.Name = "Toggle_" .. self.ElementCount
@@ -667,65 +658,65 @@ function BillsLib:CreateSection(tab, title)
         toggleContainer.LayoutOrder = self.ElementCount
         toggleContainer.Parent = self.ContentContainer
         
-        local toggleLabel = BillsLib:CreateLabel("ToggleLabel", text, UDim2.new(1, -50, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, toggleContainer, 14)
+        local toggleLabel = BillsLib:CreateLabel("ToggleLabel", text, UDim2.new(1, -54, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, toggleContainer, 14)
         
-        local toggleButton = BillsLib:CreateRoundFrame("ToggleButton", UDim2.new(0, 40, 0, 20), UDim2.new(1, -45, 0.5, -10), BillsLib.Theme.ToggleBackground, toggleContainer, 10)
+        local toggleButton = BillsLib:CreateRoundFrame("ToggleButton", UDim2.new(0, 44, 0, 24), UDim2.new(1, -49, 0.5, -12), BillsLib.Theme.ToggleBackground, toggleContainer, 12)
         
-        local toggleCircle = BillsLib:CreateRoundFrame("ToggleCircle", UDim2.new(0, 16, 0, 16), UDim2.new(0, 2, 0.5, -8), BillsLib.Theme.TextColor, toggleButton, 8)
+        local toggleCircle = Instance.new("Frame")
+        toggleCircle.Name = "ToggleCircle"
+        toggleCircle.Size = UDim2.new(0, 18, 0, 18)
+        toggleCircle.Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+        toggleCircle.BackgroundColor3 = BillsLib.Theme.TextColor
+        toggleCircle.BorderSizePixel = 0
+        toggleCircle.ZIndex = toggleButton.ZIndex + 1
+        toggleCircle.Parent = toggleButton
         
-        local toggleState = default or false
+        local circleCorner = Instance.new("UICorner")
+        circleCorner.CornerRadius = UDim.new(1, 0)
+        circleCorner.Parent = toggleCircle
         
-        -- Set initial state
-        if toggleState then
-            toggleCircle.Position = UDim2.new(1, -18, 0.5, -8)
-            toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleFill
+        -- Toggle state
+        local enabled = default
+        
+        -- Update toggle appearance based on state
+        local function updateToggle()
+            CreateTween(toggleCircle, 0.2, {
+                Position = enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+            }):Play()
+            
+            CreateTween(toggleButton, 0.2, {
+                BackgroundColor3 = enabled and BillsLib.Theme.ToggleFill or BillsLib.Theme.ToggleBackground
+            }):Play()
+            
+            callback(enabled)
         end
         
         -- Toggle interaction
         toggleButton.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                toggleState = not toggleState
-                
-                -- Animate position
-                if toggleState then
-                    CreateTween(toggleCircle, 0.2, {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
-                    CreateTween(toggleButton, 0.2, {BackgroundColor3 = BillsLib.Theme.ToggleFill}):Play()
-                else
-                    CreateTween(toggleCircle, 0.2, {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
-                    CreateTween(toggleButton, 0.2, {BackgroundColor3 = BillsLib.Theme.ToggleBackground}):Play()
-                end
-                
-                -- Call callback
-                callback(toggleState)
+                enabled = not enabled
+                updateToggle()
             end
         end)
         
         -- Toggle API
         local toggleObj = {}
         toggleObj.Instance = toggleContainer
-        toggleObj.Value = toggleState
         
         function toggleObj:SetValue(value)
-            if value ~= toggleState then
-                toggleState = value
-                toggleObj.Value = value
-                
-                -- Update visuals
-                if toggleState then
-                    toggleCircle.Position = UDim2.new(1, -18, 0.5, -8)
-                    toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleFill
-                else
-                    toggleCircle.Position = UDim2.new(0, 2, 0.5, -8)
-                    toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleBackground
-                end
-                
-                -- Call callback
-                callback(toggleState)
+            if type(value) == "boolean" and value ~= enabled then
+                enabled = value
+                updateToggle()
             end
         end
         
         function toggleObj:GetValue()
-            return toggleState
+            return enabled
+        end
+        
+        function toggleObj:Toggle()
+            enabled = not enabled
+            updateToggle()
         end
         
         return toggleObj
@@ -734,7 +725,11 @@ function BillsLib:CreateSection(tab, title)
     -- AddSlider
     function sectionObj:AddSlider(text, min, max, default, decimals, callback)
         self.ElementCount = self.ElementCount + 1
+        min = min or 0
+        max = max or 100
+        default = math.clamp(default or min, min, max)
         decimals = decimals or 0
+        callback = callback or function() end
         
         local sliderContainer = Instance.new("Frame")
         sliderContainer.Name = "Slider_" .. self.ElementCount
@@ -743,94 +738,79 @@ function BillsLib:CreateSection(tab, title)
         sliderContainer.LayoutOrder = self.ElementCount
         sliderContainer.Parent = self.ContentContainer
         
-        local sliderLabel = BillsLib:CreateLabel("SliderLabel", text, UDim2.new(1, -50, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, sliderContainer, 14)
+        local sliderLabel = BillsLib:CreateLabel("SliderLabel", text, UDim2.new(1, 0, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, sliderContainer, 14)
         
-        local sliderValueLabel = BillsLib:CreateLabel("SliderValue", tostring(default), UDim2.new(0, 40, 0, 20), UDim2.new(1, -45, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, sliderContainer, 14, Enum.TextXAlignment.Right)
+        local valueLabel = BillsLib:CreateLabel("ValueLabel", tostring(RoundNumber(default, decimals)), UDim2.new(0, 50, 0, 20), UDim2.new(1, -55, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSansSemibold, sliderContainer, 14, Enum.TextXAlignment.Right)
         
-        local sliderTrack = BillsLib:CreateRoundFrame("SliderTrack", UDim2.new(1, -10, 0, 6), UDim2.new(0, 5, 0, 30), BillsLib.Theme.SliderBackground, sliderContainer, 3)
+        local sliderBar = BillsLib:CreateRoundFrame("SliderBar", UDim2.new(1, 0, 0, 6), UDim2.new(0, 0, 0, 32), BillsLib.Theme.SliderBackground, sliderContainer, 3)
         
-        local sliderFill = BillsLib:CreateRoundFrame("SliderFill", UDim2.new(0, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.SliderFill, sliderTrack, 3)
+        local sliderFill = BillsLib:CreateRoundFrame("SliderFill", UDim2.new((default - min) / (max - min), 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.SliderFill, sliderBar, 3)
         
-        local sliderButton = BillsLib:CreateRoundFrame("SliderButton", UDim2.new(0, 14, 0, 14), UDim2.new(0, -7, 0.5, -7), BillsLib.Theme.Accent, sliderFill, 7)
+        local sliderKnob = Instance.new("Frame")
+        sliderKnob.Name = "SliderKnob"
+        sliderKnob.Size = UDim2.new(0, 12, 0, 12)
+        sliderKnob.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
+        sliderKnob.BackgroundColor3 = BillsLib.Theme.TextColor
+        sliderKnob.BorderSizePixel = 0
+        sliderKnob.ZIndex = sliderBar.ZIndex + 1
+        sliderKnob.Parent = sliderBar
         
-        -- Calculate initial fill based on default value
-        local range = max - min
-        local initialFillRatio = (default - min) / range
-        sliderFill.Size = UDim2.new(initialFillRatio, 0, 1, 0)
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = sliderKnob
         
-        -- Set initial value
+        -- Slider state
         local value = default
-        sliderValueLabel.Text = tostring(RoundNumber(value, decimals))
+        
+        -- Update slider visuals and value
+        local function updateSlider(newValue)
+            value = math.clamp(newValue, min, max)
+            local scaledValue = (value - min) / (max - min)
+            
+            CreateTween(sliderFill, 0.1, {Size = UDim2.new(scaledValue, 0, 1, 0)}):Play()
+            CreateTween(sliderKnob, 0.1, {Position = UDim2.new(scaledValue, -6, 0.5, -6)}):Play()
+            
+            valueLabel.Text = tostring(RoundNumber(value, decimals))
+            callback(value)
+        end
         
         -- Slider interaction
-        local dragging = false
-        
-        -- Mouse down
-        sliderTrack.InputBegan:Connect(function(input)
+        sliderBar.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
+                local dragging = true
                 
-                -- Update on initial click
-                local relativePos = input.Position.X - sliderTrack.AbsolutePosition.X
-                local percent = math.clamp(relativePos / sliderTrack.AbsoluteSize.X, 0, 1)
+                local function updateFromMouse()
+                    local relativeX = math.clamp((Mouse.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
+                    local newValue = min + (relativeX * (max - min))
+                    updateSlider(newValue)
+                end
                 
-                -- Update fill
-                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                updateFromMouse()
                 
-                -- Calculate value
-                local newValue = min + (range * percent)
-                value = RoundNumber(newValue, decimals)
-                sliderValueLabel.Text = tostring(value)
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if dragging then
+                        updateFromMouse()
+                    else
+                        connection:Disconnect()
+                    end
+                end)
                 
-                -- Call callback
-                callback(value)
-            end
-        end)
-        
-        -- Mouse up
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-        
-        -- Mouse move
-        UserInputService.InputChanged:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local relativePos = input.Position.X - sliderTrack.AbsolutePosition.X
-                local percent = math.clamp(relativePos / sliderTrack.AbsoluteSize.X, 0, 1)
-                
-                -- Update fill
-                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-                
-                -- Calculate value
-                local newValue = min + (range * percent)
-                value = RoundNumber(newValue, decimals)
-                sliderValueLabel.Text = tostring(value)
-                
-                -- Call callback
-                callback(value)
+                UserInputService.InputEnded:Connect(function(endInput)
+                    if (endInput.UserInputType == Enum.UserInputType.MouseButton1 or 
+                        endInput.UserInputType == Enum.UserInputType.Touch) then
+                        dragging = false
+                    end
+                end)
             end
         end)
         
         -- Slider API
         local sliderObj = {}
         sliderObj.Instance = sliderContainer
-        sliderObj.Value = value
         
         function sliderObj:SetValue(newValue)
-            -- Clamp and round
-            newValue = math.clamp(newValue, min, max)
-            value = RoundNumber(newValue, decimals)
-            sliderObj.Value = value
-            
-            -- Update visual
-            local percent = (value - min) / range
-            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderValueLabel.Text = tostring(value)
-            
-            -- Call callback
-            callback(value)
+            updateSlider(newValue)
         end
         
         function sliderObj:GetValue()
@@ -843,305 +823,180 @@ function BillsLib:CreateSection(tab, title)
     -- AddDropdown
     function sectionObj:AddDropdown(text, options, default, callback)
         self.ElementCount = self.ElementCount + 1
+        options = options or {}
+        default = default or (options[1] or "")
+        callback = callback or function() end
         
         local dropdownContainer = Instance.new("Frame")
         dropdownContainer.Name = "Dropdown_" .. self.ElementCount
-        dropdownContainer.Size = UDim2.new(1, 0, 0, 60)
+        dropdownContainer.Size = UDim2.new(1, 0, 0, 52)
         dropdownContainer.BackgroundTransparency = 1
         dropdownContainer.LayoutOrder = self.ElementCount
         dropdownContainer.Parent = self.ContentContainer
         
         local dropdownLabel = BillsLib:CreateLabel("DropdownLabel", text, UDim2.new(1, 0, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownContainer, 14)
         
-        local dropdownButton = BillsLib:CreateRoundFrame("DropdownButton", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, dropdownContainer, 6)
+        local dropdownButton = BillsLib:CreateRoundFrame("DropdownButton", UDim2.new(1, 0, 0, 32), UDim2.new(0, 0, 0, 20), BillsLib.Theme.DropdownBackground, dropdownContainer, 4)
         
-        -- Add dropdown icon
-        local dropdownIcon = Instance.new("ImageLabel")
-        dropdownIcon.Name = "DropdownIcon"
-        dropdownIcon.Size = UDim2.new(0, 16, 0, 16)
-        dropdownIcon.Position = UDim2.new(1, -30, 0.5, -8)
-        dropdownIcon.BackgroundTransparency = 1
-        dropdownIcon.Image = BillsLib.Icons.Dropdown
-        dropdownIcon.ImageColor3 = BillsLib.Theme.Accent
-        dropdownIcon.ZIndex = 12
-        dropdownIcon.Parent = dropdownButton
+        local selectedText = BillsLib:CreateLabel("SelectedText", default, UDim2.new(1, -30, 1, 0), UDim2.new(0, 10, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownButton, 14)
         
-        -- Add glow effect to button
-        local dropdownGlow = Instance.new("ImageLabel")
-        dropdownGlow.Name = "DropdownGlow"
-        dropdownGlow.Size = UDim2.new(1, 10, 1, 10)
-        dropdownGlow.Position = UDim2.new(0, -5, 0, -5)
-        dropdownGlow.BackgroundTransparency = 1
-        dropdownGlow.Image = "rbxassetid://4996891970" -- Glow asset
-        dropdownGlow.ImageColor3 = BillsLib.Theme.Accent
-        dropdownGlow.ImageTransparency = 0.9
-        dropdownGlow.ScaleType = Enum.ScaleType.Slice
-        dropdownGlow.SliceCenter = Rect.new(20, 20, 280, 280)
-        dropdownGlow.ZIndex = 11
-        dropdownGlow.Parent = dropdownButton
+        local dropdownArrow = Instance.new("ImageLabel")
+        dropdownArrow.Name = "DropdownArrow"
+        dropdownArrow.Size = UDim2.new(0, 16, 0, 16)
+        dropdownArrow.Position = UDim2.new(1, -24, 0.5, -8)
+        dropdownArrow.BackgroundTransparency = 1
+        dropdownArrow.Image = BillsLib.Icons.Dropdown
+        dropdownArrow.ImageColor3 = BillsLib.Theme.TextColor
+        dropdownArrow.ZIndex = dropdownButton.ZIndex + 1
+        dropdownArrow.Parent = dropdownButton
         
-        -- Gradient for button
-        local dropdownGradient = Instance.new("UIGradient")
-        dropdownGradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, BillsLib.Theme.InputBackground),
-            ColorSequenceKeypoint.new(1, BillsLib.Theme.InputBackground:Lerp(BillsLib.Theme.Accent, 0.1))
-        })
-        dropdownGradient.Rotation = 90
-        dropdownGradient.Parent = dropdownButton
+        -- Dropdown menu
+        local dropdownMenu = Instance.new("Frame")
+        dropdownMenu.Name = "DropdownMenu"
+        dropdownMenu.Size = UDim2.new(1, 0, 0, 0) -- Will be sized based on options
+        dropdownMenu.Position = UDim2.new(0, 0, 1, 2)
+        dropdownMenu.BackgroundColor3 = BillsLib.Theme.DropdownBackground
+        dropdownMenu.BorderSizePixel = 0
+        dropdownMenu.ZIndex = dropdownButton.ZIndex + 2
+        dropdownMenu.Visible = false
+        dropdownMenu.Parent = dropdownButton
         
-        local selectedText = default or "Select an option"
-        local dropdownText = BillsLib:CreateLabel("DropdownText", selectedText, UDim2.new(1, -40, 1, 0), UDim2.new(0, 10, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownButton, 14)
-        dropdownText.ZIndex = 12
+        local menuCorner = Instance.new("UICorner")
+        menuCorner.CornerRadius = UDim.new(0, 4)
+        menuCorner.Parent = dropdownMenu
         
-        -- Create overlay for the entire UI to catch outside clicks (helping with Z-index issues)
-        local dropdownOverlay = Instance.new("Frame")
-        dropdownOverlay.Name = "DropdownOverlay"
-        dropdownOverlay.Size = UDim2.new(1, 0, 1, 0)
-        dropdownOverlay.Position = UDim2.new(0, 0, 0, 0)
-        dropdownOverlay.BackgroundTransparency = 1
-        dropdownOverlay.Visible = false
-        dropdownOverlay.ZIndex = 998 -- Very high z-index to be above everything except dropdown
-        dropdownOverlay.Active = true -- Required to capture input
+        local menuLayout = Instance.new("UIListLayout")
+        menuLayout.Padding = UDim.new(0, 2)
+        menuLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        menuLayout.Parent = dropdownMenu
         
-        -- Ensure the overlay is a direct child of the ScreenGui to cover everything
-        local screenGui = BillsLib.ScreenGui
-        if screenGui then
-            dropdownOverlay.Parent = screenGui
-        end
+        -- Dropdown state
+        local selected = default
+        local menuOpen = false
         
-        -- Options menu
-        local optionsMenu = Instance.new("Frame")
-        optionsMenu.Name = "OptionsMenu"
-        optionsMenu.Size = UDim2.new(1, 0, 0, 0)
-        optionsMenu.Position = UDim2.new(0, 0, 1, 5)
-        optionsMenu.BackgroundColor3 = BillsLib.Theme.DropdownBackground
-        optionsMenu.BorderSizePixel = 0
-        optionsMenu.Visible = false
-        optionsMenu.ZIndex = 999 -- Higher than everything
-        optionsMenu.Parent = dropdownButton
-        
-        local optionsCorner = Instance.new("UICorner")
-        optionsCorner.CornerRadius = UDim.new(0, 6)
-        optionsCorner.Parent = optionsMenu
-        
-        -- Add neon border to options menu
-        local optionsBorder = Instance.new("UIStroke")
-        optionsBorder.Color = BillsLib.Theme.Accent
-        optionsBorder.Thickness = 1.5
-        optionsBorder.Transparency = 0.5
-        optionsBorder.Parent = optionsMenu
-        
-        local optionsLayout = Instance.new("UIListLayout")
-        optionsLayout.Padding = UDim.new(0, 2)
-        optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        optionsLayout.Parent = optionsMenu
-        
-        local optionsPadding = Instance.new("UIPadding")
-        optionsPadding.PaddingTop = UDim.new(0, 5)
-        optionsPadding.PaddingBottom = UDim.new(0, 5)
-        optionsPadding.PaddingLeft = UDim.new(0, 5)
-        optionsPadding.PaddingRight = UDim.new(0, 5)
-        optionsPadding.Parent = optionsMenu
-        
-        -- Selected value
-        local selectedOption = default or nil
-        
-        -- Populate options
-        local function populateOptions(optionsList)
+        -- Create option buttons
+        local function createOptions()
             -- Clear existing options
-            for _, child in pairs(optionsMenu:GetChildren()) do
+            for _, child in ipairs(dropdownMenu:GetChildren()) do
                 if child:IsA("TextButton") then
                     child:Destroy()
                 end
             end
             
-            -- Add new options
-            for i, option in ipairs(optionsList) do
+            -- Create new options
+            for i, option in ipairs(options) do
                 local optionButton = Instance.new("TextButton")
                 optionButton.Name = "Option_" .. i
-                optionButton.Size = UDim2.new(1, -10, 0, 30)
+                optionButton.Size = UDim2.new(1, 0, 0, 28)
                 optionButton.BackgroundColor3 = BillsLib.Theme.DropdownBackground
-                optionButton.BackgroundTransparency = 0.5
                 optionButton.Text = option
                 optionButton.TextColor3 = BillsLib.Theme.TextColor
-                optionButton.Font = Enum.Font.SourceSans
                 optionButton.TextSize = 14
-                optionButton.TextXAlignment = Enum.TextXAlignment.Left
+                optionButton.Font = Enum.Font.SourceSans
                 optionButton.BorderSizePixel = 0
-                optionButton.ZIndex = 1000 -- Higher than everything
-                optionButton.Parent = optionsMenu
+                optionButton.ZIndex = dropdownMenu.ZIndex
+                optionButton.Parent = dropdownMenu
                 
-                -- Highlight if this is the selected option
-                if option == selectedOption then
-                    optionButton.BackgroundColor3 = BillsLib.Theme.Accent
-                    optionButton.BackgroundTransparency = 0.7
-                end
-                
-                -- Corner
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 4)
-                corner.Parent = optionButton
-                
-                -- Option selection
-                optionButton.MouseButton1Click:Connect(function()
-                    selectedOption = option
-                    if dropdownText then
-                        dropdownText.Text = option
-                    end
-                    
-                    -- Hide menu and overlay
-                    optionsMenu.Visible = false
-                    dropdownOverlay.Visible = false
-                    
-                    -- Call callback
-                    callback(option)
-                end)
-                
-                -- Hover effect
+                -- Option hovering
                 optionButton.MouseEnter:Connect(function()
-                    if option ~= selectedOption then
-                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.3}):Play()
-                    end
+                    CreateTween(optionButton, 0.2, {BackgroundColor3 = BillsLib.Theme.Accent}):Play()
                 end)
                 
                 optionButton.MouseLeave:Connect(function()
-                    if option ~= selectedOption then
-                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.5}):Play()
-                    else
-                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.7}):Play()
-                    end
+                    CreateTween(optionButton, 0.2, {BackgroundColor3 = BillsLib.Theme.DropdownBackground}):Play()
+                end)
+                
+                -- Option selection
+                optionButton.MouseButton1Click:Connect(function()
+                    selected = option
+                    selectedText.Text = option
+                    
+                    menuOpen = false
+                    dropdownMenu.Visible = false
+                    callback(selected)
                 end)
             end
             
-            -- Update menu size based on content
-            optionsMenu.Size = UDim2.new(1, 0, 0, math.min(200, optionsLayout.AbsoluteContentSize.Y + 10))
+            -- Update menu size
+            dropdownMenu.Size = UDim2.new(1, 0, 0, math.min(#options * 30, 150))
+            dropdownMenu.CanvasSize = UDim2.new(0, 0, 0, #options * 30)
         end
         
-        -- Initial population
-        populateOptions(options)
+        -- Initialize options
+        createOptions()
         
-        -- Toggle dropdown
+        -- Toggle dropdown menu
         dropdownButton.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                -- Toggle menu and overlay
-                local isVisible = not optionsMenu.Visible
-                optionsMenu.Visible = isVisible
-                dropdownOverlay.Visible = isVisible
+                menuOpen = not menuOpen
+                dropdownMenu.Visible = menuOpen
                 
-                -- Update button appearance
-                if isVisible then
-                    -- Rotate dropdown icon
-                    CreateTween(dropdownIcon, 0.3, {Rotation = 180}):Play()
-                    
-                    -- Make glow more visible
-                    CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.7}):Play()
-                    
-                    -- Position menu properly - check if it needs to go up instead of down
-                    local absolutePosition = dropdownButton.AbsolutePosition
-                    local screenSize = Camera.ViewportSize
-                    
-                    -- Convert optionsMenu size to absolute pixels
-                    local menuHeight = optionsMenu.AbsoluteSize.Y
-                    
-                    -- Check if menu would extend below screen
-                    if (absolutePosition.Y + dropdownButton.AbsoluteSize.Y + menuHeight) > screenSize.Y then
-                        -- Position above button
-                        optionsMenu.Position = UDim2.new(0, 0, 0, -menuHeight - 5)
-                    else
-                        -- Position below button
-                        optionsMenu.Position = UDim2.new(0, 0, 1, 5)
-                    end
-                else
-                    -- Reset dropdown icon
-                    CreateTween(dropdownIcon, 0.3, {Rotation = 0}):Play()
-                    
-                    -- Reset glow
-                    CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.9}):Play()
-                end
+                -- Animate arrow
+                local rotation = menuOpen and 180 or 0
+                CreateTween(dropdownArrow, 0.2, {Rotation = rotation}):Play()
             end
         end)
         
-        -- Handle clicking outside the dropdown to close it
-        dropdownOverlay.InputBegan:Connect(function(input)
+        -- Close menu when clicking elsewhere
+        UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                optionsMenu.Visible = false
-                dropdownOverlay.Visible = false
-                CreateTween(dropdownIcon, 0.3, {Rotation = 0}):Play()
-                CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.9}):Play()
+                if menuOpen then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local dropdownPos = dropdownButton.AbsolutePosition
+                    local dropdownSize = dropdownButton.AbsoluteSize
+                    local menuPos = dropdownMenu.AbsolutePosition
+                    local menuSize = dropdownMenu.AbsoluteSize
+                    
+                    local inDropdown = 
+                        mousePos.X >= dropdownPos.X and 
+                        mousePos.X <= dropdownPos.X + dropdownSize.X and 
+                        mousePos.Y >= dropdownPos.Y and 
+                        mousePos.Y <= dropdownPos.Y + dropdownSize.Y
+                        
+                    local inMenu = 
+                        mousePos.X >= menuPos.X and 
+                        mousePos.X <= menuPos.X + menuSize.X and 
+                        mousePos.Y >= menuPos.Y and 
+                        mousePos.Y <= menuPos.Y + menuSize.Y
+                        
+                    if not inDropdown and not inMenu then
+                        menuOpen = false
+                        dropdownMenu.Visible = false
+                        CreateTween(dropdownArrow, 0.2, {Rotation = 0}):Play()
+                    end
+                end
             end
         end)
         
         -- Dropdown API
         local dropdownObj = {}
         dropdownObj.Instance = dropdownContainer
-        dropdownObj.Options = options
-        dropdownObj.Value = selectedOption
-        
-        function dropdownObj:SetOptions(newOptions)
-            self.Options = newOptions
-            populateOptions(newOptions)
-            
-            -- If the previously selected option is no longer available, reset
-            local optionExists = false
-            for _, option in ipairs(newOptions) do
-                if option == selectedOption then
-                    optionExists = true
-                    break
-                end
-            end
-            
-            if not optionExists and #newOptions > 0 then
-                selectedOption = newOptions[1]
-                if dropdownText then
-                    dropdownText.Text = selectedOption
-                end
-                self.Value = selectedOption
-                callback(selectedOption)
-            elseif not optionExists then
-                selectedOption = nil
-                if dropdownText then
-                    dropdownText.Text = "Select an option"
-                end
-                self.Value = nil
-            end
-        end
         
         function dropdownObj:SetValue(option)
-            -- Check if option exists
-            local optionExists = false
-            for _, opt in ipairs(self.Options) do
-                if opt == option then
-                    optionExists = true
-                    break
-                end
-            end
-            
-            if optionExists then
-                selectedOption = option
-                if dropdownText then
-                    dropdownText.Text = option
-                end
-                self.Value = option
-                
-                -- Update option buttons
-                for _, child in pairs(optionsMenu:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        if child.Text == option then
-                            child.BackgroundColor3 = BillsLib.Theme.Accent
-                            child.BackgroundTransparency = 0.7
-                        else
-                            child.BackgroundColor3 = BillsLib.Theme.DropdownBackground
-                            child.BackgroundTransparency = 0.5
-                        end
-                    end
-                end
-                
-                callback(option)
+            if table.find(options, option) then
+                selected = option
+                selectedText.Text = option
+                callback(selected)
             end
         end
         
         function dropdownObj:GetValue()
-            return selectedOption
+            return selected
+        end
+        
+        function dropdownObj:SetOptions(newOptions, newValue)
+            options = newOptions
+            createOptions()
+            
+            if newValue and table.find(options, newValue) then
+                self:SetValue(newValue)
+            elseif not table.find(options, selected) and options[1] then
+                self:SetValue(options[1])
+            end
+        end
+        
+        function dropdownObj:Refresh(newOptions)
+            self:SetOptions(newOptions)
         end
         
         return dropdownObj
@@ -1150,24 +1005,26 @@ function BillsLib:CreateSection(tab, title)
     -- AddTextbox
     function sectionObj:AddTextbox(text, default, callback)
         self.ElementCount = self.ElementCount + 1
+        default = default or ""
+        callback = callback or function() end
         
         local textboxContainer = Instance.new("Frame")
         textboxContainer.Name = "Textbox_" .. self.ElementCount
-        textboxContainer.Size = UDim2.new(1, 0, 0, 60)
+        textboxContainer.Size = UDim2.new(1, 0, 0, 52)
         textboxContainer.BackgroundTransparency = 1
         textboxContainer.LayoutOrder = self.ElementCount
         textboxContainer.Parent = self.ContentContainer
         
         local textboxLabel = BillsLib:CreateLabel("TextboxLabel", text, UDim2.new(1, 0, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, textboxContainer, 14)
         
-        local textboxFrame = BillsLib:CreateRoundFrame("TextboxFrame", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, textboxContainer, 6)
+        local textboxFrame = BillsLib:CreateRoundFrame("TextboxFrame", UDim2.new(1, 0, 0, 32), UDim2.new(0, 0, 0, 20), BillsLib.Theme.InputBackground, textboxContainer, 4)
         
         local textbox = Instance.new("TextBox")
         textbox.Name = "Textbox"
-        textbox.Size = UDim2.new(1, -20, 1, 0)
-        textbox.Position = UDim2.new(0, 10, 0, 0)
+        textbox.Size = UDim2.new(1, -10, 1, 0)
+        textbox.Position = UDim2.new(0, 5, 0, 0)
         textbox.BackgroundTransparency = 1
-        textbox.Text = default or ""
+        textbox.Text = default
         textbox.PlaceholderText = "Enter text..."
         textbox.PlaceholderColor3 = BillsLib.Theme.PlaceholderColor
         textbox.TextColor3 = BillsLib.Theme.TextColor
@@ -1175,11 +1032,12 @@ function BillsLib:CreateSection(tab, title)
         textbox.TextSize = 14
         textbox.TextXAlignment = Enum.TextXAlignment.Left
         textbox.ClearTextOnFocus = false
+        textbox.ZIndex = textboxFrame.ZIndex + 1
         textbox.Parent = textboxFrame
         
-        -- Focus outline
+        -- Focus visual effect
         textbox.Focused:Connect(function()
-            CreateTween(textboxFrame, 0.2, {BackgroundColor3 = BillsLib.Theme.Accent:Lerp(BillsLib.Theme.InputBackground, 0.5)}):Play()
+            CreateTween(textboxFrame, 0.2, {BackgroundColor3 = BillsLib.Theme.Accent}):Play()
         end)
         
         textbox.FocusLost:Connect(function(enterPressed)
@@ -1192,7 +1050,7 @@ function BillsLib:CreateSection(tab, title)
         textboxObj.Instance = textboxContainer
         
         function textboxObj:SetValue(value)
-            textbox.Text = value or ""
+            textbox.Text = value
         end
         
         function textboxObj:GetValue()
@@ -1205,50 +1063,94 @@ function BillsLib:CreateSection(tab, title)
     -- AddColorPicker
     function sectionObj:AddColorPicker(text, default, callback)
         self.ElementCount = self.ElementCount + 1
-        default = default or Color3.fromRGB(255, 0, 0)
+        default = default or Color3.fromRGB(255, 255, 255)
+        callback = callback or function() end
         
         local colorPickerContainer = Instance.new("Frame")
         colorPickerContainer.Name = "ColorPicker_" .. self.ElementCount
-        colorPickerContainer.Size = UDim2.new(1, 0, 0, 60)
+        colorPickerContainer.Size = UDim2.new(1, 0, 0, 52)
         colorPickerContainer.BackgroundTransparency = 1
         colorPickerContainer.LayoutOrder = self.ElementCount
         colorPickerContainer.Parent = self.ContentContainer
         
-        local colorLabel = BillsLib:CreateLabel("ColorLabel", text, UDim2.new(1, -50, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, colorPickerContainer, 14)
+        local colorLabel = BillsLib:CreateLabel("ColorLabel", text, UDim2.new(1, -60, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, colorPickerContainer, 14)
         
-        local colorPreview = BillsLib:CreateRoundFrame("ColorPreview", UDim2.new(0, 30, 0, 20), UDim2.new(1, -40, 0, 0), default, colorPickerContainer, 4)
+        local colorButton = BillsLib:CreateRoundFrame("ColorButton", UDim2.new(0, 50, 0, 32), UDim2.new(1, -55, 0, 20), default, colorPickerContainer, 4)
         
-        local colorButton = BillsLib:CreateRoundFrame("ColorButton", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, colorPickerContainer, 6)
-        
-        -- Color picker popup
-        local pickerPopup = BillsLib:CreateRoundFrame("PickerPopup", UDim2.new(0, 200, 0, 230), UDim2.new(0.5, -100, 0, -240), BillsLib.Theme.Secondary, colorPickerContainer, 6)
-        pickerPopup.Visible = false
+        -- Create color picker popup (hidden initially)
+        local pickerPopup = Instance.new("Frame")
+        pickerPopup.Name = "PickerPopup"
+        pickerPopup.Size = UDim2.new(0, 200, 0, 240)
+        pickerPopup.Position = UDim2.new(1, 5, 0, 0)
+        pickerPopup.BackgroundColor3 = BillsLib.Theme.Secondary
+        pickerPopup.BorderSizePixel = 0
         pickerPopup.ZIndex = 100
+        pickerPopup.Visible = false
+        pickerPopup.Parent = colorButton
+        
+        local popupCorner = Instance.new("UICorner")
+        popupCorner.CornerRadius = UDim.new(0, 6)
+        popupCorner.Parent = pickerPopup
         
         -- Add shadow to popup
-        BillsLib:AddShadow(pickerPopup, 0.5, 20)
+        BillsLib:AddShadow(pickerPopup, 0.5, 15)
         
-        -- Color grid (hue/saturation)
-        local colorGrid = Instance.new("ImageLabel")
-        colorGrid.Name = "ColorGrid"
-        colorGrid.Size = UDim2.new(1, -20, 0, 150)
-        colorGrid.Position = UDim2.new(0, 10, 0, 10)
-        colorGrid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        colorGrid.BorderSizePixel = 0
-        colorGrid.Image = "rbxassetid://4155801252" -- Saturation/brightness gradient
+        -- Color preview
+        local colorPreview = BillsLib:CreateRoundFrame("ColorPreview", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 10), default, pickerPopup, 4)
+        colorPreview.ZIndex = 101
+        
+        -- Color grid (saturation/value)
+        local colorGrid = BillsLib:CreateRoundFrame("ColorGrid", UDim2.new(1, -20, 0, 100), UDim2.new(0, 10, 0, 60), Color3.fromRGB(255, 0, 0), pickerPopup, 4)
         colorGrid.ZIndex = 101
-        colorGrid.Parent = pickerPopup
         
-        local colorGridCorner = Instance.new("UICorner")
-        colorGridCorner.CornerRadius = UDim.new(0, 4)
-        colorGridCorner.Parent = colorGrid
+        -- Color grid gradient (white to transparent)
+        local whiteGradient = Instance.new("UIGradient")
+        whiteGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+        }
+        whiteGradient.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 1)
+        }
+        whiteGradient.Rotation = 90
+        whiteGradient.Parent = colorGrid
+        
+        -- Color grid gradient (black to transparent)
+        local blackGradient = Instance.new("UIGradient")
+        blackGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+        }
+        blackGradient.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0)
+        }
+        blackGradient.Rotation = 0
+        blackGradient.Parent = colorGrid
+        
+        -- Color grid selector
+        local gridSelector = Instance.new("Frame")
+        gridSelector.Name = "GridSelector"
+        gridSelector.Size = UDim2.new(0, 10, 0, 10)
+        gridSelector.Position = UDim2.new(1, -15, 0, 5)
+        gridSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        gridSelector.BorderSizePixel = 1
+        gridSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
+        gridSelector.ZIndex = 102
+        gridSelector.Parent = colorGrid
+        
+        local gridCorner = Instance.new("UICorner")
+        gridCorner.CornerRadius = UDim.new(1, 0) -- Circle
+        gridCorner.Parent = gridSelector
         
         -- Hue slider
         local hueSlider = BillsLib:CreateRoundFrame("HueSlider", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 170), Color3.fromRGB(255, 255, 255), pickerPopup, 4)
         hueSlider.ZIndex = 101
         
+        -- Hue gradient
         local hueGradient = Instance.new("UIGradient")
-        hueGradient.Color = ColorSequence.new({
+        hueGradient.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
             ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
             ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
@@ -1256,35 +1158,38 @@ function BillsLib:CreateSection(tab, title)
             ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
             ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
             ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-        })
+        }
         hueGradient.Parent = hueSlider
+        
+        -- Hue selector
+        local hueSelector = Instance.new("Frame")
+        hueSelector.Name = "HueSelector"
+        hueSelector.Size = UDim2.new(0, 5, 1, 0)
+        hueSelector.Position = UDim2.new(0, 0, 0, 0)
+        hueSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        hueSelector.BorderSizePixel = 1
+        hueSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
+        hueSelector.ZIndex = 102
+        hueSelector.Parent = hueSlider
         
         -- Alpha slider
         local alphaSlider = BillsLib:CreateRoundFrame("AlphaSlider", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 200), Color3.fromRGB(255, 255, 255), pickerPopup, 4)
         alphaSlider.ZIndex = 101
         
+        -- Create alpha gradient
         local alphaGradient = Instance.new("UIGradient")
-        alphaGradient.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 1)
-        })
+        alphaGradient.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0)
+        }
         alphaGradient.Parent = alphaSlider
         
-        -- Grid selector
-        local gridSelector = BillsLib:CreateRoundFrame("GridSelector", UDim2.new(0, 10, 0, 10), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), colorGrid, 5)
-        gridSelector.ZIndex = 102
-        gridSelector.BorderSizePixel = 1
-        gridSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
-        
-        -- Hue selector
-        local hueSelector = BillsLib:CreateRoundFrame("HueSelector", UDim2.new(0, 5, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), hueSlider, 2)
-        hueSelector.ZIndex = 102
-        hueSelector.BorderSizePixel = 1
-        hueSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
-        
         -- Alpha selector
-        local alphaSelector = BillsLib:CreateRoundFrame("AlphaSelector", UDim2.new(0, 5, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), alphaSlider, 2)
-        alphaSelector.ZIndex = 102
+        local alphaSelector = Instance.new("Frame")
+        alphaSelector.Name = "AlphaSelector"
+        alphaSelector.Size = UDim2.new(0, 5, 1, 0)
+        alphaSelector.Position = UDim2.new(0, 0, 0, 0)
+        alphaSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         alphaSelector.BorderSizePixel = 1
         alphaSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
         
@@ -1303,12 +1208,18 @@ function BillsLib:CreateSection(tab, title)
             local color = Color3.fromHSV(hue, sat, val)
             colorPreview.BackgroundColor3 = color
             colorGrid.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-            alphaGradient.Color = ColorSequence.new(color)
+            
+            -- Set alpha gradient color
+            local colorSequence = ColorSequence.new(color)
+            alphaGradient.Color = colorSequence
             
             -- Update selectors
             gridSelector.Position = UDim2.new(sat, -5, 1 - val, -5)
             hueSelector.Position = UDim2.new(hue, -2.5, 0, 0)
             alphaSelector.Position = UDim2.new(alpha, -2.5, 0, 0)
+            
+            -- Update color button
+            colorButton.BackgroundColor3 = color
             
             -- Call callback
             callback(color, alpha)
@@ -1602,7 +1513,7 @@ function BillsLib:Notify(title, message, notifType, duration)
     self:AddShadow(notification, 0.3, 15)
     
     -- Calculate required height based on text
-    local messageLines = #message:split("\n")
+    local messageLines = #string.split(message, "\n")
     local requiredHeight = 40 + (messageLines * 18)
     
     -- Set notification type color
