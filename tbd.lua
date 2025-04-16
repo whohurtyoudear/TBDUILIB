@@ -1,11 +1,11 @@
 --[[
-    TBD UI Library V13 Final (v2)
+    TBD UI Library V13 Final (v3)
     A comprehensive UI library designed for Roblox script hubs and executors
-    Version: 3.0.0-V13.1
+    Version: 3.0.0-V13.2
 ]]
 
 local TBD = {
-    Version = "3.0.0-V13.1",
+    Version = "3.0.0-V13.2",
     Windows = {},
     _initialized = false,
     _theme = nil
@@ -575,12 +575,13 @@ TBD.NotificationSystem = {
         -- Add click event
         closeButton.MouseButton1Click:Connect(function()
             -- Close notification
-            notification:TweenSize(
-                UDim2.new(1, 0, 0, 0),
+            CreateTween(
+                notification,
+                {Size = UDim2.new(1, 0, 0, 0)},
                 Enum.EasingDirection.Out,
                 Enum.EasingStyle.Quad,
                 0.2,
-                true,
+                0,
                 function()
                     notification:Destroy()
                 end
@@ -632,14 +633,17 @@ TBD.NotificationSystem = {
         task.delay(duration, function()
             -- If notification still exists, close it
             if notification and notification.Parent then
-                notification:TweenSize(
-                    UDim2.new(1, 0, 0, 0),
+                CreateTween(
+                    notification,
+                    {Size = UDim2.new(1, 0, 0, 0)},
                     Enum.EasingDirection.Out,
                     Enum.EasingStyle.Quad,
                     0.2,
-                    true,
+                    0,
                     function()
-                        notification:Destroy()
+                        if notification and notification.Parent then
+                            notification:Destroy()
+                        end
                     end
                 )
             end
@@ -816,45 +820,58 @@ TBD.LoadingScreen = {
             self._subtitleLabel.Text = newSubtitle
         end
         
-        -- Finish
+        -- Finish with proper property handling for each instance type
         function loadingScreenObj:Finish(callback)
             -- Fade out
             local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             
-            local tween = services.TweenService:Create(self._background, tweenInfo, {
+            -- Create tween for background
+            local backgroundTween = services.TweenService:Create(self._background, tweenInfo, {
                 BackgroundTransparency = 1
             })
             
+            -- Create tween for container
             local containerTween = services.TweenService:Create(self._container, tweenInfo, {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0.5, 0, 0.6, 0)
             })
             
-            -- Fade out all text elements
+            -- Fade out all elements with proper property handling for each type
             for _, element in pairs(self._container:GetDescendants()) do
-                if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("ImageLabel") then
+                -- Different properties based on instance type
+                if element:IsA("TextLabel") then
+                    -- For text labels, tween text transparency
                     services.TweenService:Create(element, tweenInfo, {
                         TextTransparency = 1,
-                        TextStrokeTransparency = 1,
+                        TextStrokeTransparency = 1
+                    }):Play()
+                elseif element:IsA("ImageLabel") or element:IsA("ImageButton") then
+                    -- For image elements, tween image transparency
+                    services.TweenService:Create(element, tweenInfo, {
                         ImageTransparency = 1
                     }):Play()
                 elseif element:IsA("Frame") and not element.Name:find("Background") then
+                    -- For frames, tween background transparency
                     services.TweenService:Create(element, tweenInfo, {
                         BackgroundTransparency = 1
                     }):Play()
                 end
             end
             
-            -- Play tweens
-            tween:Play()
+            -- Play main tweens
+            backgroundTween:Play()
             containerTween:Play()
             
-            -- Wait for tweens to finish
-            task.delay(0.5, function()
-                -- Destroy loading screen
-                self._screenGui:Destroy()
+            -- Wait for tweens to finish then destroy
+            task.delay(0.6, function()
+                -- Safely destroy the screen GUI
+                pcall(function()
+                    if self._screenGui and self._screenGui.Parent then
+                        self._screenGui:Destroy()
+                    end
+                end)
                 
-                -- Call callback
+                -- Call callback if provided
                 if callback then
                     SafeCall(callback)
                 end
@@ -2371,55 +2388,6 @@ function TBD:CreateWindow(options)
                 dropdownArrow.ImageColor3 = windowObj._theme.TextSecondary
             end)
             
-            -- Function to add option
-            local function addOption(optionText)
-                -- Check if option already exists
-                for _, button in ipairs(optionButtons) do
-                    if button.Text == optionText then
-                        return
-                    end
-                end
-                
-                -- Add option to list
-                table.insert(options.Options, optionText)
-                
-                -- Create button
-                table.insert(optionButtons, createOptionButton(optionText))
-            end
-            
-            -- Function to remove option
-            local function removeOption(optionText)
-                -- Find option index
-                local optionIndex = nil
-                
-                for i, option in ipairs(options.Options) do
-                    if option == optionText then
-                        optionIndex = i
-                        break
-                    end
-                end
-                
-                -- Remove option if found
-                if optionIndex then
-                    table.remove(options.Options, optionIndex)
-                    
-                    -- Find and remove button
-                    for i, button in ipairs(optionButtons) do
-                        if button.Text == optionText then
-                            button:Destroy()
-                            table.remove(optionButtons, i)
-                            break
-                        end
-                    end
-                    
-                    -- Update selected option if it was removed
-                    if selectedOption == optionText then
-                        selectedOption = options.Options[1] or ""
-                        selectionLabel.Text = selectedOption
-                    end
-                end
-            end
-            
             -- Store dropdown object
             local dropdownObj = {
                 Frame = dropdown,
@@ -2452,12 +2420,51 @@ function TBD:CreateWindow(options)
                 
                 -- Add option
                 AddOption = function(self, value)
-                    addOption(value)
+                    -- Check if option already exists
+                    for _, button in ipairs(optionButtons) do
+                        if button.Text == value then
+                            return
+                        end
+                    end
+                    
+                    -- Add option to list
+                    table.insert(options.Options, value)
+                    
+                    -- Create button
+                    table.insert(optionButtons, createOptionButton(value))
                 end,
                 
                 -- Remove option
                 RemoveOption = function(self, value)
-                    removeOption(value)
+                    -- Find option index
+                    local optionIndex = nil
+                    
+                    for i, option in ipairs(options.Options) do
+                        if option == value then
+                            optionIndex = i
+                            break
+                        end
+                    end
+                    
+                    -- Remove option if found
+                    if optionIndex then
+                        table.remove(options.Options, optionIndex)
+                        
+                        -- Find and remove button
+                        for i, button in ipairs(optionButtons) do
+                            if button.Text == value then
+                                button:Destroy()
+                                table.remove(optionButtons, i)
+                                break
+                            end
+                        end
+                        
+                        -- Update selected option if it was removed
+                        if selectedOption == value then
+                            selectedOption = options.Options[1] or ""
+                            selectionLabel.Text = selectedOption
+                        end
+                    end
                 end
             }
             
