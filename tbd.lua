@@ -1,28 +1,32 @@
 --[[
-TBDLib - A modern, feature-rich Roblox UI library
-Version: 2.0.0 (April 2025)
-
-Cross-platform UI library specifically designed for script hubs and executors
-Features improved mobile support and a wide layout design.
-
-Recent improvements:
-- Fixed dropdown layering - Dropdowns now appear above other UI elements
-- Improved event handling with cross-platform compatibility
-- Enhanced notification system with better customization
-- Fixed UI toggle functionality - Now properly toggles UI visibility
-- Enhanced mobile support with larger touch targets
-- Added player info component with avatar and game stats
-- Fixed SelectTab function for proper content visibility
-- Added robust error handling throughout the codebase
+    TBDLib - A modern, feature-rich Roblox UI library
+    Version: 2.0.1 (April 2025)
+    
+    Cross-platform UI library specifically designed for script hubs and executors
+    Features improved mobile support and a wide layout design.
+    
+    Recent improvements:
+    - Fixed core initialization to prevent circular reference errors
+    - Added robust HTTP request handling with multiple executor fallbacks
+    - Improved GUI protection with better error handling
+    - Fixed dropdown layering - Dropdowns now appear above other UI elements
+    - Improved event handling with cross-platform compatibility
+    - Enhanced notification system with better customization
+    - Fixed UI toggle functionality - Now properly toggles UI visibility
+    - Enhanced mobile support with larger touch targets
+    - Added player info component with avatar and game stats
+    - Fixed SelectTab function for proper content visibility
+    - Added robust error handling throughout the codebase
 ]]
 
--- MAXIMUM COMPATIBILITY STRUCTURE - NO RETURN WRAPPERS
--- This structure is specifically designed to work with problematic executors
--- Using direct assignment to a local variable that's returned at the end with no wrapper functions
--- Create the library table
+-- CRITICAL CHANGE: Define ConfigFolder as a standalone variable BEFORE the TBDLib table
+-- This prevents circular references and is the key to making the library work consistently
+local ConfigFolder = "TBDLib" -- Default hardcoded value first
+
+-- Create the library table after defining ConfigFolder to avoid circular references
 local TBDLib = {
     Name = "TBDLib",
-    Version = "2.0.0",
+    Version = "2.0.1",
     Theme = {
         -- Main Colors
         Primary = Color3.fromRGB(28, 33, 54),       -- Main background
@@ -193,10 +197,9 @@ local Connections = {}
 local OpenFrames = {}
 local NotificationCount = 0
 local DraggingObject = nil
--- FIXED: Define ConfigFolder directly as a string to avoid circular reference
-local ConfigFolder = "TBDLib" -- Default hardcoded value
--- Then conditionally update it if TBDLib properties exist
-if TBDLib and TBDLib.ConfigSystem and TBDLib.ConfigSystem.Folder then
+
+-- ConfigFolder is already defined at the top of the file, but we'll update it if needed
+if TBDLib and TBDLib.ConfigSystem and TBDLib.ConfigSystem.Folder and TBDLib.ConfigSystem.Folder ~= ConfigFolder then
     ConfigFolder = TBDLib.ConfigSystem.Folder
 end
 
