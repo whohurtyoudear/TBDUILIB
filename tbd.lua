@@ -1,10 +1,10 @@
 --[[
     Bills Lib
     A comprehensive, modern UI Library for Roblox
-    Version 1.0.0
+    Version 1.0.1
     
     Features:
-    - Modern, clean aesthetic with glassmorphism
+    - Retro/neon synthwave aesthetic
     - Full component support (toggles, buttons, dropdowns, sliders, etc.)
     - Notification system
     - Window controls (minimize, close, drag)
@@ -12,6 +12,8 @@
     - Theme customization
     - Proper Z-index management
     - Memory leak prevention
+    
+    Created by Bill
 ]]
 
 -- Services
@@ -54,49 +56,57 @@ end
 
 -- Core Library
 local BillsLib = {
-    Version = "1.0.0",
+    Version = "1.0.1",
     Windows = {},
     Initialized = false,
     Theme = {
-        Primary = Color3.fromRGB(35, 35, 45),
-        Secondary = Color3.fromRGB(25, 25, 35),
-        Accent = Color3.fromRGB(114, 137, 218),
+        -- Retro/synthwave color scheme
+        Primary = Color3.fromRGB(20, 20, 40),
+        Secondary = Color3.fromRGB(15, 15, 30),
+        Accent = Color3.fromRGB(0, 200, 255),      -- Cyan
+        AccentGradient1 = Color3.fromRGB(0, 200, 255), -- Cyan
+        AccentGradient2 = Color3.fromRGB(255, 0, 200), -- Pink
         TextColor = Color3.fromRGB(255, 255, 255),
-        InputBackground = Color3.fromRGB(45, 45, 55),
-        NotificationBackground = Color3.fromRGB(35, 35, 45),
-        Success = Color3.fromRGB(87, 232, 107),
-        Warning = Color3.fromRGB(232, 187, 87),
-        Error = Color3.fromRGB(232, 87, 87),
-        Info = Color3.fromRGB(87, 177, 232),
-        DropdownBackground = Color3.fromRGB(40, 40, 50),
-        SliderBackground = Color3.fromRGB(50, 50, 60),
-        SliderFill = Color3.fromRGB(114, 137, 218),
-        ToggleBackground = Color3.fromRGB(50, 50, 60),
-        ToggleFill = Color3.fromRGB(114, 137, 218),
-        BorderColor = Color3.fromRGB(60, 60, 70),
+        InputBackground = Color3.fromRGB(30, 30, 50),
+        NotificationBackground = Color3.fromRGB(20, 20, 40),
+        Success = Color3.fromRGB(0, 255, 170),
+        Warning = Color3.fromRGB(255, 191, 0),
+        Error = Color3.fromRGB(255, 0, 128),
+        Info = Color3.fromRGB(0, 170, 255),
+        DropdownBackground = Color3.fromRGB(30, 30, 50),
+        SliderBackground = Color3.fromRGB(40, 40, 60),
+        SliderFill = Color3.fromRGB(0, 200, 255),
+        ToggleBackground = Color3.fromRGB(40, 40, 60),
+        ToggleFill = Color3.fromRGB(0, 200, 255),
+        BorderColor = Color3.fromRGB(0, 200, 255),
         PlaceholderColor = Color3.fromRGB(180, 180, 180),
-        TabBackground = Color3.fromRGB(30, 30, 40),
-        TabBackgroundSelected = Color3.fromRGB(45, 45, 55),
-        SectionBackground = Color3.fromRGB(35, 35, 45),
-        DividerColor = Color3.fromRGB(60, 60, 70)
+        TabBackground = Color3.fromRGB(25, 25, 45),
+        TabBackgroundSelected = Color3.fromRGB(35, 35, 60),
+        SectionBackground = Color3.fromRGB(25, 25, 45),
+        DividerColor = Color3.fromRGB(0, 200, 255),
+        Glow = Color3.fromRGB(0, 200, 255)
     },
     Icons = {
-        Close = "rbxassetid://3926305904",
-        Minimize = "rbxassetid://3926307971",
-        Settings = "rbxassetid://3926307971",
+        Close = "rbxassetid://11570895459", -- X icon
+        Minimize = "rbxassetid://11570886801", -- Minus icon
+        Settings = "rbxassetid://11571010545", -- Gear icon
+        Dashboard = "rbxassetid://11571269542", -- Home icon
+        Components = "rbxassetid://11571124882", -- Puzzle icon
+        Help = "rbxassetid://11571346458", -- Question mark
+        Logo = "rbxassetid://11571379977", -- Logo placeholder
         Notification = {
-            Success = "rbxassetid://9072647662",
-            Warning = "rbxassetid://9072664868",
-            Error = "rbxassetid://9072734898",
-            Info = "rbxassetid://9072718505"
+            Success = "rbxassetid://11571356503", -- Checkmark
+            Warning = "rbxassetid://11571352731", -- Warning triangle
+            Error = "rbxassetid://11571344309", -- Error X
+            Info = "rbxassetid://11571349138" -- Info i
         },
-        Dropdown = "rbxassetid://3926305904",
+        Dropdown = "rbxassetid://11571320677", -- Arrow down
         Toggle = {
-            On = "rbxassetid://3944680095",
-            Off = "rbxassetid://3944680095"
+            On = "rbxassetid://11571441859", -- Toggle on
+            Off = "rbxassetid://11571434310" -- Toggle off
         },
-        Slider = "rbxassetid://3926305904",
-        ColorPicker = "rbxassetid://3926305904"
+        Slider = "rbxassetid://11571438678", -- Slider circle
+        ColorPicker = "rbxassetid://11571283892" -- Color palette
     },
     Notifications = {},
     ToggleKey = Enum.KeyCode.RightShift,
@@ -845,14 +855,81 @@ function BillsLib:CreateSection(tab, title)
         
         local dropdownButton = BillsLib:CreateRoundFrame("DropdownButton", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, dropdownContainer, 6)
         
-        local dropdownText = BillsLib:CreateLabel("DropdownText", default or "Select an option", UDim2.new(1, -35, 1, 0), UDim2.new(0, 10, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownButton, 14)
+        -- Add dropdown icon
+        local dropdownIcon = Instance.new("ImageLabel")
+        dropdownIcon.Name = "DropdownIcon"
+        dropdownIcon.Size = UDim2.new(0, 16, 0, 16)
+        dropdownIcon.Position = UDim2.new(1, -30, 0.5, -8)
+        dropdownIcon.BackgroundTransparency = 1
+        dropdownIcon.Image = BillsLib.Icons.Dropdown
+        dropdownIcon.ImageColor3 = BillsLib.Theme.Accent
+        dropdownIcon.ZIndex = 12
+        dropdownIcon.Parent = dropdownButton
         
-        local dropdownArrow = BillsLib:CreateLabel("DropdownArrow", "▼", UDim2.new(0, 20, 1, 0), UDim2.new(1, -25, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSansBold, dropdownButton, 14)
+        -- Add glow effect to button
+        local dropdownGlow = Instance.new("ImageLabel")
+        dropdownGlow.Name = "DropdownGlow"
+        dropdownGlow.Size = UDim2.new(1, 10, 1, 10)
+        dropdownGlow.Position = UDim2.new(0, -5, 0, -5)
+        dropdownGlow.BackgroundTransparency = 1
+        dropdownGlow.Image = "rbxassetid://4996891970" -- Glow asset
+        dropdownGlow.ImageColor3 = BillsLib.Theme.Accent
+        dropdownGlow.ImageTransparency = 0.9
+        dropdownGlow.ScaleType = Enum.ScaleType.Slice
+        dropdownGlow.SliceCenter = Rect.new(20, 20, 280, 280)
+        dropdownGlow.ZIndex = 11
+        dropdownGlow.Parent = dropdownButton
+        
+        -- Gradient for button
+        local dropdownGradient = Instance.new("UIGradient")
+        dropdownGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, BillsLib.Theme.InputBackground),
+            ColorSequenceKeypoint.new(1, BillsLib.Theme.InputBackground:Lerp(BillsLib.Theme.Accent, 0.1))
+        })
+        dropdownGradient.Rotation = 90
+        dropdownGradient.Parent = dropdownButton
+        
+        local selectedText = default or "Select an option"
+        local dropdownText = BillsLib:CreateLabel("DropdownText", selectedText, UDim2.new(1, -40, 1, 0), UDim2.new(0, 10, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownButton, 14)
+        dropdownText.ZIndex = 12
+        
+        -- Create overlay for the entire UI to catch outside clicks (helping with Z-index issues)
+        local dropdownOverlay = Instance.new("Frame")
+        dropdownOverlay.Name = "DropdownOverlay"
+        dropdownOverlay.Size = UDim2.new(1, 0, 1, 0)
+        dropdownOverlay.Position = UDim2.new(0, 0, 0, 0)
+        dropdownOverlay.BackgroundTransparency = 1
+        dropdownOverlay.Visible = false
+        dropdownOverlay.ZIndex = 998 -- Very high z-index to be above everything except dropdown
+        dropdownOverlay.Active = true -- Required to capture input
+        
+        -- Ensure the overlay is a direct child of the ScreenGui to cover everything
+        local screenGui = BillsLib.ScreenGui
+        if screenGui then
+            dropdownOverlay.Parent = screenGui
+        end
         
         -- Options menu
-        local optionsMenu = BillsLib:CreateRoundFrame("OptionsMenu", UDim2.new(1, 0, 0, 0), UDim2.new(0, 0, 1, 5), BillsLib.Theme.DropdownBackground, dropdownButton, 6)
+        local optionsMenu = Instance.new("Frame")
+        optionsMenu.Name = "OptionsMenu"
+        optionsMenu.Size = UDim2.new(1, 0, 0, 0)
+        optionsMenu.Position = UDim2.new(0, 0, 1, 5)
+        optionsMenu.BackgroundColor3 = BillsLib.Theme.DropdownBackground
+        optionsMenu.BorderSizePixel = 0
         optionsMenu.Visible = false
-        optionsMenu.ZIndex = 100
+        optionsMenu.ZIndex = 999 -- Higher than everything
+        optionsMenu.Parent = dropdownButton
+        
+        local optionsCorner = Instance.new("UICorner")
+        optionsCorner.CornerRadius = UDim.new(0, 6)
+        optionsCorner.Parent = optionsMenu
+        
+        -- Add neon border to options menu
+        local optionsBorder = Instance.new("UIStroke")
+        optionsBorder.Color = BillsLib.Theme.Accent
+        optionsBorder.Thickness = 1.5
+        optionsBorder.Transparency = 0.5
+        optionsBorder.Parent = optionsMenu
         
         local optionsLayout = Instance.new("UIListLayout")
         optionsLayout.Padding = UDim.new(0, 2)
@@ -891,7 +968,7 @@ function BillsLib:CreateSection(tab, title)
                 optionButton.TextSize = 14
                 optionButton.TextXAlignment = Enum.TextXAlignment.Left
                 optionButton.BorderSizePixel = 0
-                optionButton.ZIndex = 100
+                optionButton.ZIndex = 1000 -- Higher than everything
                 optionButton.Parent = optionsMenu
                 
                 -- Highlight if this is the selected option
@@ -908,10 +985,13 @@ function BillsLib:CreateSection(tab, title)
                 -- Option selection
                 optionButton.MouseButton1Click:Connect(function()
                     selectedOption = option
-                    dropdownText.Text = option
+                    if dropdownText then
+                        dropdownText.Text = option
+                    end
                     
-                    -- Hide menu
+                    -- Hide menu and overlay
                     optionsMenu.Visible = false
+                    dropdownOverlay.Visible = false
                     
                     -- Call callback
                     callback(option)
@@ -933,8 +1013,8 @@ function BillsLib:CreateSection(tab, title)
                 end)
             end
             
-            -- Update menu size
-            optionsMenu.Size = UDim2.new(1, 0, 0, optionsLayout.AbsoluteContentSize.Y + 10)
+            -- Update menu size based on content
+            optionsMenu.Size = UDim2.new(1, 0, 0, math.min(200, optionsLayout.AbsoluteContentSize.Y + 10))
         end
         
         -- Initial population
@@ -943,64 +1023,51 @@ function BillsLib:CreateSection(tab, title)
         -- Toggle dropdown
         dropdownButton.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                optionsMenu.Visible = not optionsMenu.Visible
+                -- Toggle menu and overlay
+                local isVisible = not optionsMenu.Visible
+                optionsMenu.Visible = isVisible
+                dropdownOverlay.Visible = isVisible
                 
-                -- Update arrow
-                if optionsMenu.Visible then
-                    dropdownArrow.Text = "▲"
-                else
-                    dropdownArrow.Text = "▼"
-                end
-                
-                -- Position correctly to avoid overflow
-                if optionsMenu.Visible then
-                    -- Check if dropdown would go off the bottom of the screen
-                    local dropdownAbsPos = dropdownButton.AbsolutePosition
-                    local dropdownAbsSize = dropdownButton.AbsoluteSize
-                    local optionsAbsSize = optionsMenu.AbsoluteSize
+                -- Update button appearance
+                if isVisible then
+                    -- Rotate dropdown icon
+                    CreateTween(dropdownIcon, 0.3, {Rotation = 180}):Play()
+                    
+                    -- Make glow more visible
+                    CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.7}):Play()
+                    
+                    -- Position menu properly - check if it needs to go up instead of down
+                    local absolutePosition = dropdownButton.AbsolutePosition
                     local screenSize = Camera.ViewportSize
                     
-                    if (dropdownAbsPos.Y + dropdownAbsSize.Y + optionsAbsSize.Y) > screenSize.Y then
-                        -- Position above instead of below
-                        optionsMenu.Position = UDim2.new(0, 0, 0, -optionsAbsSize.Y - 5)
+                    -- Convert optionsMenu size to absolute pixels
+                    local menuHeight = optionsMenu.AbsoluteSize.Y
+                    
+                    -- Check if menu would extend below screen
+                    if (absolutePosition.Y + dropdownButton.AbsoluteSize.Y + menuHeight) > screenSize.Y then
+                        -- Position above button
+                        optionsMenu.Position = UDim2.new(0, 0, 0, -menuHeight - 5)
                     else
-                        -- Position below
+                        -- Position below button
                         optionsMenu.Position = UDim2.new(0, 0, 1, 5)
                     end
+                else
+                    -- Reset dropdown icon
+                    CreateTween(dropdownIcon, 0.3, {Rotation = 0}):Play()
+                    
+                    -- Reset glow
+                    CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.9}):Play()
                 end
             end
         end)
         
-        -- Close dropdown when clicking elsewhere
-        UserInputService.InputBegan:Connect(function(input)
+        -- Handle clicking outside the dropdown to close it
+        dropdownOverlay.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                local mousePos = UserInputService:GetMouseLocation()
-                
-                -- Check if click is outside dropdown
-                if optionsMenu.Visible then
-                    local dropdownAbsPos = dropdownButton.AbsolutePosition
-                    local dropdownAbsSize = dropdownButton.AbsoluteSize
-                    local optionsAbsPos = optionsMenu.AbsolutePosition
-                    local optionsAbsSize = optionsMenu.AbsoluteSize
-                    
-                    -- Check if click is outside both the dropdown button and options menu
-                    local inDropdownButton = 
-                        mousePos.X >= dropdownAbsPos.X and 
-                        mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and 
-                        mousePos.Y >= dropdownAbsPos.Y and 
-                        mousePos.Y <= dropdownAbsPos.Y + dropdownAbsSize.Y
-                    
-                    local inOptionsMenu = 
-                        mousePos.X >= optionsAbsPos.X and 
-                        mousePos.X <= optionsAbsPos.X + optionsAbsSize.X and 
-                        mousePos.Y >= optionsAbsPos.Y and 
-                        mousePos.Y <= optionsAbsPos.Y + optionsAbsSize.Y
-                    
-                    if not inDropdownButton and not inOptionsMenu then
-                        optionsMenu.Visible = false
-                        dropdownArrow.Text = "▼"
-                    end
-                end
+                optionsMenu.Visible = false
+                dropdownOverlay.Visible = false
+                CreateTween(dropdownIcon, 0.3, {Rotation = 0}):Play()
+                CreateTween(dropdownGlow, 0.3, {ImageTransparency = 0.9}):Play()
             end
         end)
         
@@ -1025,12 +1092,16 @@ function BillsLib:CreateSection(tab, title)
             
             if not optionExists and #newOptions > 0 then
                 selectedOption = newOptions[1]
-                dropdownText.Text = selectedOption
+                if dropdownText then
+                    dropdownText.Text = selectedOption
+                end
                 self.Value = selectedOption
                 callback(selectedOption)
             elseif not optionExists then
                 selectedOption = nil
-                dropdownText.Text = "Select an option"
+                if dropdownText then
+                    dropdownText.Text = "Select an option"
+                end
                 self.Value = nil
             end
         end
@@ -1047,7 +1118,9 @@ function BillsLib:CreateSection(tab, title)
             
             if optionExists then
                 selectedOption = option
-                dropdownText.Text = option
+                if dropdownText then
+                    dropdownText.Text = option
+                end
                 self.Value = option
                 
                 -- Update option buttons
