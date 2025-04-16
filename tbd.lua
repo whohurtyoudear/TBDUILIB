@@ -1,3271 +1,1708 @@
 --[[
-    TBDLib - A modern, feature-rich Roblox UI library
-    Version: 2.0.1 (April 2025)
+    Bills Lib
+    A comprehensive, modern UI Library for Roblox
+    Version 1.0.0
     
-    Cross-platform UI library specifically designed for script hubs and executors
-    Features improved mobile support and a wide layout design.
-    
-    Recent improvements:
-    - Fixed core initialization to prevent circular reference errors
-    - Added robust HTTP request handling with multiple executor fallbacks
-    - Improved GUI protection with better error handling
-    - Fixed dropdown layering - Dropdowns now appear above other UI elements
-    - Improved event handling with cross-platform compatibility
-    - Enhanced notification system with better customization
-    - Fixed UI toggle functionality - Now properly toggles UI visibility
-    - Enhanced mobile support with larger touch targets
-    - Added player info component with avatar and game stats
-    - Fixed SelectTab function for proper content visibility
-    - Added robust error handling throughout the codebase
+    Features:
+    - Modern, clean aesthetic with glassmorphism
+    - Full component support (toggles, buttons, dropdowns, sliders, etc.)
+    - Notification system
+    - Window controls (minimize, close, drag)
+    - Responsive design for both PC and mobile
+    - Theme customization
+    - Proper Z-index management
+    - Memory leak prevention
 ]]
 
--- CRITICAL CHANGE: Define ConfigFolder as a standalone variable BEFORE the TBDLib table
--- This prevents circular references and is the key to making the library work consistently
-local ConfigFolder = "TBDLib" -- Default hardcoded value first
-
--- Create the library table after defining ConfigFolder to avoid circular references
-local TBDLib = {
-    Name = "TBDLib",
-    Version = "2.0.1",
-    Theme = {
-        -- Main Colors
-        Primary = Color3.fromRGB(28, 33, 54),       -- Main background
-        Secondary = Color3.fromRGB(35, 40, 60),     -- Section backgrounds
-        Tertiary = Color3.fromRGB(42, 48, 70),      -- UI element backgrounds
-        Background = Color3.fromRGB(25, 28, 45),    -- Outermost background
-        
-        -- Accent Colors
-        Accent = Color3.fromRGB(113, 93, 196),      -- Main accent color
-        AccentDark = Color3.fromRGB(86, 70, 150),   -- Darker accent color
-        AccentLight = Color3.fromRGB(140, 120, 225),-- Lighter accent color
-        
-        -- Status Colors
-        Success = Color3.fromRGB(68, 214, 125),     -- Success color
-        Warning = Color3.fromRGB(255, 170, 0),      -- Warning color 
-        Error = Color3.fromRGB(255, 80, 80),        -- Error color
-        Info = Color3.fromRGB(80, 170, 245),        -- Info color
-        
-        -- Text Colors
-        Text = Color3.fromRGB(240, 240, 250),       -- Primary text color
-        TextDark = Color3.fromRGB(180, 180, 190),   -- Secondary text color
-        TextLight = Color3.fromRGB(255, 255, 255),  -- Bright text color
-        TextDisabled = Color3.fromRGB(140, 140, 150),-- Disabled text color
-
-        -- Misc
-        ControlBg = Color3.fromRGB(255, 255, 255),  -- Control elements
-        Border = Color3.fromRGB(50, 55, 75),        -- Border color
-        Divider = Color3.fromRGB(60, 65, 85),       -- Divider color
-        NotifBackground = Color3.fromRGB(35, 40, 60),-- Notif background
-        NotifText = Color3.fromRGB(240, 240, 250)   -- Notif text
-},
-    Windows = {},
-    Flags = {},
-    ConfigSystem = {
-        Folder = "TBDLib",
-        CurrentConfig = "default",
-        AutoSave = true
-    },
-    Icons = {
-        -- Window controls
-        Close = "rbxassetid://11436284823",
-        Minimize = "rbxassetid://11436290535",
-        Maximize = "rbxassetid://11436293815",
-        Split = "rbxassetid://11436357091",
-        Restore = "rbxassetid://11436348454",
-        
-        -- Navigation
-        Home = "rbxassetid://11482892823",
-        Settings = "rbxassetid://11482911926", 
-        Scripts = "rbxassetid://11482983864",
-        Hub = "rbxassetid://11482975131",
-        Plugins = "rbxassetid://11482999950",
-        Games = "rbxassetid://11483008454",
-        Search = "rbxassetid://11483028465",
-        
-        -- UI Elements
-        Toggle = "rbxassetid://11482968672",
-        ToggleEnabled = "rbxassetid://11482969091",
-        Dropdown = "rbxassetid://11482971699",
-        Slider = "rbxassetid://11482993241",
-        ColorPicker = "rbxassetid://11483009289",
-        Checkbox = "rbxassetid://11483015967",
-        CheckboxChecked = "rbxassetid://11483016401",
-        
-        -- Status Icons
-        Success = "rbxassetid://11483017272",
-        Warning = "rbxassetid://11483017830",
-        Error = "rbxassetid://11483018616",
-        Info = "rbxassetid://11483020604",
-        
-        -- Player Icons
-        Avatar = "rbxassetid://7962146544",
-        Crown = "rbxassetid://7733955740",
-        People = "rbxassetid://7743866529",
-        Server = "rbxassetid://10889391188",
-        Globe = "rbxassetid://9405893280",
-        Clock = "rbxassetid://7733674079",
-        
-        -- Misc Icons
-        Folder = "rbxassetid://11483033225",
-        File = "rbxassetid://11483033657",
-        Code = "rbxassetid://11483037364",
-        Bolt = "rbxassetid://11483038654",
-        Star = "rbxassetid://11483039206",
-        Key = "rbxassetid://11483040349",
-        Lock = "rbxassetid://11483040849",
-        Unlock = "rbxassetid://11483041299",
-        Clipboard = "rbxassetid://11483044588",
-        Copy = "rbxassetid://11483045117",
-        Notification = "rbxassetid://6031075699"
-    },
-    Animation = {
-        DefaultDuration = 0.25,
-        DefaultEasingStyle = Enum.EasingStyle.Quint,
-        DefaultEasingDirection = Enum.EasingDirection.Out
-    },
-    NotificationSettings = {
-        Position = "TopRight",     -- TopRight, TopLeft, BottomRight, BottomLeft
-        Duration = 3,              -- Default duration in seconds
-        Sound = true,              -- Play notification sound
-        SoundId = "rbxassetid://6518811702",
-        MaxNotifications = 5,      -- Maximum number of visible notifications
-        Style = "Modern"           -- Modern, Compact, Minimal
-    }
-}
-
 -- Services
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+local MarketplaceService = game:GetService("MarketplaceService")
 local TextService = game:GetService("TextService")
-local GuiService = game:GetService("GuiService")
-
--- Safe CoreGui reference (handles edge cases with executors)
-local CoreGui
-local PlayerGui
-
--- Try multiple methods to get a valid GUI parent
-local function SafeGetGuiParent()
-    -- Method 1: Try standard CoreGui
-    local success1, coreGui = pcall(function()
-        return game:GetService("CoreGui")
-    end)
-
-    -- Method 2: Try getting the PlayerGui
-    local success2, playerGui = pcall(function()
-        return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    end)
-
-    -- Method 3: Try through gethui() (used by some executors)
-    local success3, gethuiGui = pcall(function()
-        return gethui and gethui() or nil
-    end)
-
-    -- Return the first successful method
-    if success1 and coreGui then
-        return coreGui, "CoreGui" 
-    elseif success3 and gethuiGui then
-        return gethuiGui, "gethui"
-    elseif success2 and playerGui then
-        return playerGui, "PlayerGui"
-    else
-        -- Fallback to a direct PlayerGui reference as last resort
-        local player = game:GetService("Players").LocalPlayer
-        if player and player:FindFirstChildOfClass("PlayerGui") then
-            return player:FindFirstChildOfClass("PlayerGui"), "FallbackPlayerGui"
-        end
-    end
-
-    -- If all else fails, return a warning and use CoreGui anyway
-    warn("TBDLib: Failed to get a valid GUI parent, using CoreGui as fallback")
-    return game:GetService("CoreGui"), "FallbackCoreGui"
-end
-
--- Get the appropriate GUI parent
-local guiParentType
-CoreGui, guiParentType = SafeGetGuiParent()
-PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-
--- Variables
-local Player = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local Mouse = Player:GetMouse()
-local IsStudio = RunService:IsStudio()
-local Connections = {}
-local OpenFrames = {}
-local NotificationCount = 0
-local DraggingObject = nil
-
--- ConfigFolder is already defined at the top of the file, but we'll update it if needed
-if TBDLib and TBDLib.ConfigSystem and TBDLib.ConfigSystem.Folder and TBDLib.ConfigSystem.Folder ~= ConfigFolder then
-    ConfigFolder = TBDLib.ConfigSystem.Folder
-end
-
--- FIXED: Added a helper function to protect GUIs with proper error handling
-local function ProtectGui(gui)
-    if gui and typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
-        local success, err = pcall(function()
-            syn.protect_gui(gui)
-        end)
-        if not success then
-            warn("TBDLib: Failed to protect GUI - " .. tostring(err))
-        end
-    end
-end
-
--- FIXED: Added a safe HttpGet function with multiple fallback methods
-local function SafeHttpGet(url)
-    -- Try standard game:HttpGet first
-    local success, result = pcall(function()
-        return game:HttpGet(url)
-    end)
-    
-    if success and result then
-        return result
-    end
-    
-    -- Fallback 1: Try syn.request
-    if typeof(syn) == "table" and typeof(syn.request) == "function" then
-        local response = syn.request({
-            Url = url,
-            Method = "GET"
-        })
-        
-        if response.Success and response.Body then
-            return response.Body
-        end
-    end
-    
-    -- Fallback 2: Try http_request
-    if typeof(http_request) == "function" then
-        local response = http_request({
-            Url = url,
-            Method = "GET"
-        })
-        
-        if response.Success and response.Body then
-            return response.Body
-        end
-    end
-    
-    -- Fallback 3: Try request
-    if typeof(request) == "function" then
-        local response = request({
-            Url = url,
-            Method = "GET"
-        })
-        
-        if response.Success and response.Body then
-            return response.Body
-        end
-    end
-    
-    -- If all methods fail, throw an error
-    error("TBDLib: Failed to make HTTP request. Please ensure your executor supports HTTP requests.")
-end
-
-local Ripples = {}
 
 -- Constants
-local TWEEN_INFO = TweenInfo.new(
-TBDLib.Animation.DefaultDuration,
-TBDLib.Animation.DefaultEasingStyle,
-TBDLib.Animation.DefaultEasingDirection
-)
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local Camera = workspace.CurrentCamera
 
 -- Utility Functions
-local function GetTextSize(Text, Size, Font, Resolution)
-    return TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1000, 1000))
+local function Lerp(a, b, t)
+    return a + (b - a) * t
 end
 
-local function Tween(Instance, Properties, Duration, Style, Direction, Callback)
-    local TweenInfo = TweenInfo.new(
-        Duration or TBDLib.Animation.DefaultDuration,
-        Style or TBDLib.Animation.DefaultEasingStyle,
-        Direction or TBDLib.Animation.DefaultEasingDirection
+local function CreateTween(instance, duration, properties, easingStyle, easingDirection)
+    local tween = TweenService:Create(
+        instance,
+        TweenInfo.new(duration, easingStyle or Enum.EasingStyle.Quad, easingDirection or Enum.EasingDirection.Out),
+        properties
     )
-
-    local Tween = TweenService:Create(Instance, TweenInfo, Properties)
-
-    if Callback then
-        Tween.Completed:Connect(function()
-            Callback()
-        end)
-    end
-
-    Tween:Play()
-    return Tween
-end
-
-local function Connect(Signal, Callback)
-    if not Signal then
-        warn("TBDLib: Attempted to connect to a nil signal")
-        return nil
-    end
-
-    local success, Connection = pcall(function()
-        return Signal:Connect(Callback)
-    end)
-
-    if success and Connection then
-        table.insert(Connections, Connection)
-        return Connection
-    else
-        warn("TBDLib: Failed to connect to signal: " .. tostring(Signal))
-        return nil
-    end
-end
-
-local function Disconnect(Connection)
-for i, conn in ipairs(Connections) do
-if conn == Connection then
-conn:Disconnect()
-table.remove(Connections, i)
-break
-end
-end
-end
-
-local function DisconnectAll()
-for _, Connection in ipairs(Connections) do
-Connection:Disconnect()
-end
-Connections = {}
-end
-
-local function Create(ClassName, Properties)
-local Instance = Instance.new(ClassName)
-
-for Property, Value in pairs(Properties) do
-if Property ~= "Parent" then
-if typeof(Value) == "Instance" then
-    Value.Parent = Instance
-else
-    Instance[Property] = Value
-end
-end
-end
-
-if Properties.Parent then
-Instance.Parent = Properties.Parent
-end
-
-return Instance
-end
-
-local function MakeDraggable(DragObject, DragHandle)
-DragHandle = DragHandle or DragObject
-
-local Dragging = false
-local DragInput
-local DragStart
-local StartPosition
-
-local function Update(Input)
-local Delta = Input.Position - DragStart
-local NewPosition = UDim2.new(
-StartPosition.X.Scale,
-StartPosition.X.Offset + Delta.X,
-StartPosition.Y.Scale,
-StartPosition.Y.Offset + Delta.Y
-)
-
-Tween(DragObject, {Position = NewPosition}, 0.1)
-end
-
-Connect(DragHandle.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-Dragging = true
-DragStart = Input.Position
-StartPosition = DragObject.Position
-
-Input.Changed:Connect(function()
-    if Input.UserInputState == Enum.UserInputState.End then
-        Dragging = false
-    end
-end)
-end
-end)
-
-Connect(DragHandle.InputChanged, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-DragInput = Input
-end
-end)
-
-Connect(UserInputService.InputChanged, function(Input)
-if Input == DragInput and Dragging then
-Update(Input)
-end
-end)
-
-return {
-Disconnect = function()
-Dragging = false
-DragInput = nil
-DragStart = nil
-StartPosition = nil
-end
-}
-end
-
-local function CreateRoundedFrame(Size, Position, Color, Parent, Corner, Name)
-    local Frame = Create("Frame", {
-        Name = Name or "RoundedFrame",
-        Size = Size or UDim2.new(1, 0, 1, 0),
-        Position = Position or UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = Color or TBDLib.Theme.Primary,
-        BorderSizePixel = 0,
-        ZIndex = Parent and (Parent.ZIndex or 1) + 1 or 5, -- Inherit parent's z-index if available
-        Parent = Parent
-    })
-
-    local UICorner = Create("UICorner", {
-        CornerRadius = UDim.new(0, Corner or 8),
-        Parent = Frame
-    })
-
-    return Frame
-end
-
-local function CreateShadow(Parent, Transparency, Offset)
-local Shadow = Create("ImageLabel", {
-Name = "Shadow",
-AnchorPoint = Vector2.new(0.5, 0.5),
-BackgroundTransparency = 1,
-Position = UDim2.new(0.5, 0, 0.5, Offset or 4),
-Size = UDim2.new(1, 12, 1, 12),
-Image = "rbxassetid://11579303181",
-ImageTransparency = Transparency or 0.5,
-ImageColor3 = Color3.fromRGB(0, 0, 0),
-ScaleType = Enum.ScaleType.Slice,
-SliceCenter = Rect.new(20, 20, 280, 280),
-Parent = Parent
-})
-
-return Shadow
-end
-
-local function CreateStroke(Parent, Color, Thickness, Transparency)
-local Stroke = Create("UIStroke", {
-Color = Color or TBDLib.Theme.Border,
-Thickness = Thickness or 1,
-Transparency = Transparency or 0,
-ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-Parent = Parent
-})
-
-return Stroke
-end
-
-local function CreateGradient(Parent, Colors, Transparency, Rotation)
-local Gradient = Create("UIGradient", {
-Color = typeof(Colors) == "ColorSequence" and Colors or
-ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Colors[1] or TBDLib.Theme.Accent),
-    ColorSequenceKeypoint.new(1, Colors[2] or TBDLib.Theme.AccentDark)
-}),
-Transparency = typeof(Transparency) == "NumberSequence" and Transparency or 
-NumberSequence.new(Transparency or 0),
-Rotation = Rotation or 0,
-Parent = Parent
-})
-
-return Gradient
-end
-
-local function CreateRipple(Parent)
-local RippleContainer = Create("Frame", {
-Name = "RippleContainer",
-AnchorPoint = Vector2.new(0.5, 0.5),
-BackgroundTransparency = 1,
-Position = UDim2.new(0.5, 0, 0.5, 0),
-Size = UDim2.new(1, 0, 1, 0),
-ClipsDescendants = true,
-Parent = Parent
-})
-
-Parent.ClipsDescendants = true
-
-local function StartRipple(InputPosition)
-local RippleCircle = Create("Frame", {
-AnchorPoint = Vector2.new(0.5, 0.5),
-BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-BackgroundTransparency = 0.85,
-Position = UDim2.new(0, InputPosition.X - Parent.AbsolutePosition.X, 0, InputPosition.Y - Parent.AbsolutePosition.Y),
-Size = UDim2.new(0, 0, 0, 0),
-Parent = RippleContainer
-})
-
-Create("UICorner", {
-CornerRadius = UDim.new(1, 0),
-Parent = RippleCircle
-})
-
-local MaxSize = math.max(Parent.AbsoluteSize.X, Parent.AbsoluteSize.Y) * 2
-
-Tween(RippleCircle, {
-Size = UDim2.new(0, MaxSize, 0, MaxSize),
-BackgroundTransparency = 1
-}, 0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, function()
-RippleCircle:Destroy()
-end)
-end
-
-Connect(Parent.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-StartRipple(Input.Position)
-end
-end)
-
-table.insert(Ripples, RippleContainer)
-return RippleContainer
-end
-
-local function DeepCopy(Original)
-local Copy = {}
-for Key, Value in pairs(Original) do
-if type(Value) == "table" then
-Copy[Key] = DeepCopy(Value)
-else
-Copy[Key] = Value
-end
-end
-return Copy
-end
-
-local function CleanName(String)
-return String:gsub("[^%w%s]", ""):gsub("%s+", "_"):lower()
-end
-
-local function SaveConfig(Name)
-if not isfolder then return false end
-
-Name = Name or TBDLib.ConfigSystem.CurrentConfig
--- ConfigFolder is already defined above, no need to call GetConfigFolder()
-
-if not isfolder(ConfigFolder) then
-    makefolder(ConfigFolder)
-end
-
-local Config = {}
-for Flag, Value in pairs(TBDLib.Flags) do
-if type(Value) == "table" and Value.Value ~= nil then
--- For objects with a value property (like toggles, sliders, etc.)
-if type(Value.Value) ~= "function" and type(Value.Value) ~= "userdata" then
-    Config[Flag] = Value.Value
-end
-else
--- For direct values
-if type(Value) ~= "function" and type(Value) ~= "userdata" then
-    Config[Flag] = Value
-end
-end
-end
-
-local Success, Result = pcall(function()
-return HttpService:JSONEncode(Config)
-end)
-
-if Success then
--- Use ConfigFolder directly instead of GetConfigFolder
-writefile(ConfigFolder .. "/" .. Name .. ".json", Result)
-return true
-end
-
-return false
-end
-
-local function LoadConfig(Name)
-if not isfile then return false end
-
-Name = Name or TBDLib.ConfigSystem.CurrentConfig
-if type(Name) ~= "string" then
-    Name = tostring(Name)
-end
--- Use ConfigFolder directly instead of GetConfigFolder
-local Path = ConfigFolder .. "/" .. Name .. ".json"
-
-if isfile(Path) then
-local Success, Result = pcall(function()
-return HttpService:JSONDecode(readfile(Path))
-end)
-
-if Success then
-for Flag, Value in pairs(Result) do
-    if TBDLib.Flags[Flag] then
-        if type(TBDLib.Flags[Flag]) == "table" and TBDLib.Flags[Flag].Set then
-            -- For objects with a Set method
-            TBDLib.Flags[Flag]:Set(Value)
-        else
-            -- For direct values
-            TBDLib.Flags[Flag] = Value
-        end
-    end
-end
-return true
-end
-end
-
-return false
-end
-
--- UI Visibility Toggle
-local UIVisible = true
-
-function TBDLib:ToggleUI()
-    -- Toggle visibility state
-    UIVisible = not UIVisible
-    
-    local UIContainer = CoreGui:FindFirstChild("TBDLibContainer")
-    if not UIContainer then return UIVisible end
-    
-    -- Maintain a reference to the main window frame
-    local MainFrame = UIContainer:FindFirstChild("MainFrame")
-    if not MainFrame then return UIVisible end
-    
-    -- Use Tween for smoother transitions
-    if UIVisible then
-        -- Show UI
-        UIContainer.Enabled = true
-        
-        -- Restore all UI elements
-        for _, child in pairs(UIContainer:GetDescendants()) do
-            if child:IsA("GuiObject") and child.Name ~= "Shadow" then
-                -- Restore background transparency
-                if child:GetAttribute("DefaultTransparency") ~= nil then
-                    Tween(child, {BackgroundTransparency = child:GetAttribute("DefaultTransparency")}, 0.3)
-                end
-                
-                -- Special handling for ImageLabels and ImageButtons
-                if (child:IsA("ImageLabel") or child:IsA("ImageButton")) and child:GetAttribute("DefaultImageTransparency") ~= nil then
-                    Tween(child, {ImageTransparency = child:GetAttribute("DefaultImageTransparency")}, 0.3)
-                end
-                
-                -- Special handling for TextLabels and TextButtons
-                if (child:IsA("TextLabel") or child:IsA("TextButton")) and child:GetAttribute("DefaultTextTransparency") ~= nil then
-                    Tween(child, {TextTransparency = child:GetAttribute("DefaultTextTransparency")}, 0.3)
-                end
-            end
-        end
-        
-        -- Smoothly fade in main frame
-        MainFrame.Visible = true
-        MainFrame.BackgroundTransparency = 1
-        Tween(MainFrame, {BackgroundTransparency = 0}, 0.3)
-    else
-        -- Hide UI
-        -- Store default properties and fade out all UI elements
-        for _, child in pairs(UIContainer:GetDescendants()) do
-            if child:IsA("GuiObject") and child.Name ~= "Shadow" then
-                -- Store and animate background transparency
-                if not child:GetAttribute("DefaultTransparency") then
-                    child:SetAttribute("DefaultTransparency", child.BackgroundTransparency)
-                end
-                Tween(child, {BackgroundTransparency = 1}, 0.3)
-                
-                -- Special handling for ImageLabels and ImageButtons
-                if child:IsA("ImageLabel") or child:IsA("ImageButton") then
-                    if not child:GetAttribute("DefaultImageTransparency") then
-                        child:SetAttribute("DefaultImageTransparency", child.ImageTransparency)
-                    end
-                    Tween(child, {ImageTransparency = 1}, 0.3)
-                end
-                
-                -- Special handling for TextLabels and TextButtons
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    if not child:GetAttribute("DefaultTextTransparency") then
-                        child:SetAttribute("DefaultTextTransparency", child.TextTransparency)
-                    end
-                    Tween(child, {TextTransparency = 1}, 0.3)
-                end
-            end
-        end
-        
-        -- Smoothly fade out main frame and disable container
-        Tween(MainFrame, {BackgroundTransparency = 1}, 0.3, nil, nil, function()
-            if not UIVisible then
-                MainFrame.Visible = false
-                UIContainer.Enabled = false
-            end
-        end)
-    end
-    
-    return UIVisible
-end
-
--- Get Player & Game Info
-function TBDLib:GetPlayerInfo()
-local Info = {
-Player = {
-Name = Player.Name,
-DisplayName = Player.DisplayName,
-UserId = Player.UserId,
-AccountAge = Player.AccountAge,
-MembershipType = tostring(Player.MembershipType),
-Avatar = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=420&height=420&format=png"
-},
-Game = {
-Name = "Game",
-PlaceId = game.PlaceId,
-PlaceVersion = game.PlaceVersion,
-JobId = game.JobId
-},
-Server = {
-Players = #Players:GetPlayers(),
-MaxPlayers = Players.MaxPlayers,
-Ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()),
-Uptime = os.time()
-}
-}
-
-pcall(function()
-Info.Game.Name = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
-end)
-
-return Info
-end
-
--- Create notification close function ahead of time to avoid nil references
-local function CloseNotification(NotifFrame)
-if NotifFrame and NotifFrame:IsA("GuiObject") then
-Tween(NotifFrame, {
-BackgroundTransparency = 1,
-Position = UDim2.new(1, 0, 0, NotifFrame.Position.Y.Offset)
-}, 0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, function()
-if NotifFrame and NotifFrame.Parent then
-    NotifFrame:Destroy()
-end
-end)
-end
-end
-
--- Notification System
-local NotificationHolder
-
-function TBDLib:Notify(Title, Message, Duration, Type)
-Type = Type or "Info"
-Duration = Duration or 5
-
--- Safety check for function parameters
-if type(Title) ~= "string" then Title = tostring(Title) or "Notification" end
-if type(Message) ~= "string" then Message = tostring(Message) or "" end
-if type(Duration) ~= "number" then Duration = 5 end
-
--- Ensure we have a valid container for notifications
-local container
-
--- Ensure TBDLibContainer exists with reliable error handling
-local success = pcall(function()
-container = CoreGui:FindFirstChild("TBDLibContainer")
-end)
-
-if not success or not container then
--- Create the container if it doesn't exist
-local newContainerSuccess, newContainer = pcall(function()
-local tempContainer = Create("ScreenGui", {
-    Name = "TBDLibContainer",
-    ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-})
-
--- Set parent based on environment with error handling
-if typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
-    -- FIXED: Use ProtectGui function for better error handling
-    ProtectGui(tempContainer)
-    tempContainer.Parent = CoreGui
-elseif typeof(gethui) == "function" then
-    tempContainer.Parent = gethui()
-elseif typeof(PlayerGui) == "Instance" then
-    tempContainer.Parent = PlayerGui
-else
-    tempContainer.Parent = CoreGui
-end
-
-return tempContainer
-end)
-
-if newContainerSuccess then
-container = newContainer
-else
--- If we still can't create a container, we need to bail out
-warn("TBDLib: Failed to create notification container")
-return nil
-end
-end
-
--- Validate NotificationHolder with error handling
-if not NotificationHolder or not NotificationHolder.Parent then
-local holderSuccess, newHolder = pcall(function()
--- Create the notification container if it doesn't exist
-local tempHolder = Create("Frame", {
-    Name = "NotificationHolder",
-    AnchorPoint = Vector2.new(1, 0),
-    BackgroundTransparency = 1,
-    Position = UDim2.new(1, -20, 0, 20),
-    Size = UDim2.new(0, 300, 1, -40),
-    Parent = container
-})
-
-local UIListLayout = Create("UIListLayout", {
-    Padding = UDim.new(0, 10),
-    HorizontalAlignment = Enum.HorizontalAlignment.Center,
-    SortOrder = Enum.SortOrder.LayoutOrder,
-    VerticalAlignment = Enum.VerticalAlignment.Top,
-    Parent = tempHolder
-})
-
-return tempHolder
-end)
-
-if holderSuccess then
-NotificationHolder = newHolder
-else
--- If we can't create the holder, bail out
-warn("TBDLib: Failed to create notification holder")
-return nil
-end
-end
-
-NotificationCount = NotificationCount + 1
-local ID = NotificationCount
-
--- Determine the notification color and icon based on type
-local TypeInfo = {
-Info = {
-Color = TBDLib.Theme.Info,
-Icon = TBDLib.Icons.Info
-},
-Success = {
-Color = TBDLib.Theme.Success,
-Icon = TBDLib.Icons.Success
-},
-Warning = {
-Color = TBDLib.Theme.Warning,
-Icon = TBDLib.Icons.Warning
-},
-Error = {
-Color = TBDLib.Theme.Error,
-Icon = TBDLib.Icons.Error
-}
-}
-
-local Info = TypeInfo[Type] or TypeInfo.Info
-
--- Create the notification frame
-local NotifFrame = CreateRoundedFrame(
-UDim2.new(1, 0, 0, 0),
-UDim2.new(0, 0, 0, 0),
-TBDLib.Theme.Secondary,
-NotificationHolder,
-8,
-"Notification_" .. ID
-)
-
-NotifFrame.AutomaticSize = Enum.AutomaticSize.Y
-NotifFrame.LayoutOrder = ID
-NotifFrame.BackgroundTransparency = 1
-NotifFrame.Size = UDim2.new(1, 0, 0, 0)
-
--- Create the inner content frame
-local ContentFrame = CreateRoundedFrame(
-UDim2.new(1, 0, 0, 0),
-UDim2.new(0, 0, 0, 0),
-TBDLib.Theme.Secondary,
-NotifFrame,
-8,
-"Content"
-)
-ContentFrame.AutomaticSize = Enum.AutomaticSize.Y
-
--- Add a shadow for depth
-CreateShadow(ContentFrame, 0.5)
-
--- Create accent indicator
-local AccentBar = CreateRoundedFrame(
-UDim2.new(0, 4, 1, -16),
-UDim2.new(0, 8, 0, 8),
-Info.Color,
-ContentFrame,
-2,
-"AccentBar"
-)
-
--- Add icon
-local IconBackground = CreateRoundedFrame(
-UDim2.new(0, 32, 0, 32),
-UDim2.new(0, 20, 0, 12),
-Info.Color,
-ContentFrame,
-8,
-"IconBackground"
-)
-
-local Icon = Create("ImageLabel", {
-Name = "Icon",
-AnchorPoint = Vector2.new(0.5, 0.5),
-BackgroundTransparency = 1,
-Position = UDim2.new(0.5, 0, 0.5, 0),
-Size = UDim2.new(0, 18, 0, 18),
-Image = Info.Icon,
-Parent = IconBackground
-})
-
--- Add title
-local TitleLabel = Create("TextLabel", {
-Name = "Title",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 64, 0, 12),
-Size = UDim2.new(1, -84, 0, 20),
-Font = Enum.Font.GothamBold,
-Text = Title or "Notification",
-TextColor3 = TBDLib.Theme.Text,
-TextSize = 14,
-TextXAlignment = Enum.TextXAlignment.Left,
-Parent = ContentFrame
-})
-
--- Add message
-local MessageLabel = Create("TextLabel", {
-Name = "Message",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 64, 0, 36),
-Size = UDim2.new(1, -84, 0, 0),
-Font = Enum.Font.Gotham,
-Text = Message or "",
-TextColor3 = TBDLib.Theme.TextDark,
-TextSize = 13,
-TextWrapped = true,
-TextXAlignment = Enum.TextXAlignment.Left,
-TextYAlignment = Enum.TextYAlignment.Top,
-AutomaticSize = Enum.AutomaticSize.Y,
-ClipsDescendants = false, -- Allow text to flow outside the container for automatic sizing
-Parent = ContentFrame
-})
-
--- Add padding at the bottom
-local BottomPadding = Create("Frame", {
-Name = "BottomPadding",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 0, 0, 0),
-Size = UDim2.new(1, 0, 0, 12),
-AnchorPoint = Vector2.new(0, 0),
-Parent = MessageLabel
-})
-BottomPadding.LayoutOrder = 999999
-
--- Create a close button
-local CloseButton = Create("ImageButton", {
-Name = "CloseButton",
-AnchorPoint = Vector2.new(1, 0),
-BackgroundTransparency = 1,
-Position = UDim2.new(1, -12, 0, 12),
-Size = UDim2.new(0, 16, 0, 16),
-Image = TBDLib.Icons.Close,
-ImageColor3 = TBDLib.Theme.TextDark,
-Parent = ContentFrame
-})
-
-Connect(CloseButton.MouseEnter, function()
-Tween(CloseButton, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
-end)
-
-Connect(CloseButton.MouseLeave, function()
-Tween(CloseButton, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
-end)
-
--- Add button click handling with redundancy for cross-platform support
-local CloseNotificationFunction = function()
-CloseNotification(NotifFrame)
-end
-
--- Connect to InputBegan instead of MouseButton1Click for better mobile compatibility
-Connect(CloseButton.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-CloseNotificationFunction()
-end
-end)
-
--- For compatibility with platforms that properly support MouseButton1Click
-pcall(function()
-Connect(CloseButton.MouseButton1Click, CloseNotificationFunction)
-end)
-
--- Add progress bar
-local ProgressBarBackground = CreateRoundedFrame(
-UDim2.new(1, -32, 0, 3),
-UDim2.new(0, 16, 1, -8),
-TBDLib.Theme.Border,
-ContentFrame,
-2,
-"ProgressBackground"
-)
-
-local ProgressBar = CreateRoundedFrame(
-UDim2.new(1, 0, 1, 0),
-UDim2.new(0, 0, 0, 0),
-Info.Color,
-ProgressBarBackground,
-2,
-"ProgressBar"
-)
-
--- Animate the notification appearance
-NotifFrame.Size = UDim2.new(1, 0, 0, 0)
-Tween(NotifFrame, {BackgroundTransparency = 0}, 0.3)
-
--- Animate progress bar
-Tween(ProgressBar, {Size = UDim2.new(0, 0, 1, 0)}, Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, function()
-if NotifFrame and NotifFrame.Parent then
-CloseNotification(NotifFrame)
-end
-end)
-
-return NotifFrame
-end
-
--- Window Constructor
-function TBDLib:CreateWindow(Config)
-Config = Config or {}
-
--- Default configuration
-local WindowConfig = {
-Title = Config.Title or "TBDLib",
-Size = Config.Size or {Width = 1000, Height = 600},
-MinSize = Config.MinSize or {Width = 700, Height = 400},
-Theme = Config.Theme or TBDLib.Theme,
-Position = Config.Position,
-Center = Config.Center == nil and true or Config.Center,
-AutoSave = Config.AutoSave == nil and true or Config.AutoSave,
-SaveConfig = Config.SaveConfig or "default",
-Discord = Config.Discord,
-Icon = Config.Icon
-}
-
--- Update theme if custom theme is provided
-if Config.Theme then
-for Key, Value in pairs(Config.Theme) do
-TBDLib.Theme[Key] = Value
-end
-end
-
--- Set current config name
-TBDLib.ConfigSystem.CurrentConfig = WindowConfig.SaveConfig
-
--- Create main GUI container if it doesn't exist
-local GUI
-
-if not CoreGui:FindFirstChild("TBDLibContainer") then
-local Container = Create("ScreenGui", {
-Name = "TBDLibContainer",
-ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-})
-
--- Set parent based on environment
-if typeof(syn) == "table" and typeof(syn.protect_gui) == "function" then
-    -- FIXED: Use ProtectGui function for better error handling
-    ProtectGui(Container)
-    Container.Parent = CoreGui
-elseif typeof(gethui) == "function" then
-Container.Parent = gethui()
-elseif typeof(PlayerGui) == "Instance" then
-Container.Parent = PlayerGui
-else
-Container.Parent = CoreGui
-end
-
-GUI = Container
-else
-GUI = CoreGui:FindFirstChild("TBDLibContainer")
-end
-
--- Calculate window size and position
-local ScreenSize = workspace.CurrentCamera.ViewportSize
-local WindowSize = UDim2.new(
-0, 
-math.clamp(WindowConfig.Size.Width, WindowConfig.MinSize.Width, ScreenSize.X - 100), 
-0, 
-math.clamp(WindowConfig.Size.Height, WindowConfig.MinSize.Height, ScreenSize.Y - 100)
-)
-
-local WindowPosition
-if WindowConfig.Center then
-WindowPosition = UDim2.new(0.5, -WindowSize.X.Offset / 2, 0.5, -WindowSize.Y.Offset / 2)
-else
-WindowPosition = WindowConfig.Position or UDim2.new(0.5, -WindowSize.X.Offset / 2, 0.5, -WindowSize.Y.Offset / 2)
-end
-
--- Create window frame
-local WindowFrame = CreateRoundedFrame(
-WindowSize,
-WindowPosition,
-TBDLib.Theme.Background,
-GUI,
-10,
-"WindowFrame"
-)
-
-local Shadow = CreateShadow(WindowFrame, 0.4, 8)
-
--- Create main container
-local WindowContainer = CreateRoundedFrame(
-UDim2.new(1, -2, 1, -2),
-UDim2.new(0, 1, 0, 1),
-TBDLib.Theme.Primary,
-WindowFrame,
-10,
-"WindowContainer"
-)
-
--- Create top bar
-local TopBar = CreateRoundedFrame(
-UDim2.new(1, 0, 0, 40),
-UDim2.new(0, 0, 0, 0),
-TBDLib.Theme.Secondary,
-WindowContainer,
-10,
-"TopBar"
-)
-
--- Apply corner masking for top corners only 
-local TopLeftCorner = Create("Frame", {
-Name = "TopLeftCorner",
-Size = UDim2.new(0, 10, 0, 10),
-Position = UDim2.new(0, 0, 0, 0),
-BorderSizePixel = 0,
-BackgroundColor3 = TBDLib.Theme.Secondary,
-Parent = TopBar
-})
-
-local TopRightCorner = Create("Frame", {
-Name = "TopRightCorner",
-Size = UDim2.new(0, 10, 0, 10),
-Position = UDim2.new(1, -10, 0, 0),
-BorderSizePixel = 0,
-BackgroundColor3 = TBDLib.Theme.Secondary,
-Parent = TopBar
-})
-
--- Fix for square corner in top bar
-local BottomMask = Create("Frame", {
-Name = "BottomMask",
-Size = UDim2.new(1, 0, 0, 10),
-Position = UDim2.new(0, 0, 1, -10),
-BorderSizePixel = 0,
-BackgroundColor3 = TBDLib.Theme.Secondary,
-Parent = TopBar
-})
-
--- Add window title
-local TitleText = Create("TextLabel", {
-Name = "Title",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 15, 0, 0),
-Size = UDim2.new(0.5, -15, 1, 0),
-Font = Enum.Font.GothamBold,
-Text = WindowConfig.Title,
-TextColor3 = TBDLib.Theme.Text,
-TextSize = 14,
-TextXAlignment = Enum.TextXAlignment.Left,
-Parent = TopBar
-})
-
--- Add window icon if provided
-if WindowConfig.Icon then
-local Icon = Create("ImageLabel", {
-Name = "Icon",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 15, 0.5, -8),
-Size = UDim2.new(0, 16, 0, 16),
-Image = WindowConfig.Icon,
-Parent = TopBar
-})
-
-TitleText.Position = UDim2.new(0, 40, 0, 0)
-end
-
--- Create window controls
-local ControlsContainer = Create("Frame", {
-Name = "Controls",
-AnchorPoint = Vector2.new(1, 0),
-BackgroundTransparency = 1,
-Position = UDim2.new(1, -10, 0, 8),
-Size = UDim2.new(0, 84, 0, 24),
-Parent = TopBar
-})
-
--- Create control buttons
-local function CreateControlButton(Name, Icon, Position)
-local ControlButton = CreateRoundedFrame(
-UDim2.new(0, 24, 0, 24),
-UDim2.new(1, Position, 0, 0),
-TBDLib.Theme.Primary,
-ControlsContainer,
-6,
-Name .. "Button"
-)
-ControlButton.ZIndex = 20 -- Higher z-index for better visibility
-
-local ButtonIcon = Create("ImageLabel", {
-Name = "Icon",
-AnchorPoint = Vector2.new(0.5, 0.5),
-BackgroundTransparency = 1,
-Position = UDim2.new(0.5, 0, 0.5, 0),
-Size = UDim2.new(0, 14, 0, 14), -- Slightly larger icon size
-Image = Icon,
-ImageColor3 = TBDLib.Theme.TextDark,
-ZIndex = 21, -- Higher than parent
-Parent = ControlButton
-})
-
--- Force the image to load properly
-ButtonIcon:GetPropertyChangedSignal("IsLoaded"):Connect(function()
-    if not ButtonIcon.IsLoaded then return end
-    ButtonIcon.ImageColor3 = TBDLib.Theme.TextDark
-end)
-
-local Background = CreateRoundedFrame(
-UDim2.new(1, 0, 1, 0),
-UDim2.new(0, 0, 0, 0),
-TBDLib.Theme.Primary,
-ControlButton,
-6,
-Name .. "Background"
-)
-Background.BackgroundTransparency = 1
-Background.ZIndex = 19 -- Lower than button but higher than most UI
-
-return ControlButton, Background
-end
-
--- Close button
-local CloseButton, CloseBackground = CreateControlButton("Close", TBDLib.Icons.Close, -24)
-
--- Minimize button
-local MinimizeButton, MinimizeBackground = CreateControlButton("Minimize", TBDLib.Icons.Minimize, -54)
-
--- Maximize/Restore button
-local MaximizeButton, MaximizeBackground = CreateControlButton("Maximize", TBDLib.Icons.Maximize, -84)
-
--- Window state variables
-local Minimized = false
-local Maximized = false
-local OriginalSize = WindowSize
-local OriginalPosition = WindowPosition
-
--- Button hover effects
-local function SetupButtonHover(Button, Background, HoverColor, LeaveColor)
-Connect(Button.MouseEnter, function()
-Tween(Background, {BackgroundTransparency = 0.8}, 0.2)
-Tween(Button.Icon, {ImageColor3 = HoverColor}, 0.2)
-end)
-
-Connect(Button.MouseLeave, function()
-Tween(Background, {BackgroundTransparency = 1}, 0.2)
-Tween(Button.Icon, {ImageColor3 = LeaveColor}, 0.2)
-end)
-end
-
--- Set up hover effects
-SetupButtonHover(CloseButton, CloseBackground, Color3.fromRGB(255, 80, 80), TBDLib.Theme.TextDark)
-SetupButtonHover(MinimizeButton, MinimizeBackground, TBDLib.Theme.Text, TBDLib.Theme.TextDark)
-SetupButtonHover(MaximizeButton, MaximizeBackground, TBDLib.Theme.Text, TBDLib.Theme.TextDark)
-
--- Close button click handler
-local CloseWindowFunction = function()
--- Save config if auto-save is enabled
-if WindowConfig.AutoSave then
-SaveConfig()
-end
-
--- Tween window out
-Tween(WindowFrame, {
-Size = UDim2.new(WindowFrame.Size.X.Scale, WindowFrame.Size.X.Offset, 0, 0),
-Position = UDim2.new(WindowFrame.Position.X.Scale, WindowFrame.Position.X.Offset, WindowFrame.Position.Y.Scale, WindowFrame.Position.Y.Offset + WindowFrame.Size.Y.Offset / 2)
-}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, function()
-WindowFrame:Destroy()
-end)
-end
-
--- Connect to button's InputBegan instead of MouseButton1Click for better mobile compatibility
-Connect(CloseButton.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-CloseWindowFunction()
-end
-end)
-
--- For compatibility with platforms that properly support MouseButton1Click
-pcall(function()
-Connect(CloseButton.MouseButton1Click, CloseWindowFunction)
-Connect(CloseBackground.MouseButton1Click, CloseWindowFunction)
-end)
-
--- Minimize button click handler
-local MinimizedHeight = 40 -- Just the top bar
-local function ToggleMinimize()
-Minimized = not Minimized
-
-if Minimized then
-    -- Store the original size if not minimized and not maximized
-    if not Maximized then
-        OriginalSize = WindowFrame.Size
-        OriginalPosition = WindowFrame.Position
-    end
-    
-    -- Minimize animation with proper content hiding
-    Tween(WindowFrame, {
-        Size = UDim2.new(WindowFrame.Size.X.Scale, WindowFrame.Size.X.Offset, 0, MinimizedHeight)
-    }, 0.3, nil, nil, function()
-        -- After animation completes, hide the content to prevent showing through
-        ContentFrame.Visible = false
-    end)
-else
-    -- First make content visible again
-    ContentFrame.Visible = true
-    
-    -- Restore to appropriate size
-    if Maximized then
-        -- Restore to maximized size (full screen)
-        local MaxSize = UDim2.new(1, 0, 1, -36) -- Account for taskbar
-        Tween(WindowFrame, {
-            Size = MaxSize,
-            Position = UDim2.new(0, 0, 0, 0)
-        }, 0.3)
-    else
-        -- Restore to original size
-        Tween(WindowFrame, {
-            Size = OriginalSize,
-            Position = OriginalPosition
-        }, 0.3)
-    end
-end
-end
-
--- Use pcall for MouseButton1Click connections to avoid errors on platforms where it's not supported
-pcall(function()
-Connect(MinimizeButton.MouseButton1Click, ToggleMinimize)
-Connect(MinimizeBackground.MouseButton1Click, ToggleMinimize)
-end)
-
--- Also connect to InputBegan for better cross-platform support
-Connect(MinimizeButton.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-ToggleMinimize()
-end
-end)
-
--- Maximize/Restore button click handler
-local function ToggleMaximize()
-Maximized = not Maximized
-
-if Maximized then
--- Store the original size before maximizing if not already minimized
-if not Minimized then
-    OriginalSize = WindowFrame.Size
-    OriginalPosition = WindowFrame.Position
-end
-
--- Switch to split screen icon
-MaximizeButton.Icon.Image = TBDLib.Icons.Split
-
--- Maximize animation
-Tween(WindowFrame, {
-    Size = UDim2.new(1, 0, 1, 0),
-    Position = UDim2.new(0, 0, 0, 0)
-}, 0.3)
-else
--- Switch back to maximize icon
-MaximizeButton.Icon.Image = TBDLib.Icons.Maximize
-
--- Restore to original size and position
-Tween(WindowFrame, {
-    Size = OriginalSize,
-    Position = OriginalPosition
-}, 0.3)
-end
-
--- Force minimized state to false when maximizing/restoring
-Minimized = false
-end
-
--- Use pcall for MouseButton1Click connections to avoid errors on platforms where it's not supported
-pcall(function()
-Connect(MaximizeButton.MouseButton1Click, ToggleMaximize)
-Connect(MaximizeBackground.MouseButton1Click, ToggleMaximize)
-end)
-
--- Also connect to InputBegan for better cross-platform support
-Connect(MaximizeButton.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-ToggleMaximize()
-end
-end)
-
--- Make TopBar draggable with bounds checking
-MakeDraggable(WindowFrame, TopBar)
-
--- Create content container with sidebar and main content
-local ContentFrame = CreateRoundedFrame(
-UDim2.new(1, 0, 1, -40),
-UDim2.new(0, 0, 0, 40),
-TBDLib.Theme.Primary,
-WindowContainer,
-8,
-"ContentFrame"
-)
-
--- Add sidebar for navigation
-local Sidebar = CreateRoundedFrame(
-UDim2.new(0, 50, 1, 0),
-UDim2.new(0, 0, 0, 0),
-TBDLib.Theme.Secondary,
-ContentFrame,
-8,
-"Sidebar"
-)
-
--- Fix square corner in sidebar
-local RightMask = Create("Frame", {
-Name = "RightMask",
-Size = UDim2.new(0, 10, 1, 0),
-Position = UDim2.new(1, -10, 0, 0),
-BorderSizePixel = 0,
-BackgroundColor3 = TBDLib.Theme.Secondary,
-Parent = Sidebar
-})
-
--- Add sidebar navigation
-local NavContainer = Create("Frame", {
-Name = "NavContainer",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 5, 0, 10),
-Size = UDim2.new(1, -10, 1, -20),
-Parent = Sidebar
-})
-
-local NavList = Create("UIListLayout", {
-Padding = UDim.new(0, 10),
-HorizontalAlignment = Enum.HorizontalAlignment.Center,
-SortOrder = Enum.SortOrder.LayoutOrder,
-Parent = NavContainer
-})
-
--- Create tab container
-local TabContainer = CreateRoundedFrame(
-UDim2.new(1, -60, 1, -10),
-UDim2.new(0, 55, 0, 5),
-TBDLib.Theme.Secondary,
-ContentFrame,
-8,
-"TabContainer"
-)
-
--- Window API
-local WindowAPI = {}
-local Tabs = {}
-local ActiveTab = nil
-
--- Add Tab
-function WindowAPI:AddTab(TabConfig)
-TabConfig = TabConfig or {}
-local TabName = TabConfig.Name or "Tab"
-local TabIcon = TabConfig.Icon
-local TabOrder = TabConfig.Order or (#Tabs + 1)
-
-local TabId = #Tabs + 1
-
--- Create tab button in sidebar
-local NavButton = CreateRoundedFrame(
-UDim2.new(1, 0, 0, 40),
-nil,
-ActiveTab == TabId and TBDLib.Theme.Accent or TBDLib.Theme.Primary,
-NavContainer,
-8,
-"TabButton_" .. TabId
-)
-NavButton.LayoutOrder = TabOrder
-NavButton.ZIndex = 10 -- Ensure proper z-index for visibility
-
--- Add icon if specified
-if TabIcon then
-local Icon = Create("ImageLabel", {
-    Name = "Icon",
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundTransparency = 1,
-    Position = UDim2.new(0.5, 0, 0.5, -6),
-    Size = UDim2.new(0, 22, 0, 22), -- Slightly larger for better visibility
-    Image = TabIcon,
-    ImageColor3 = ActiveTab == TabId and TBDLib.Theme.TextLight or TBDLib.Theme.TextDark,
-    ZIndex = NavButton.ZIndex + 1, -- Higher than parent for proper layering
-    Parent = NavButton
-})
-
--- Force the image to load and render properly
-Icon:GetPropertyChangedSignal("IsLoaded"):Connect(function()
-    if not Icon.IsLoaded then return end
-    Icon.ImageColor3 = ActiveTab == TabId and TBDLib.Theme.TextLight or TBDLib.Theme.TextDark
-end)
-end
-
--- Add title
-local TabTitle = Create("TextLabel", {
-Name = "Title",
-BackgroundTransparency = 1,
-Position = TabIcon and UDim2.new(0, 0, 0.5, 14) or UDim2.new(0, 0, 0, 0),
-Size = TabIcon and UDim2.new(1, 0, 0, 16) or UDim2.new(1, 0, 1, 0),
-Font = Enum.Font.GothamBold,
-Text = TabName,
-TextColor3 = ActiveTab == TabId and TBDLib.Theme.TextLight or TBDLib.Theme.TextDark,
-TextSize = 10,
-Parent = NavButton
-})
-
--- Indicator (for active tab)
-local Indicator = CreateRoundedFrame(
-UDim2.new(0, 4, 0, 20),
-UDim2.new(0, 0, 0.5, -10),
-TBDLib.Theme.Accent,
-NavButton,
-2,
-"Indicator"
-)
-Indicator.BackgroundTransparency = 1
-
--- Tab content frame - with error handling to ensure it's created properly
-local TabContentFrame
-local success, err = pcall(function()
-TabContentFrame = CreateRoundedFrame(
-    UDim2.new(1, 0, 1, 0),
-    nil,
-    TBDLib.Theme.Secondary,
-    TabContainer,
-    8,
-    "TabContent_" .. TabId
-)
--- Only set to invisible if we're not on the first tab
-TabContentFrame.Visible = (TabId == 1)
--- Ensure the frame is properly configured and has correct z-index
-TabContentFrame.ZIndex = 5
-TabContentFrame.ClipsDescendants = true
-end)
-
-if not success then
-warn("TBDLib: Failed to create TabContentFrame - " .. tostring(err))
--- Create a recovery frame if primary creation fails
-TabContentFrame = Create("Frame", {
-    Name = "TabContent_" .. TabId,
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = TBDLib.Theme.Secondary,
-    BorderSizePixel = 0,
-    Visible = false,
-    Parent = TabContainer
-})
-
--- Add rounded corners
-local UICorner = Create("UICorner", {
-    CornerRadius = UDim.new(0, 8),
-    Parent = TabContentFrame
-})
-end
-
--- Create a scrolling frame for the content
-local ScrollingContent = Create("ScrollingFrame", {
-Name = "ScrollingContent",
-BackgroundTransparency = 1,
-Position = UDim2.new(0, 0, 0, 0),
-Size = UDim2.new(1, 0, 1, 0),
-CanvasSize = UDim2.new(0, 0, 0, 0),
-ScrollBarThickness = 0,
-ScrollingDirection = Enum.ScrollingDirection.Y,
-AutomaticCanvasSize = Enum.AutomaticSize.Y,
-ClipsDescendants = true,
-Parent = TabContentFrame
-})
-
-local ContentPadding = Create("UIPadding", {
-PaddingLeft = UDim.new(0, 15),
-PaddingRight = UDim.new(0, 15),
-PaddingTop = UDim.new(0, 15),
-PaddingBottom = UDim.new(0, 15),
-Parent = ScrollingContent
-})
-
-local ContentList = Create("UIListLayout", {
-Padding = UDim.new(0, 15),
-HorizontalAlignment = Enum.HorizontalAlignment.Center,
-SortOrder = Enum.SortOrder.LayoutOrder,
-Parent = ScrollingContent
-})
-
--- Make ripple effect on nav button
-CreateRipple(NavButton)
-
--- Create tab button
-local TabButton = Create("TextButton", {
-Name = "TabButton",
-BackgroundTransparency = 1,
-Size = UDim2.new(1, 0, 1, 0),
-Text = "",
-Parent = NavButton
-})
-
--- Tab button click handler with cross-platform compatibility
--- First use InputBegan for better compatibility
-Connect(TabButton.InputBegan, function(Input)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-    WindowAPI:SelectTab(TabId)
-end
-end)
-
--- Also try MouseButton1Click for redundancy
-pcall(function()
-Connect(TabButton.MouseButton1Click, function()
-    WindowAPI:SelectTab(TabId)
-end)
-end)
-
--- Hover effects
-Connect(TabButton.MouseEnter, function()
-if ActiveTab ~= TabId then
-    Tween(NavButton, {BackgroundColor3 = TBDLib.Theme.Tertiary}, 0.2)
-    Tween(TabTitle, {TextColor3 = TBDLib.Theme.Text}, 0.2)
-    if TabIcon then
-        Tween(NavButton.Icon, {ImageColor3 = TBDLib.Theme.Text}, 0.2)
-    end
-end
-end)
-
-Connect(TabButton.MouseLeave, function()
-if ActiveTab ~= TabId then
-    Tween(NavButton, {BackgroundColor3 = TBDLib.Theme.Primary}, 0.2)
-    Tween(TabTitle, {TextColor3 = TBDLib.Theme.TextDark}, 0.2)
-    if TabIcon then
-        Tween(NavButton.Icon, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
-    end
-end
-end)
-
--- Store the tab
-local Tab = {
-Name = TabName,
-Id = TabId,
-Button = NavButton,
-Content = TabContentFrame,
-ScrollingContent = ScrollingContent
-}
-
-Tabs[TabId] = Tab
-
--- Tab API
-local TabAPI = {}
-
-function TabAPI:AddSection(SectionConfig)
-SectionConfig = SectionConfig or {}
-local SectionName = SectionConfig.Name or "Section"
-local SectionId = CleanName(SectionName)
-
--- Create section frame
-local SectionFrame = CreateRoundedFrame(
-    UDim2.new(1, 0, 0, 0),
-    nil,
-    TBDLib.Theme.Tertiary,
-    ScrollingContent,
-    8,
-    "Section_" .. SectionId
-)
-SectionFrame.AutomaticSize = Enum.AutomaticSize.Y
-
--- Set section order if specified
-if SectionConfig.Order then
-    SectionFrame.LayoutOrder = SectionConfig.Order
-end
-
--- Create section header
-local SectionHeader = Create("Frame", {
-    Name = "SectionHeader",
-    BackgroundTransparency = 1,
-    Size = UDim2.new(1, 0, 0, 30),
-    Parent = SectionFrame
-})
-
-local SectionTitle = Create("TextLabel", {
-    Name = "SectionTitle",
-    BackgroundTransparency = 1,
-    Position = UDim2.new(0, 12, 0, 0),
-    Size = UDim2.new(1, -24, 1, 0),
-    Font = Enum.Font.GothamBold,
-    Text = SectionName,
-    TextColor3 = TBDLib.Theme.Text,
-    TextSize = 14,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = SectionHeader
-})
-
--- Create section content area
-local SectionContent = Create("Frame", {
-    Name = "SectionContent",
-    BackgroundTransparency = 1,
-    Position = UDim2.new(0, 0, 0, 30),
-    Size = UDim2.new(1, 0, 0, 0),
-    AutomaticSize = Enum.AutomaticSize.Y,
-    Parent = SectionFrame
-})
-
--- Add padding and layout
-local ContentPadding = Create("UIPadding", {
-    PaddingLeft = UDim.new(0, 12),
-    PaddingRight = UDim.new(0, 12),
-    PaddingBottom = UDim.new(0, 12),
-    Parent = SectionContent
-})
-
-local ContentList = Create("UIListLayout", {
-    Padding = UDim.new(0, 10),
-    HorizontalAlignment = Enum.HorizontalAlignment.Center,
-    SortOrder = Enum.SortOrder.LayoutOrder,
-    Parent = SectionContent
-})
-
--- Section API
-local SectionAPI = {}
-
--- Add Label
-function SectionAPI:AddLabel(Config)
-    Config = Config or {}
-    local LabelText = Config.Text or "Label"
-
-    local LabelFrame = Create("Frame", {
-        Name = "Label",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 20),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        LabelFrame.LayoutOrder = Config.Order
-    end
-
-    local TextLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = LabelText,
-        TextColor3 = Config.Color or TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Config.Alignment or Enum.TextXAlignment.Left,
-        Parent = LabelFrame
-    })
-
-    -- Label API
-    local LabelAPI = {}
-
-    function LabelAPI:SetText(NewText)
-        TextLabel.Text = NewText
-    end
-
-    function LabelAPI:SetColor(NewColor)
-        Tween(TextLabel, {TextColor3 = NewColor}, 0.2)
-    end
-
-    return LabelAPI
-end
-
--- Add Button
-function SectionAPI:AddButton(Config)
-    Config = Config or {}
-    local ButtonText = Config.Text or "Button"
-    local ButtonCallback = Config.Callback or function() end
-
-    local ButtonFrame = Create("Frame", {
-        Name = "Button",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 36),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        ButtonFrame.LayoutOrder = Config.Order
-    end
-
-    local Button = CreateRoundedFrame(
-        UDim2.new(1, 0, 1, 0),
-        nil,
-        Config.Color or TBDLib.Theme.Accent,
-        ButtonFrame,
-        6
-    )
-
-    local ButtonLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = ButtonText,
-        TextColor3 = TBDLib.Theme.TextLight,
-        TextSize = 14,
-        Parent = Button
-    })
-
-    local ButtonButton = Create("TextButton", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        Parent = Button
-    })
-
-    -- Add ripple effect
-    CreateRipple(Button)
-
-    -- Button hover effects
-    Connect(ButtonButton.MouseEnter, function()
-        Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.2)
-    end)
-
-    Connect(ButtonButton.MouseLeave, function()
-        Tween(Button, {BackgroundColor3 = Config.Color or TBDLib.Theme.Accent}, 0.2)
-    end)
-
-    -- Button click effects with improved cross-platform handling
-    local function handleButtonPress()
-        Tween(Button, {BackgroundColor3 = Config.PressColor or TBDLib.Theme.AccentDark}, 0.1)
-    end
-
-    local function handleButtonRelease()
-        Tween(Button, {BackgroundColor3 = Config.HoverColor or TBDLib.Theme.AccentLight}, 0.1)
-    end
-
-    local function executeCallback()
-        -- Use pcall to prevent callback errors from breaking the UI
-        pcall(function()
-            task.spawn(ButtonCallback)
-        end)
-    end
-
-    -- Mouse down event
-    Connect(ButtonButton.MouseButton1Down, handleButtonPress)
-
-    -- Also try InputBegan for better touch support
-    Connect(ButtonButton.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            handleButtonPress()
-
-            -- For touch events, we need to track when the input ends to simulate button release
-            if Input.UserInputType == Enum.UserInputType.Touch then
-                local connection
-                connection = Input.Changed:Connect(function()
-                    if Input.UserInputState == Enum.UserInputState.End then
-                        handleButtonRelease()
-                        executeCallback()
-                        -- Cleanup the temporary connection
-                        if connection then
-                            connection:Disconnect()
-                            connection = nil
-                        end
-                    end
-                end)
-            end
-        end
-    end)
-
-    -- Mouse up event
-    Connect(ButtonButton.MouseButton1Up, function()
-        handleButtonRelease()
-    end)
-
-    -- Traditional click event (works on most platforms)
-    Connect(ButtonButton.MouseButton1Click, executeCallback)
-
-    -- Input ended for mobile platforms
-    Connect(ButtonButton.InputEnded, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- We handle touch release separately through the Changed event above
-            executeCallback()
-        end
-    end)
-
-    -- Button API
-    local ButtonAPI = {}
-
-    function ButtonAPI:SetText(NewText)
-        ButtonLabel.Text = NewText
-    end
-
-    function ButtonAPI:SetCallback(NewCallback)
-        ButtonCallback = NewCallback
-    end
-
-    return ButtonAPI
-end
-
--- Add Toggle
-function SectionAPI:AddToggle(Config)
-    Config = Config or {}
-    local ToggleText = Config.Text or "Toggle"
-    local ToggleCallback = Config.Callback or function() end
-    local ToggleFlag = Config.Flag
-    local ToggleDefault = Config.Default or false
-
-    local ToggleFrame = Create("Frame", {
-        Name = "Toggle",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 36),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        ToggleFrame.LayoutOrder = Config.Order
-    end
-
-    local ToggleLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, -50, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = ToggleText,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = ToggleFrame
-    })
-
-    local ToggleBackground = CreateRoundedFrame(
-        UDim2.new(0, 36, 0, 20),
-        UDim2.new(1, -42, 0.5, -10),
-        TBDLib.Theme.Border,
-        ToggleFrame,
-        10
-    )
-
-    local ToggleIndicator = CreateRoundedFrame(
-        UDim2.new(0, 16, 0, 16),
-        UDim2.new(0, 2, 0.5, -8),
-        TBDLib.Theme.Text,
-        ToggleBackground,
-        8
-    )
-
-    local ToggleButton = Create("TextButton", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        Parent = ToggleFrame
-    })
-
-    -- Toggle API and state
-    local ToggleAPI = {}
-    local State = ToggleDefault
-    
-    function ToggleAPI:Set(NewState, force)
-        -- Store previous state for comparison
-        local PreviousState = State
-        
-        -- Set the new state
-        State = NewState
-        
-        -- Only update visuals and trigger callback if the state actually changed or force is true
-        if PreviousState ~= State or force then
-            if State then
-                Tween(ToggleBackground, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
-                Tween(ToggleIndicator, {Position = UDim2.new(0, 18, 0.5, -8)}, 0.2)
-            else
-                Tween(ToggleBackground, {BackgroundColor3 = TBDLib.Theme.Border}, 0.2)
-                Tween(ToggleIndicator, {Position = UDim2.new(0, 2, 0.5, -8)}, 0.2)
-            end
-            
-            -- Only trigger callback on actual changes, not initial setup
-            if PreviousState ~= nil and (PreviousState ~= State or force) then
-                ToggleCallback(State)
-            end
-            
-            -- Update flag if specified
-            if ToggleFlag then
-                TBDLib.Flags[ToggleFlag] = {
-                    Value = State,
-                    Set = function(value) 
-                        return ToggleAPI:Set(value, true) 
-                    end
-                }
-            end
-        end
-        
-        return State
-    end
-
-    function ToggleAPI:Get()
-        return State
-    end
-
-    -- Initialize the toggle state
-    ToggleAPI:Set(ToggleDefault)
-
-    -- Connect toggle interaction with cross-platform compatibility
-    -- Use InputBegan for better compatibility
-    Connect(ToggleButton.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            ToggleAPI:Set(not State)
-        end
-    end)
-
-    -- Also try traditional MouseButton1Click for redundancy
-    pcall(function()
-        Connect(ToggleButton.MouseButton1Click, function()
-            ToggleAPI:Set(not State)
-        end)
-    end)
-
-    -- Register the flag if specified
-    if ToggleFlag then
-        TBDLib.Flags[ToggleFlag] = {
-            Value = State,
-            Set = ToggleAPI.Set
-        }
-    end
-
-    return ToggleAPI
-end
-
--- Add Slider
-function SectionAPI:AddSlider(Config)
-    Config = Config or {}
-    local SliderText = Config.Text or "Slider"
-    local SliderMin = Config.Min or 0
-    local SliderMax = Config.Max or 100
-    local SliderDefault = Config.Default or SliderMin
-    local SliderIncrement = Config.Increment or 1
-    local SliderCallback = Config.Callback or function() end
-    local SliderFlag = Config.Flag
-
-    -- Validate initial values
-    SliderDefault = math.clamp(SliderDefault, SliderMin, SliderMax)
-    SliderDefault = math.floor(SliderDefault / SliderIncrement + 0.5) * SliderIncrement
-
-    local SliderFrame = Create("Frame", {
-        Name = "Slider",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        SliderFrame.LayoutOrder = Config.Order
-    end
-
-    local SliderLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, 0, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = SliderText,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = SliderFrame
-    })
-
-    local SliderValueLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -40, 0, 0),
-        Size = UDim2.new(0, 40, 0, 20),
-        Font = Enum.Font.GothamBold,
-        Text = tostring(SliderDefault),
-        TextColor3 = TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        Parent = SliderFrame
-    })
-
-    local SliderContainer = CreateRoundedFrame(
-        UDim2.new(1, 0, 0, 10),
-        UDim2.new(0, 0, 0, 32),
-        TBDLib.Theme.Border,
-        SliderFrame,
-        5
-    )
-
-    local SliderFill = CreateRoundedFrame(
-        UDim2.new(0, 0, 1, 0),
-        UDim2.new(0, 0, 0, 0),
-        TBDLib.Theme.Accent,
-        SliderContainer,
-        5
-    )
-
-    local SliderButton = Create("TextButton", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        Parent = SliderContainer
-    })
-
-    -- Slider API and state
-    local SliderAPI = {}
-    local Value = SliderDefault
-
-    function SliderAPI:Set(NewValue, UpdateVisual)
-        -- Validate and format the new value
-        NewValue = math.clamp(NewValue, SliderMin, SliderMax)
-        NewValue = math.floor(NewValue / SliderIncrement + 0.5) * SliderIncrement
-        NewValue = tonumber(string.format("%.14g", NewValue))
-
-        -- Update state
-        Value = NewValue
-
-        -- Update visuals if needed
-        if UpdateVisual ~= false then
-            local Percent = (Value - SliderMin) / (SliderMax - SliderMin)
-            Tween(SliderFill, {Size = UDim2.new(Percent, 0, 1, 0)}, 0.2)
-            SliderValueLabel.Text = tostring(Value)
-        end
-
-        -- Call callback
-        SliderCallback(Value)
-
-        -- Update flag if specified
-        if SliderFlag then
-            TBDLib.Flags[SliderFlag] = {
-                Value = Value,
-                Set = function(NewValue)
-                    SliderAPI:Set(NewValue)
-                end
-            }
-        end
-
-        return Value
-    end
-
-    function SliderAPI:Get()
-        return Value
-    end
-
-    -- Set initial value
-    local InitialPercent = (SliderDefault - SliderMin) / (SliderMax - SliderMin)
-    SliderFill.Size = UDim2.new(InitialPercent, 0, 1, 0)
-    SliderValueLabel.Text = tostring(SliderDefault)
-
-    -- Slider interaction
-    local Dragging = false
-
-    Connect(SliderButton.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-
-            -- Update the slider value based on mouse position
-            local Percent = math.clamp((Input.Position.X - SliderContainer.AbsolutePosition.X) / SliderContainer.AbsoluteSize.X, 0, 1)
-            local NewValue = SliderMin + (SliderMax - SliderMin) * Percent
-            SliderAPI:Set(NewValue)
-        end
-    end)
-
-    Connect(UserInputService.InputEnded, function(Input)
-        if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
-            Dragging = false
-        end
-    end)
-
-    Connect(UserInputService.InputChanged, function(Input)
-        if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
-            -- Update the slider value based on mouse position
-            local Percent = math.clamp((Input.Position.X - SliderContainer.AbsolutePosition.X) / SliderContainer.AbsoluteSize.X, 0, 1)
-            local NewValue = SliderMin + (SliderMax - SliderMin) * Percent
-            SliderAPI:Set(NewValue)
-        end
-    end)
-
-    -- Register the flag if specified
-    if SliderFlag then
-        TBDLib.Flags[SliderFlag] = {
-            Value = Value,
-            Set = function(NewValue)
-                SliderAPI:Set(NewValue)
-            end
-        }
-    end
-
-    return SliderAPI
-end
-
--- Add Dropdown
-function SectionAPI:AddDropdown(Config)
-    Config = Config or {}
-    local DropdownText = Config.Text or "Dropdown"
-    local DropdownItems = Config.Items or {}
-    local DropdownCallback = Config.Callback or function() end
-    local DropdownFlag = Config.Flag
-    local DropdownDefault = Config.Default or (DropdownItems[1] or "")
-    local DropdownMultiSelect = Config.MultiSelect or false
-
-    local DropdownFrame = Create("Frame", {
-        Name = "Dropdown",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        DropdownFrame.LayoutOrder = Config.Order
-    end
-
-    local DropdownLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, 0, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = DropdownText,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = DropdownFrame
-    })
-
-    local DropdownContainer = CreateRoundedFrame(
-        UDim2.new(1, 0, 0, 36),
-        UDim2.new(0, 0, 0, 20),
-        TBDLib.Theme.Tertiary,
-        DropdownFrame,
-        6
-    )
-
-    local DropdownSelected = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 0),
-        Size = UDim2.new(1, -46, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = DropdownDefault,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-        ClipsDescendants = true,
-        Parent = DropdownContainer
-    })
-
-    local DropdownArrow = Create("ImageLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -32, 0.5, -8),
-        Size = UDim2.new(0, 16, 0, 16),
-        Image = TBDLib.Icons.Dropdown,
-        ImageColor3 = TBDLib.Theme.TextDark,
-        Parent = DropdownContainer
-    })
-
-    local DropdownButton = Create("TextButton", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        Parent = DropdownContainer
-    })
-
-    -- Create the dropdown menu (as child of main GUI to prevent layering issues)
-    local MainGui = CoreGui:FindFirstChild("TBDLibContainer") 
-    if not MainGui then
-        -- Ensure the container exists before creating dropdown
-        MainGui = Create("ScreenGui", {
-            Name = "TBDLibContainer",
-            ResetOnSpawn = false,
-            ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-            Parent = CoreGui
-        })
-    end
-
-    -- Ensure we have a proper container for dropdowns
-    local DropdownLayer
-    if not MainGui:FindFirstChild("DropdownLayer") then
-        DropdownLayer = Create("Frame", {
-            Name = "DropdownLayer",
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            Parent = MainGui
-        })
-        
-        -- Set ZIndex after creation to avoid errors
-        pcall(function()
-            DropdownLayer.ZIndex = 9000
-        end)
-    else
-        DropdownLayer = MainGui:FindFirstChild("DropdownLayer")
-        -- Ensure existing layer has high z-index
-        pcall(function()
-            DropdownLayer.ZIndex = 9000 
-        end)
-    end
-
-    local DropdownMenu = CreateRoundedFrame(
-        UDim2.new(0, DropdownContainer.AbsoluteSize.X, 0, 0),
-        UDim2.new(0, 0, 0, 0),
-        TBDLib.Theme.Tertiary,
-        DropdownLayer,
-        6,
-        "DropdownMenu_" .. HttpService:GenerateGUID(false)
-    )
-    DropdownMenu.Visible = false
-    -- Set ZIndex safely
-    pcall(function()
-        DropdownMenu.ZIndex = 9001 -- Even higher z-index to ensure it's above the layer
-    end)
-
-    -- Don't use custom property to store reference, use a proper indexing approach instead
-    -- Create a lookup table of container references for dropdown menus
-    if not TBDLib.DropdownRefs then
-        TBDLib.DropdownRefs = {}
-    end
-    local dropdownId = HttpService:GenerateGUID(false)
-    TBDLib.DropdownRefs[dropdownId] = DropdownContainer
-    DropdownMenu.Name = "DropdownMenu_" .. dropdownId
-
-    local MenuList = Create("UIListLayout", {
-        Padding = UDim.new(0, 5),
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = DropdownMenu
-    })
-
-    local MenuPadding = Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 5),
-        PaddingRight = UDim.new(0, 5),
-        PaddingTop = UDim.new(0, 5),
-        PaddingBottom = UDim.new(0, 5),
-        Parent = DropdownMenu
-    })
-
-    -- Dropdown state
-    local DropdownAPI = {}
-    local SelectedItems = {}
-
-    if DropdownMultiSelect then
-        if type(DropdownDefault) == "table" then
-            for _, Item in ipairs(DropdownDefault) do
-                SelectedItems[Item] = true
-            end
-        else
-            SelectedItems[DropdownDefault] = true
-        end
-    else
-        SelectedItems = DropdownDefault
-    end
-
-    -- Update the display text
-    local function UpdateDisplayText()
-        if DropdownMultiSelect then
-            local Items = {}
-            for Item, Selected in pairs(SelectedItems) do
-                if Selected then
-                    table.insert(Items, Item)
-                end
-            end
-
-            if #Items == 0 then
-                DropdownSelected.Text = "None"
-            else
-                DropdownSelected.Text = table.concat(Items, ", ")
-            end
-        else
-            DropdownSelected.Text = SelectedItems or "None"
-        end
-    end
-
-    -- Update the menu
-    local function UpdateMenu()
-        -- Clear existing items
-        for _, Child in pairs(DropdownMenu:GetChildren()) do
-            if Child:IsA("Frame") and Child.Name:find("Item_") then
-                Child:Destroy()
-            end
-        end
-
-        -- Create new items
-        for i, Item in ipairs(DropdownItems) do
-            local ItemButton = CreateRoundedFrame(
-                UDim2.new(1, 0, 0, 30),
-                nil,
-                TBDLib.Theme.Secondary,
-                DropdownMenu,
-                4,
-                "Item_" .. i
-            )
-            -- Set ZIndex safely
-            pcall(function()
-                ItemButton.ZIndex = 11000
-            end)
-
-            local ItemText = Create("TextLabel", {
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -10, 1, 0),
-                Font = Enum.Font.Gotham,
-                Text = Item,
-                TextColor3 = (DropdownMultiSelect and SelectedItems[Item]) or (not DropdownMultiSelect and SelectedItems == Item) 
-                            and TBDLib.Theme.Accent or TBDLib.Theme.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = ItemButton
-            })
-            
-            -- Set ZIndex safely after creation
-            pcall(function()
-                ItemText.ZIndex = 11001
-            })
-
-            local ItemButtonObj = Create("TextButton", {
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                Parent = ItemButton
-            })
-            
-            -- Set ZIndex safely after creation
-            pcall(function()
-                ItemButtonObj.ZIndex = 11002
-            })
-
-            -- Item click handler with touch support
-            local function selectItem()
-                if DropdownMultiSelect then
-                    SelectedItems[Item] = not SelectedItems[Item]
-                    ItemText.TextColor3 = SelectedItems[Item] and TBDLib.Theme.Accent or TBDLib.Theme.Text
-                    UpdateDisplayText()
-                    DropdownCallback(SelectedItems)
-                else
-                    SelectedItems = Item
-                    UpdateDisplayText()
-                    DropdownCallback(Item)
-
-                    -- Hide menu if single select
-                    Tween(DropdownMenu, {Size = UDim2.new(0, DropdownMenu.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, function()
-                        DropdownMenu.Visible = false
-                    end)
-                    Tween(DropdownArrow, {Rotation = 0}, 0.2)
-                end
-
-                -- Update flag value
-                if DropdownFlag then
-                    TBDLib.Flags[DropdownFlag] = {
-                        Value = SelectedItems,
-                        Set = function(NewValue)
-                            SelectedItems = NewValue
-                            UpdateDisplayText()
-                            UpdateMenu()
-                            DropdownCallback(SelectedItems)
-                        end
-                    }
-                end
-            end
-
-            -- Button click with redundancy for cross-platform compatibility
-            Connect(ItemButtonObj.InputBegan, function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                    selectItem()
-                end
-            end)
-
-            -- Also try traditional click for platforms that support it
-            pcall(function()
-                Connect(ItemButtonObj.MouseButton1Click, selectItem)
-            end)
-
-            -- Hover effect
-            Connect(ItemButtonObj.MouseEnter, function()
-                Tween(ItemButton, {BackgroundColor3 = TBDLib.Theme.Tertiary}, 0.2)
-            end)
-
-            Connect(ItemButtonObj.MouseLeave, function()
-                Tween(ItemButton, {BackgroundColor3 = TBDLib.Theme.Secondary}, 0.2)
-            end)
-        end
-
-        -- Update size based on content
-        local TotalHeight = MenuList.AbsoluteContentSize.Y + MenuPadding.PaddingTop.Offset + MenuPadding.PaddingBottom.Offset
-        DropdownMenu.Size = UDim2.new(0, DropdownContainer.AbsoluteSize.X, 0, math.min(TotalHeight, 300))
-
-        -- Enabling scrolling if needed
-        if TotalHeight > 300 then
-            local ScrollFrame = Create("ScrollingFrame", {
-                Name = "ScrollFrame",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                CanvasSize = UDim2.new(0, 0, 0, TotalHeight),
-                ScrollBarThickness = 4,
-                ScrollingDirection = Enum.ScrollingDirection.Y,
-                BorderSizePixel = 0,
-                Parent = DropdownMenu
-            })
-            
-            -- Set ZIndex safely
-            pcall(function()
-                ScrollFrame.ZIndex = 11000
-            })
-
-            -- Move all children to the scroll frame
-            for _, Child in pairs(DropdownMenu:GetChildren()) do
-                if Child.Name ~= "ScrollFrame" and not Child:IsA("UIListLayout") and not Child:IsA("UIPadding") then
-                    Child.Parent = ScrollFrame
-                end
-            end
-
-            -- Move the layout to the scroll frame
-            MenuList.Parent = ScrollFrame
-            MenuPadding.Parent = ScrollFrame
-        end
-    end
-
-    -- Show/hide menu function
-    local function ToggleMenu()
-        -- Position the menu under the dropdown
-        local Position = DropdownContainer.AbsolutePosition
-        local Size = DropdownContainer.AbsoluteSize
-        local ScreenSize = workspace.CurrentCamera.ViewportSize
-
-        -- Update menu for the correct items and current selection
-        UpdateMenu()
-
-        local MenuHeight = DropdownMenu.AbsoluteSize.Y
-        local BelowSpace = ScreenSize.Y - (Position.Y + Size.Y)
-        local AboveSpace = Position.Y
-
-        -- Determine if menu should appear above or below
-        local ShowAbove = BelowSpace < MenuHeight and AboveSpace > BelowSpace
-
-        -- If previously visible, hide
-        if DropdownMenu.Visible then
-            Tween(DropdownMenu, {Size = UDim2.new(0, DropdownMenu.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, function()
-                DropdownMenu.Visible = false
-            end)
-            Tween(DropdownArrow, {Rotation = 0}, 0.2)
-        else
-            -- Show menu at correct position
-            if ShowAbove then
-                DropdownMenu.Position = UDim2.new(0, Position.X, 0, Position.Y - MenuHeight)
-            else
-                DropdownMenu.Position = UDim2.new(0, Position.X, 0, Position.Y + Size.Y)
-            end
-
-            DropdownMenu.Size = UDim2.new(0, Size.X, 0, 0)
-            DropdownMenu.Visible = true
-
-            -- Animate opening
-            Tween(DropdownMenu, {Size = UDim2.new(0, Size.X, 0, DropdownMenu.AbsoluteSize.Y)}, 0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-            Tween(DropdownArrow, {Rotation = 180}, 0.2)
-
-            -- Focus the menu to catch outside clicks
-            DropdownLayer.BackgroundTransparency = 1
-            DropdownLayer.Visible = true
-            -- Set ZIndex safely
-            pcall(function()
-                DropdownLayer.ZIndex = 10000
-            end)
-        end
-    end
-
-    -- Dropdown button click
-    Connect(DropdownButton.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            ToggleMenu()
-        end
-    end)
-
-    -- Also try traditional click
-    pcall(function()
-        Connect(DropdownButton.MouseButton1Click, ToggleMenu)
-    end)
-
-    -- Close on outside click
-    Connect(DropdownLayer.InputBegan, function(Input)
-        if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and DropdownMenu.Visible then
-            local Position = Input.Position
-            local MenuPos = DropdownMenu.AbsolutePosition
-            local MenuSize = DropdownMenu.AbsoluteSize
-
-            -- Check if click was outside menu
-            if Position.X < MenuPos.X or Position.X > MenuPos.X + MenuSize.X or
-               Position.Y < MenuPos.Y or Position.Y > MenuPos.Y + MenuSize.Y then
-                Tween(DropdownMenu, {Size = UDim2.new(0, DropdownMenu.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, function()
-                    DropdownMenu.Visible = false
-                    DropdownLayer.Visible = false
-                end)
-                Tween(DropdownArrow, {Rotation = 0}, 0.2)
-            end
-        end
-    end)
-
-    -- Close menu on escape key
-    Connect(UserInputService.InputBegan, function(Input)
-        if Input.KeyCode == Enum.KeyCode.Escape and DropdownMenu.Visible then
-            Tween(DropdownMenu, {Size = UDim2.new(0, DropdownMenu.AbsoluteSize.X, 0, 0)}, 0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, function()
-                DropdownMenu.Visible = false
-                DropdownLayer.Visible = false
-            end)
-            Tween(DropdownArrow, {Rotation = 0}, 0.2)
-        end
-    end)
-
-    -- Initial text update
-    UpdateDisplayText()
-
-    -- Dropdown API
-    function DropdownAPI:SetItems(NewItems)
-        DropdownItems = NewItems
-        UpdateMenu()
-    end
-
-    function DropdownAPI:Clear()
-        if DropdownMultiSelect then
-            SelectedItems = {}
-        else
-            SelectedItems = ""
-        end
-        UpdateDisplayText()
-        UpdateMenu()
-
-        if DropdownFlag then
-            TBDLib.Flags[DropdownFlag] = {
-                Value = SelectedItems,
-                Set = function(NewValue)
-                    SelectedItems = NewValue
-                    UpdateDisplayText()
-                    UpdateMenu()
-                    DropdownCallback(SelectedItems)
-                end
-            }
-        end
-    end
-
-    function DropdownAPI:Set(Value)
-        SelectedItems = Value
-        UpdateDisplayText()
-        UpdateMenu()
-        DropdownCallback(Value)
-
-        if DropdownFlag then
-            TBDLib.Flags[DropdownFlag] = {
-                Value = SelectedItems,
-                Set = function(NewValue)
-                    SelectedItems = NewValue
-                    UpdateDisplayText()
-                    UpdateMenu()
-                    DropdownCallback(SelectedItems)
-                end
-            }
-        end
-    end
-
-    function DropdownAPI:Get()
-        return SelectedItems
-    end
-
-    -- Register the flag if specified
-    if DropdownFlag then
-        TBDLib.Flags[DropdownFlag] = {
-            Value = SelectedItems,
-            Set = function(NewValue)
-                SelectedItems = NewValue
-                UpdateDisplayText()
-                UpdateMenu()
-                DropdownCallback(SelectedItems)
-            end
-        }
-    end
-
-    return DropdownAPI
-end
-
--- Add Textbox
-function SectionAPI:AddTextbox(Config)
-    Config = Config or {}
-    local TextboxText = Config.Text or "Textbox"
-    local TextboxPlaceholder = Config.Placeholder or "Type here..."
-    local TextboxDefault = Config.Default or ""
-    local TextboxCallback = Config.Callback or function() end
-    local TextboxFlag = Config.Flag
-
-    local TextboxFrame = Create("Frame", {
-        Name = "Textbox",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        TextboxFrame.LayoutOrder = Config.Order
-    end
-
-    local TextboxLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, 0, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = TextboxText,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = TextboxFrame
-    })
-
-    local TextboxContainer = CreateRoundedFrame(
-        UDim2.new(1, 0, 0, 36),
-        UDim2.new(0, 0, 0, 20),
-        TBDLib.Theme.Tertiary,
-        TextboxFrame,
-        6
-    )
-
-    local TextBox = Create("TextBox", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 0),
-        Size = UDim2.new(1, -24, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = TextboxDefault,
-        PlaceholderText = TextboxPlaceholder,
-        TextColor3 = TBDLib.Theme.Text,
-        PlaceholderColor3 = TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false,
-        Parent = TextboxContainer
-    })
-
-    -- Focus border effect
-    local TextboxBorder = CreateStroke(TextboxContainer, TBDLib.Theme.Accent, 1, 1)
-
-    -- Focus/unfocus effects
-    Connect(TextBox.Focused, function()
-        Tween(TextboxBorder, {Transparency = 0}, 0.2)
-    end)
-
-    Connect(TextBox.FocusLost, function(EnterPressed)
-        Tween(TextboxBorder, {Transparency = 1}, 0.2)
-        TextboxCallback(TextBox.Text)
-
-        -- Update flag if specified
-        if TextboxFlag then
-            TBDLib.Flags[TextboxFlag] = {
-                Value = TextBox.Text,
-                Set = function(NewValue)
-                    TextBox.Text = NewValue
-                    TextboxCallback(TextBox.Text)
-                end
-            }
-        end
-    end)
-
-    -- Textbox API
-    local TextboxAPI = {}
-
-    function TextboxAPI:SetText(NewText)
-        TextBox.Text = NewText
-        TextboxCallback(TextBox.Text)
-
-        -- Update flag if specified
-        if TextboxFlag then
-            TBDLib.Flags[TextboxFlag] = {
-                Value = TextBox.Text,
-                Set = function(NewValue)
-                    TextBox.Text = NewValue
-                    TextboxCallback(TextBox.Text)
-                end
-            }
-        end
-    end
-
-    function TextboxAPI:GetText()
-        return TextBox.Text
-    end
-
-    -- Register the flag if specified
-    if TextboxFlag then
-        TBDLib.Flags[TextboxFlag] = {
-            Value = TextBox.Text,
-            Set = function(NewValue)
-                TextBox.Text = NewValue
-                TextboxCallback(TextBox.Text)
-            end
-        }
-    end
-
-    return TextboxAPI
-end
-
--- Add Keybind
-function SectionAPI:AddKeybind(Config)
-    Config = Config or {}
-    local KeybindText = Config.Text or "Keybind"
-    local KeybindDefault = Config.Default or Enum.KeyCode.Unknown
-    local KeybindCallback = Config.Callback or function() end
-    local KeybindFlag = Config.Flag
-
-    local KeybindFrame = Create("Frame", {
-        Name = "Keybind",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 36),
-        Parent = SectionContent
-    })
-
-    -- Set element order if specified
-    if Config.Order then
-        KeybindFrame.LayoutOrder = Config.Order
-    end
-
-    local KeybindLabel = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, -80, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = KeybindText,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = KeybindFrame
-    })
-
-    local KeybindContainer = CreateRoundedFrame(
-        UDim2.new(0, 80, 0, 30),
-        UDim2.new(1, -80, 0.5, -15),
-        TBDLib.Theme.Tertiary,
-        KeybindFrame,
-        6
-    )
-
-    local KeybindButton = Create("TextButton", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = KeybindDefault == Enum.KeyCode.Unknown and "None" or KeybindDefault.Name,
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 14,
-        Parent = KeybindContainer
-    })
-
-    -- Keybind API and state
-    local KeybindAPI = {}
-    local SelectedKey = KeybindDefault
-    local Listening = false
-
-    function KeybindAPI:Set(Key)
-        SelectedKey = Key
-        KeybindButton.Text = Key == Enum.KeyCode.Unknown and "None" or Key.Name
-
-        -- Update flag if specified
-        if KeybindFlag then
-            TBDLib.Flags[KeybindFlag] = {
-                Value = SelectedKey,
-                Set = KeybindAPI.Set
-            }
-        end
-    end
-
-    function KeybindAPI:Get()
-        return SelectedKey
-    end
-
-    function KeybindAPI:StartListening()
-        Listening = true
-        KeybindButton.Text = "..."
-        Tween(KeybindContainer, {BackgroundColor3 = TBDLib.Theme.Primary}, 0.2)
-    end
-
-    function KeybindAPI:StopListening()
-        Listening = false
-        KeybindButton.Text = SelectedKey == Enum.KeyCode.Unknown and "None" or SelectedKey.Name
-        Tween(KeybindContainer, {BackgroundColor3 = TBDLib.Theme.Tertiary}, 0.2)
-    end
-
-    -- Connect button click to start listening with cross-platform compatibility
-    Connect(KeybindButton.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            if not Listening then
-                KeybindAPI:StartListening()
-            else
-                KeybindAPI:StopListening()
-            end
-        end
-    end)
-
-    -- Connect input to detect key
-    Connect(UserInputService.InputBegan, function(Input, GameProcessed)
-        if not GameProcessed and Listening and Input.UserInputType == Enum.UserInputType.Keyboard then
-            local Key = Input.KeyCode
-            if Key == Enum.KeyCode.Escape then
-                -- Clear keybind
-                KeybindAPI:Set(Enum.KeyCode.Unknown)
-            else
-                KeybindAPI:Set(Key)
-            end
-            KeybindAPI:StopListening()
-            KeybindCallback(SelectedKey)
-        elseif not GameProcessed and not Listening and Input.KeyCode == SelectedKey then
-            KeybindCallback(SelectedKey)
-        end
-    end)
-
-    -- Register the flag if specified
-    if KeybindFlag then
-        TBDLib.Flags[KeybindFlag] = {
-            Value = SelectedKey,
-            Set = KeybindAPI.Set
-        }
-    end
-
-    return KeybindAPI
-end
-
--- Add Player Info component
-function SectionAPI:AddPlayerInfo(PlayerInfo)
-    PlayerInfo = PlayerInfo or {
-        Player = {
-            Name = "Player",
-            DisplayName = "Player",
-            AccountAge = 0,
-            Avatar = TBDLib.Icons.Avatar
+    return tween
+end
+
+local function RoundNumber(number, decimalPlaces)
+    local mult = 10 ^ (decimalPlaces or 0)
+    return math.floor(number * mult + 0.5) / mult
+end
+
+local function GetTextBounds(text, font, size)
+    return TextService:GetTextSize(text, size, font, Vector2.new(1000, 1000))
+end
+
+-- Core Library
+local BillsLib = {
+    Version = "1.0.0",
+    Windows = {},
+    Initialized = false,
+    Theme = {
+        Primary = Color3.fromRGB(35, 35, 45),
+        Secondary = Color3.fromRGB(25, 25, 35),
+        Accent = Color3.fromRGB(114, 137, 218),
+        TextColor = Color3.fromRGB(255, 255, 255),
+        InputBackground = Color3.fromRGB(45, 45, 55),
+        NotificationBackground = Color3.fromRGB(35, 35, 45),
+        Success = Color3.fromRGB(87, 232, 107),
+        Warning = Color3.fromRGB(232, 187, 87),
+        Error = Color3.fromRGB(232, 87, 87),
+        Info = Color3.fromRGB(87, 177, 232),
+        DropdownBackground = Color3.fromRGB(40, 40, 50),
+        SliderBackground = Color3.fromRGB(50, 50, 60),
+        SliderFill = Color3.fromRGB(114, 137, 218),
+        ToggleBackground = Color3.fromRGB(50, 50, 60),
+        ToggleFill = Color3.fromRGB(114, 137, 218),
+        BorderColor = Color3.fromRGB(60, 60, 70),
+        PlaceholderColor = Color3.fromRGB(180, 180, 180),
+        TabBackground = Color3.fromRGB(30, 30, 40),
+        TabBackgroundSelected = Color3.fromRGB(45, 45, 55),
+        SectionBackground = Color3.fromRGB(35, 35, 45),
+        DividerColor = Color3.fromRGB(60, 60, 70)
+    },
+    Icons = {
+        Close = "rbxassetid://3926305904",
+        Minimize = "rbxassetid://3926307971",
+        Settings = "rbxassetid://3926307971",
+        Notification = {
+            Success = "rbxassetid://9072647662",
+            Warning = "rbxassetid://9072664868",
+            Error = "rbxassetid://9072734898",
+            Info = "rbxassetid://9072718505"
         },
-        Game = {
-            Name = "Game",
-            PlaceId = 0
-        }
-    }
+        Dropdown = "rbxassetid://3926305904",
+        Toggle = {
+            On = "rbxassetid://3944680095",
+            Off = "rbxassetid://3944680095"
+        },
+        Slider = "rbxassetid://3926305904",
+        ColorPicker = "rbxassetid://3926305904"
+    },
+    Notifications = {},
+    ToggleKey = Enum.KeyCode.RightShift,
+    Objects = {}
+}
 
-    -- Create player info frame
-    local PlayerInfoFrame = Create("Frame", {
-        Name = "PlayerInfo",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 100),
-        Parent = SectionContent
-    })
-
-    -- Create avatar container
-    local AvatarImageContainer = CreateRoundedFrame(
-        UDim2.new(0, 80, 0, 80),
-        UDim2.new(0, 10, 0.5, -40),
-        Color3.fromRGB(40, 40, 40),
-        PlayerInfoFrame,
-        40,
-        "AvatarContainer"
-    )
-
-    -- Add avatar image
-    local AvatarImage = Create("ImageLabel", {
-        Name = "Avatar",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -10, 1, -10),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Image = PlayerInfo.Player.Avatar,
-        Parent = AvatarImageContainer
-    })
-
-    -- Add rounded corners to avatar
-    Create("UICorner", {
-        CornerRadius = UDim.new(1, 0),
-        Parent = AvatarImage
-    })
-
-    -- Create player name
-    local PlayerName = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 100, 0, 10),
-        Size = UDim2.new(1, -110, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = PlayerInfo.Player.DisplayName .. " (@" .. PlayerInfo.Player.Name .. ")",
-        TextColor3 = TBDLib.Theme.Text,
-        TextSize = 16,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = PlayerInfoFrame
-    })
-
-    -- Account age info
-    local AccountAge = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 100, 0, 35),
-        Size = UDim2.new(1, -110, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = "Account Age: " .. PlayerInfo.Player.AccountAge .. " days",
-        TextColor3 = TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = PlayerInfoFrame
-    })
-
-    -- Game info
-    local GameInfo = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 100, 0, 55),
-        Size = UDim2.new(1, -110, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = "Game: " .. PlayerInfo.Game.Name,
-        TextColor3 = TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = PlayerInfoFrame
-    })
-
-    -- Server info
-    local ServerInfo = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 100, 0, 75),
-        Size = UDim2.new(1, -110, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = "Server: " .. PlayerInfo.Server.Players .. "/" .. PlayerInfo.Server.MaxPlayers .. " players",
-        TextColor3 = TBDLib.Theme.TextDark,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = PlayerInfoFrame
-    })
-
-    -- Create a simple API
-    local PlayerInfoAPI = {}
-
-    function PlayerInfoAPI:Update(NewPlayerInfo)
-        PlayerInfo = NewPlayerInfo
-
-        -- Update UI elements
-        AvatarImage.Image = PlayerInfo.Player.Avatar
-        PlayerName.Text = PlayerInfo.Player.DisplayName .. " (@" .. PlayerInfo.Player.Name .. ")"
-        AccountAge.Text = "Account Age: " .. PlayerInfo.Player.AccountAge .. " days"
-        GameInfo.Text = "Game: " .. PlayerInfo.Game.Name
-        ServerInfo.Text = "Server: " .. PlayerInfo.Server.Players .. "/" .. PlayerInfo.Server.MaxPlayers .. " players"
-    end
-
-    return PlayerInfoAPI
-end
-
-return SectionAPI
-end
-
-return TabAPI
-end
-
--- Select a tab by ID
-function WindowAPI:SelectTab(TabId)
--- Add diagnostics for tab selection
-if not Tabs then
-warn("TBDLib: Tab container is nil in SelectTab")
-return
-end
-
-if not Tabs[TabId] then
-warn("TBDLib: Invalid tab ID in SelectTab: " .. tostring(TabId))
-return
-end
-
-if ActiveTab == TabId then
--- Tab is already selected, just ensure it's visible
-if Tabs[TabId].Content then
-    Tabs[TabId].Content.Visible = true
-end
-return
-end
-
--- Hide all tab contents with error handling
-for _, Tab in pairs(Tabs) do
-if Tab.Id ~= TabId then
-    pcall(function()
-        Tab.Content.Visible = false
-
-        -- Reset button appearance
-        Tween(Tab.Button, {BackgroundColor3 = TBDLib.Theme.Primary}, 0.2)
-
-        local TitleLabel = Tab.Button:FindFirstChild("Title")
-        if TitleLabel then
-            Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextDark}, 0.2)
-        end
-
-        local IconLabel = Tab.Button:FindFirstChild("Icon")
-        if IconLabel then
-            Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextDark}, 0.2)
-        end
-
-        local Indicator = Tab.Button:FindFirstChild("Indicator")
-        if Indicator then
-            Tween(Indicator, {BackgroundTransparency = 1}, 0.2)
+-- Create main ScreenGui container
+function BillsLib:CreateGui()
+    local success, result = pcall(function()
+        if RunService:IsStudio() then
+            return Player:WaitForChild("PlayerGui")
+        else
+            return CoreGui
         end
     end)
-end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BillsLib"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    if success then
+        screenGui.Parent = result
+    else
+        screenGui.Parent = Player:WaitForChild("PlayerGui")
+    end
+    
+    self.ScreenGui = screenGui
+    
+    -- Create notification container
+    local notificationContainer = Instance.new("Frame")
+    notificationContainer.Name = "NotificationContainer"
+    notificationContainer.AnchorPoint = Vector2.new(1, 0)
+    notificationContainer.BackgroundTransparency = 1
+    notificationContainer.Position = UDim2.new(1, -20, 0, 20)
+    notificationContainer.Size = UDim2.new(0, 300, 1, -40)
+    notificationContainer.Parent = screenGui
+    
+    local notificationLayout = Instance.new("UIListLayout")
+    notificationLayout.Padding = UDim.new(0, 10)
+    notificationLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    notificationLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+    notificationLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    notificationLayout.Parent = notificationContainer
+    
+    self.NotificationContainer = notificationContainer
+    
+    return screenGui
 end
 
--- Show selected tab content with error handling
-pcall(function()
--- Ensure the tab content exists and is properly configured
-if Tabs[TabId].Content then
-    Tabs[TabId].Content.Visible = true
-    Tabs[TabId].Content.ZIndex = 5 -- Ensure proper z-index
+-- Create rounded frame utility function
+function BillsLib:CreateRoundFrame(name, size, position, color, parent, cornerRadius)
+    local frame = Instance.new("Frame")
+    frame.Name = name
+    frame.Size = size
+    frame.Position = position
+    frame.BackgroundColor3 = color
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, cornerRadius or 6)
+    corner.Parent = frame
+    
+    return frame
+end
 
-    -- Force update layouts for child elements
-    for _, child in pairs(Tabs[TabId].Content:GetDescendants()) do
-        if child:IsA("UIListLayout") or child:IsA("UIGridLayout") then
-            child.Parent:GetPropertyChangedSignal("AbsoluteSize"):Wait()
+-- Create text label utility function
+function BillsLib:CreateLabel(name, text, size, position, textColor, font, parent, textSize, textXAlign, textYAlign)
+    local label = Instance.new("TextLabel")
+    label.Name = name
+    label.Size = size
+    label.Position = position
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = textColor or self.Theme.TextColor
+    label.Font = font or Enum.Font.SourceSansSemibold
+    label.TextSize = textSize or 14
+    label.TextXAlignment = textXAlign or Enum.TextXAlignment.Left
+    label.TextYAlignment = textYAlign or Enum.TextYAlignment.Center
+    label.Parent = parent
+    
+    return label
+end
+
+-- Create button utility function
+function BillsLib:CreateTextButton(name, text, size, position, bgColor, textColor, callback, parent, cornerRadius, font, textSize)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = size
+    button.Position = position
+    button.BackgroundColor3 = bgColor or self.Theme.Accent
+    button.TextColor3 = textColor or self.Theme.TextColor
+    button.Text = text
+    button.Font = font or Enum.Font.SourceSansSemibold
+    button.TextSize = textSize or 14
+    button.BorderSizePixel = 0
+    button.AutoButtonColor = false
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, cornerRadius or 6)
+    corner.Parent = button
+    
+    button.MouseEnter:Connect(function()
+        CreateTween(button, 0.2, {BackgroundColor3 = bgColor:Lerp(Color3.fromRGB(255, 255, 255), 0.2)}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        CreateTween(button, 0.2, {BackgroundColor3 = bgColor}):Play()
+    end)
+    
+    button.MouseButton1Click:Connect(function()
+        callback()
+    end)
+    
+    return button
+end
+
+-- Create shadow utility
+function BillsLib:AddShadow(frame, transparency, spread)
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.Size = UDim2.new(1, spread or 24, 1, spread or 24)
+    shadow.Image = "rbxassetid://6014261993"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = transparency or 0.5
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+    shadow.ZIndex = frame.ZIndex - 1
+    shadow.Parent = frame
+    
+    return shadow
+end
+
+-- Build a window
+function BillsLib:CreateWindow(title, size)
+    if not self.Initialized then
+        self:CreateGui()
+        self.Initialized = true
+    end
+    
+    local windowSize = size or UDim2.new(0, 550, 0, 400)
+    
+    -- Main window frame
+    local window = self:CreateRoundFrame("Window", windowSize, UDim2.new(0.5, -windowSize.X.Offset / 2, 0.5, -windowSize.Y.Offset / 2), self.Theme.Primary, self.ScreenGui, 8)
+    window.ClipsDescendants = true
+    window.ZIndex = 10
+    
+    -- Add shadow
+    self:AddShadow(window, 0.5, 30)
+    
+    -- Title bar
+    local titleBar = self:CreateRoundFrame("TitleBar", UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0), self.Theme.Secondary, window, 8)
+    titleBar.ZIndex = 11
+    
+    -- Only round the top corners of title bar
+    local titleBarCorner = titleBar:FindFirstChild("UICorner")
+    titleBarCorner.CornerRadius = UDim.new(0, 8)
+    
+    -- Make title bar draggable
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = window.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- Title text
+    local titleText = self:CreateLabel("Title", title, UDim2.new(1, -100, 1, 0), UDim2.new(0, 15, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansBold, titleBar, 16)
+    
+    -- Close button
+    local closeButton = self:CreateTextButton("CloseButton", "✕", UDim2.new(0, 30, 0, 30), UDim2.new(1, -40, 0, 5), self.Theme.Secondary, self.Theme.TextColor, function()
+        window:Destroy()
+        table.remove(self.Windows, table.find(self.Windows, window))
+        
+        -- Clean up all objects
+        for _, obj in pairs(self.Objects) do
+            if obj.Instance and obj.Instance:IsA("Instance") and obj.Window == window then
+                pcall(function() obj.Instance:Destroy() end)
+            end
+        end
+    end, titleBar, 6)
+    
+    -- Style close button on hover
+    closeButton.MouseEnter:Connect(function()
+        CreateTween(closeButton, 0.2, {BackgroundColor3 = self.Theme.Error}):Play()
+    end)
+    
+    closeButton.MouseLeave:Connect(function()
+        CreateTween(closeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary}):Play()
+    end)
+    
+    -- Minimize button
+    local minimizeButton = self:CreateTextButton("MinimizeButton", "–", UDim2.new(0, 30, 0, 30), UDim2.new(1, -80, 0, 5), self.Theme.Secondary, self.Theme.TextColor, function()
+        if window.Size == windowSize then
+            CreateTween(window, 0.3, {Size = UDim2.new(windowSize.X.Scale, windowSize.X.Offset, 0, 40)}):Play()
+        else
+            CreateTween(window, 0.3, {Size = windowSize}):Play()
+        end
+    end, titleBar, 6)
+    
+    -- Style minimize button on hover
+    minimizeButton.MouseEnter:Connect(function()
+        CreateTween(minimizeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary:Lerp(Color3.fromRGB(255, 255, 255), 0.2)}):Play()
+    end)
+    
+    minimizeButton.MouseLeave:Connect(function()
+        CreateTween(minimizeButton, 0.2, {BackgroundColor3 = self.Theme.Secondary}):Play()
+    end)
+    
+    -- Container for tabs
+    local tabContainer = self:CreateRoundFrame("TabContainer", UDim2.new(0, 120, 1, -50), UDim2.new(0, 10, 0, 50), self.Theme.Secondary, window, 6)
+    tabContainer.ZIndex = 11
+    
+    local tabListLayout = Instance.new("UIListLayout")
+    tabListLayout.Padding = UDim.new(0, 5)
+    tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabListLayout.Parent = tabContainer
+    
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 10)
+    tabPadding.PaddingBottom = UDim.new(0, 10)
+    tabPadding.PaddingLeft = UDim.new(0, 10)
+    tabPadding.PaddingRight = UDim.new(0, 10)
+    tabPadding.Parent = tabContainer
+    
+    -- Content container
+    local contentContainer = self:CreateRoundFrame("ContentContainer", UDim2.new(1, -150, 1, -50), UDim2.new(0, 140, 0, 50), self.Theme.Secondary, window, 6)
+    contentContainer.ZIndex = 11
+    
+    -- Initialize Dashboard (Home tab)
+    local dashboardTab, dashboardPage = self:CreateTab(window, tabContainer, contentContainer, "Dashboard", 1)
+    
+    -- Dashboard content
+    local avatarContainer = self:CreateRoundFrame("AvatarContainer", UDim2.new(0, 80, 0, 80), UDim2.new(0, 20, 0, 20), self.Theme.Primary, dashboardPage, 40)
+    avatarContainer.ClipsDescendants = true
+    
+    local avatarImage = Instance.new("ImageLabel")
+    avatarImage.Name = "AvatarImage"
+    avatarImage.BackgroundTransparency = 1
+    avatarImage.Size = UDim2.new(1, 0, 1, 0)
+    avatarImage.Position = UDim2.new(0, 0, 0, 0)
+    avatarImage.Parent = avatarContainer
+    
+    -- Load player avatar
+    local userId = Player.UserId
+    local thumbnailType = Enum.ThumbnailType.HeadShot
+    local thumbnailSize = Enum.ThumbnailSize.Size420x420
+    
+    local success, avatar = pcall(function()
+        return Players:GetUserThumbnailAsync(userId, thumbnailType, thumbnailSize)
+    end)
+    
+    if success and avatar then
+        avatarImage.Image = avatar
+    else
+        avatarImage.Image = "rbxassetid://7962146544" -- Default avatar
+    end
+    
+    -- Player info
+    local playerNameLabel = self:CreateLabel("PlayerName", Player.DisplayName, UDim2.new(0, 200, 0, 20), UDim2.new(0, 120, 0, 30), self.Theme.TextColor, Enum.Font.SourceSansBold, dashboardPage, 18)
+    
+    local playerUsernameLabel = self:CreateLabel("PlayerUsername", "@" .. Player.Name, UDim2.new(0, 200, 0, 20), UDim2.new(0, 120, 0, 55), self.Theme.PlaceholderColor, Enum.Font.SourceSans, dashboardPage, 14)
+    
+    -- Divider
+    local divider = Instance.new("Frame")
+    divider.Name = "Divider"
+    divider.Size = UDim2.new(1, -40, 0, 1)
+    divider.Position = UDim2.new(0, 20, 0, 120)
+    divider.BackgroundColor3 = self.Theme.DividerColor
+    divider.BorderSizePixel = 0
+    divider.Parent = dashboardPage
+    
+    -- Game info
+    local gameInfoContainer = self:CreateRoundFrame("GameInfoContainer", UDim2.new(1, -40, 0, 80), UDim2.new(0, 20, 0, 140), self.Theme.Primary, dashboardPage, 6)
+    
+    -- Load game info
+    local gameNameLabel = self:CreateLabel("GameName", "Loading...", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 10), self.Theme.TextColor, Enum.Font.SourceSansBold, gameInfoContainer, 16)
+    
+    local playersLabel = self:CreateLabel("PlayersInfo", "Players: Loading...", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 40), self.Theme.TextColor, Enum.Font.SourceSans, gameInfoContainer, 14)
+    
+    -- Get place name asynchronously
+    spawn(function()
+        local success, gameInfo = pcall(function()
+            return MarketplaceService:GetProductInfo(game.PlaceId)
+        end)
+        
+        if success and gameInfo then
+            gameNameLabel.Text = gameInfo.Name
+        else
+            gameNameLabel.Text = "Game Info Unavailable"
+        end
+        
+        -- Set player count
+        playersLabel.Text = "Players: " .. #Players:GetPlayers() .. " / " .. Players.MaxPlayers
+    end)
+    
+    -- Create window metatable
+    local windowObj = {}
+    windowObj.Instance = window
+    windowObj.Tabs = {Dashboard = dashboardPage}
+    windowObj.TabButtons = {Dashboard = dashboardTab}
+    windowObj.ActiveTab = "Dashboard"
+    windowObj.TabCount = 1
+    
+    -- AddTab method
+    function windowObj:AddTab(name)
+        local tab, page = BillsLib:CreateTab(self.Instance, tabContainer, contentContainer, name, self.TabCount + 1)
+        self.Tabs[name] = page
+        self.TabButtons[name] = tab
+        self.TabCount = self.TabCount + 1
+        return page
+    end
+    
+    -- SetActiveTab method
+    function windowObj:SetActiveTab(name)
+        if self.Tabs[name] then
+            -- Hide all tabs
+            for tabName, tabPage in pairs(self.Tabs) do
+                tabPage.Visible = false
+                CreateTween(self.TabButtons[tabName], 0.2, {BackgroundColor3 = BillsLib.Theme.TabBackground}):Play()
+            end
+            
+            -- Show selected tab
+            self.Tabs[name].Visible = true
+            CreateTween(self.TabButtons[name], 0.2, {BackgroundColor3 = BillsLib.Theme.TabBackgroundSelected}):Play()
+            self.ActiveTab = name
         end
     end
-else
-    warn("TBDLib: Tab content is missing for TabId: " .. tostring(TabId))
+    
+    -- Initialize first tab as visible
+    windowObj:SetActiveTab("Dashboard")
+    
+    -- Add to windows table
+    table.insert(self.Windows, windowObj)
+    
+    return windowObj
 end
 
--- Update button appearance
-Tween(Tabs[TabId].Button, {BackgroundColor3 = TBDLib.Theme.Accent}, 0.2)
-
-local TitleLabel = Tabs[TabId].Button:FindFirstChild("Title")
-if TitleLabel then
-    Tween(TitleLabel, {TextColor3 = TBDLib.Theme.TextLight}, 0.2)
+-- Create tab method
+function BillsLib:CreateTab(window, tabContainer, contentContainer, name, order)
+    -- Tab button
+    local tabButton = self:CreateRoundFrame("Tab_" .. name, UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, ((order - 1) * 35)), self.Theme.TabBackground, tabContainer, 6)
+    tabButton.ZIndex = 12
+    
+    local tabText = self:CreateLabel("TabText", name, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansSemibold, tabButton, 14, Enum.TextXAlignment.Center)
+    
+    -- Content page
+    local contentPage = self:CreateRoundFrame("Page_" .. name, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), self.Theme.Secondary, contentContainer, 6)
+    contentPage.ZIndex = 12
+    contentPage.BackgroundTransparency = 1
+    contentPage.Visible = false
+    
+    -- Scroll frame for content
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 0)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 3
+    scrollFrame.ScrollBarImageColor3 = self.Theme.Accent
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.Parent = contentPage
+    
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.Padding = UDim.new(0, 10)
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    contentLayout.Parent = scrollFrame
+    
+    local contentPadding = Instance.new("UIPadding")
+    contentPadding.PaddingTop = UDim.new(0, 10)
+    contentPadding.PaddingBottom = UDim.new(0, 10)
+    contentPadding.PaddingLeft = UDim.new(0, 10)
+    contentPadding.PaddingRight = UDim.new(0, 10)
+    contentPadding.Parent = scrollFrame
+    
+    -- Update canvas size when content changes
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
+    end)
+    
+    -- Add click event to tab button
+    tabButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            -- Find parent window object
+            for _, windowObj in pairs(self.Windows) do
+                if windowObj.Instance == window then
+                    windowObj:SetActiveTab(name)
+                    break
+                end
+            end
+        end
+    end)
+    
+    return tabButton, contentPage
 end
 
-local IconLabel = Tabs[TabId].Button:FindFirstChild("Icon")
-if IconLabel then
-    Tween(IconLabel, {ImageColor3 = TBDLib.Theme.TextLight}, 0.2)
+-- Create section
+function BillsLib:CreateSection(tab, title)
+    local sectionContainer = self:CreateRoundFrame("Section_" .. title, UDim2.new(1, -20, 0, 36), UDim2.new(0, 0, 0, 0), self.Theme.SectionBackground, tab:FindFirstChild("ScrollFrame"), 6)
+    sectionContainer.ZIndex = 13
+    sectionContainer.ClipsDescendants = true
+    sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
+    
+    -- Section title
+    local sectionTitle = self:CreateLabel("SectionTitle", title, UDim2.new(1, -40, 0, 30), UDim2.new(0, 15, 0, 0), self.Theme.TextColor, Enum.Font.SourceSansBold, sectionContainer, 15)
+    
+    -- Expand/collapse button
+    local expandButton = self:CreateTextButton("ExpandButton", "▼", UDim2.new(0, 20, 0, 20), UDim2.new(1, -30, 0, 5), self.Theme.SectionBackground, self.Theme.TextColor, function()
+        -- Toggle section content visibility
+        local contentContainer = sectionContainer:FindFirstChild("ContentContainer")
+        local isExpanded = contentContainer.Visible
+        
+        if isExpanded then
+            -- Collapse
+            contentContainer.Visible = false
+            expandButton.Text = "▶"
+            CreateTween(sectionContainer, 0.3, {Size = UDim2.new(1, -20, 0, 36)}):Play()
+        else
+            -- Expand
+            contentContainer.Visible = true
+            expandButton.Text = "▼"
+            
+            -- Calculate required height
+            local contentLayout = contentContainer:FindFirstChildOfClass("UIListLayout")
+            local requiredHeight = contentLayout.AbsoluteContentSize.Y + 46 -- 36 + 10 padding
+            
+            CreateTween(sectionContainer, 0.3, {Size = UDim2.new(1, -20, 0, requiredHeight)}):Play()
+        end
+    end, sectionContainer, 4)
+    
+    -- Content container
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, -20, 1, -36)
+    contentContainer.Position = UDim2.new(0, 10, 0, 36)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = sectionContainer
+    
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.Padding = UDim.new(0, 8)
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Parent = contentContainer
+    
+    local contentPadding = Instance.new("UIPadding")
+    contentPadding.PaddingTop = UDim.new(0, 0)
+    contentPadding.PaddingBottom = UDim.new(0, 10)
+    contentPadding.PaddingLeft = UDim.new(0, 0)
+    contentPadding.PaddingRight = UDim.new(0, 0)
+    contentPadding.Parent = contentContainer
+    
+    -- Update section height when content changes
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if contentContainer.Visible then
+            local requiredHeight = contentLayout.AbsoluteContentSize.Y + 46 -- 36 + 10 padding
+            sectionContainer.Size = UDim2.new(1, -20, 0, requiredHeight)
+        end
+    end)
+    
+    -- Initialize expanded
+    contentContainer.Visible = true
+    expandButton.Text = "▼"
+    
+    -- Section functions
+    local sectionObj = {}
+    sectionObj.Instance = sectionContainer
+    sectionObj.ContentContainer = contentContainer
+    sectionObj.ElementCount = 0
+    
+    -- AddLabel
+    function sectionObj:AddLabel(text)
+        self.ElementCount = self.ElementCount + 1
+        
+        local labelContainer = Instance.new("Frame")
+        labelContainer.Name = "Label_" .. self.ElementCount
+        labelContainer.Size = UDim2.new(1, 0, 0, 25)
+        labelContainer.BackgroundTransparency = 1
+        labelContainer.LayoutOrder = self.ElementCount
+        labelContainer.Parent = self.ContentContainer
+        
+        local labelText = BillsLib:CreateLabel("LabelText", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, labelContainer, 14)
+        
+        return labelText
+    end
+    
+    -- AddButton
+    function sectionObj:AddButton(text, callback)
+        self.ElementCount = self.ElementCount + 1
+        
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Name = "Button_" .. self.ElementCount
+        buttonContainer.Size = UDim2.new(1, 0, 0, 32)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.LayoutOrder = self.ElementCount
+        buttonContainer.Parent = self.ContentContainer
+        
+        local button = BillsLib:CreateTextButton("Button", text, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.Accent, BillsLib.Theme.TextColor, callback, buttonContainer, 6)
+        
+        local buttonObj = {}
+        buttonObj.Instance = button
+        
+        function buttonObj:SetText(newText)
+            button.Text = newText
+        end
+        
+        function buttonObj:SetCallback(newCallback)
+            -- Remove old connections
+            for _, connection in pairs(getconnections(button.MouseButton1Click)) do
+                connection:Disconnect()
+            end
+            
+            -- Add new callback
+            button.MouseButton1Click:Connect(newCallback)
+        end
+        
+        return buttonObj
+    end
+    
+    -- AddToggle
+    function sectionObj:AddToggle(text, default, callback)
+        self.ElementCount = self.ElementCount + 1
+        
+        local toggleContainer = Instance.new("Frame")
+        toggleContainer.Name = "Toggle_" .. self.ElementCount
+        toggleContainer.Size = UDim2.new(1, 0, 0, 32)
+        toggleContainer.BackgroundTransparency = 1
+        toggleContainer.LayoutOrder = self.ElementCount
+        toggleContainer.Parent = self.ContentContainer
+        
+        local toggleLabel = BillsLib:CreateLabel("ToggleLabel", text, UDim2.new(1, -50, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, toggleContainer, 14)
+        
+        local toggleButton = BillsLib:CreateRoundFrame("ToggleButton", UDim2.new(0, 40, 0, 20), UDim2.new(1, -45, 0.5, -10), BillsLib.Theme.ToggleBackground, toggleContainer, 10)
+        
+        local toggleCircle = BillsLib:CreateRoundFrame("ToggleCircle", UDim2.new(0, 16, 0, 16), UDim2.new(0, 2, 0.5, -8), BillsLib.Theme.TextColor, toggleButton, 8)
+        
+        local toggleState = default or false
+        
+        -- Set initial state
+        if toggleState then
+            toggleCircle.Position = UDim2.new(1, -18, 0.5, -8)
+            toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleFill
+        end
+        
+        -- Toggle interaction
+        toggleButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                toggleState = not toggleState
+                
+                -- Animate position
+                if toggleState then
+                    CreateTween(toggleCircle, 0.2, {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
+                    CreateTween(toggleButton, 0.2, {BackgroundColor3 = BillsLib.Theme.ToggleFill}):Play()
+                else
+                    CreateTween(toggleCircle, 0.2, {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
+                    CreateTween(toggleButton, 0.2, {BackgroundColor3 = BillsLib.Theme.ToggleBackground}):Play()
+                end
+                
+                -- Call callback
+                callback(toggleState)
+            end
+        end)
+        
+        -- Toggle API
+        local toggleObj = {}
+        toggleObj.Instance = toggleContainer
+        toggleObj.Value = toggleState
+        
+        function toggleObj:SetValue(value)
+            if value ~= toggleState then
+                toggleState = value
+                toggleObj.Value = value
+                
+                -- Update visuals
+                if toggleState then
+                    toggleCircle.Position = UDim2.new(1, -18, 0.5, -8)
+                    toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleFill
+                else
+                    toggleCircle.Position = UDim2.new(0, 2, 0.5, -8)
+                    toggleButton.BackgroundColor3 = BillsLib.Theme.ToggleBackground
+                end
+                
+                -- Call callback
+                callback(toggleState)
+            end
+        end
+        
+        function toggleObj:GetValue()
+            return toggleState
+        end
+        
+        return toggleObj
+    end
+    
+    -- AddSlider
+    function sectionObj:AddSlider(text, min, max, default, decimals, callback)
+        self.ElementCount = self.ElementCount + 1
+        decimals = decimals or 0
+        
+        local sliderContainer = Instance.new("Frame")
+        sliderContainer.Name = "Slider_" .. self.ElementCount
+        sliderContainer.Size = UDim2.new(1, 0, 0, 50)
+        sliderContainer.BackgroundTransparency = 1
+        sliderContainer.LayoutOrder = self.ElementCount
+        sliderContainer.Parent = self.ContentContainer
+        
+        local sliderLabel = BillsLib:CreateLabel("SliderLabel", text, UDim2.new(1, -50, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, sliderContainer, 14)
+        
+        local sliderValueLabel = BillsLib:CreateLabel("SliderValue", tostring(default), UDim2.new(0, 40, 0, 20), UDim2.new(1, -45, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, sliderContainer, 14, Enum.TextXAlignment.Right)
+        
+        local sliderTrack = BillsLib:CreateRoundFrame("SliderTrack", UDim2.new(1, -10, 0, 6), UDim2.new(0, 5, 0, 30), BillsLib.Theme.SliderBackground, sliderContainer, 3)
+        
+        local sliderFill = BillsLib:CreateRoundFrame("SliderFill", UDim2.new(0, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.SliderFill, sliderTrack, 3)
+        
+        local sliderButton = BillsLib:CreateRoundFrame("SliderButton", UDim2.new(0, 14, 0, 14), UDim2.new(0, -7, 0.5, -7), BillsLib.Theme.Accent, sliderFill, 7)
+        
+        -- Calculate initial fill based on default value
+        local range = max - min
+        local initialFillRatio = (default - min) / range
+        sliderFill.Size = UDim2.new(initialFillRatio, 0, 1, 0)
+        
+        -- Set initial value
+        local value = default
+        sliderValueLabel.Text = tostring(RoundNumber(value, decimals))
+        
+        -- Slider interaction
+        local dragging = false
+        
+        -- Mouse down
+        sliderTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                
+                -- Update on initial click
+                local relativePos = input.Position.X - sliderTrack.AbsolutePosition.X
+                local percent = math.clamp(relativePos / sliderTrack.AbsoluteSize.X, 0, 1)
+                
+                -- Update fill
+                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                
+                -- Calculate value
+                local newValue = min + (range * percent)
+                value = RoundNumber(newValue, decimals)
+                sliderValueLabel.Text = tostring(value)
+                
+                -- Call callback
+                callback(value)
+            end
+        end)
+        
+        -- Mouse up
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        
+        -- Mouse move
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local relativePos = input.Position.X - sliderTrack.AbsolutePosition.X
+                local percent = math.clamp(relativePos / sliderTrack.AbsoluteSize.X, 0, 1)
+                
+                -- Update fill
+                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                
+                -- Calculate value
+                local newValue = min + (range * percent)
+                value = RoundNumber(newValue, decimals)
+                sliderValueLabel.Text = tostring(value)
+                
+                -- Call callback
+                callback(value)
+            end
+        end)
+        
+        -- Slider API
+        local sliderObj = {}
+        sliderObj.Instance = sliderContainer
+        sliderObj.Value = value
+        
+        function sliderObj:SetValue(newValue)
+            -- Clamp and round
+            newValue = math.clamp(newValue, min, max)
+            value = RoundNumber(newValue, decimals)
+            sliderObj.Value = value
+            
+            -- Update visual
+            local percent = (value - min) / range
+            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            sliderValueLabel.Text = tostring(value)
+            
+            -- Call callback
+            callback(value)
+        end
+        
+        function sliderObj:GetValue()
+            return value
+        end
+        
+        return sliderObj
+    end
+    
+    -- AddDropdown
+    function sectionObj:AddDropdown(text, options, default, callback)
+        self.ElementCount = self.ElementCount + 1
+        
+        local dropdownContainer = Instance.new("Frame")
+        dropdownContainer.Name = "Dropdown_" .. self.ElementCount
+        dropdownContainer.Size = UDim2.new(1, 0, 0, 60)
+        dropdownContainer.BackgroundTransparency = 1
+        dropdownContainer.LayoutOrder = self.ElementCount
+        dropdownContainer.Parent = self.ContentContainer
+        
+        local dropdownLabel = BillsLib:CreateLabel("DropdownLabel", text, UDim2.new(1, 0, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownContainer, 14)
+        
+        local dropdownButton = BillsLib:CreateRoundFrame("DropdownButton", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, dropdownContainer, 6)
+        
+        local dropdownText = BillsLib:CreateLabel("DropdownText", default or "Select an option", UDim2.new(1, -35, 1, 0), UDim2.new(0, 10, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, dropdownButton, 14)
+        
+        local dropdownArrow = BillsLib:CreateLabel("DropdownArrow", "▼", UDim2.new(0, 20, 1, 0), UDim2.new(1, -25, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSansBold, dropdownButton, 14)
+        
+        -- Options menu
+        local optionsMenu = BillsLib:CreateRoundFrame("OptionsMenu", UDim2.new(1, 0, 0, 0), UDim2.new(0, 0, 1, 5), BillsLib.Theme.DropdownBackground, dropdownButton, 6)
+        optionsMenu.Visible = false
+        optionsMenu.ZIndex = 100
+        
+        local optionsLayout = Instance.new("UIListLayout")
+        optionsLayout.Padding = UDim.new(0, 2)
+        optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        optionsLayout.Parent = optionsMenu
+        
+        local optionsPadding = Instance.new("UIPadding")
+        optionsPadding.PaddingTop = UDim.new(0, 5)
+        optionsPadding.PaddingBottom = UDim.new(0, 5)
+        optionsPadding.PaddingLeft = UDim.new(0, 5)
+        optionsPadding.PaddingRight = UDim.new(0, 5)
+        optionsPadding.Parent = optionsMenu
+        
+        -- Selected value
+        local selectedOption = default or nil
+        
+        -- Populate options
+        local function populateOptions(optionsList)
+            -- Clear existing options
+            for _, child in pairs(optionsMenu:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child:Destroy()
+                end
+            end
+            
+            -- Add new options
+            for i, option in ipairs(optionsList) do
+                local optionButton = Instance.new("TextButton")
+                optionButton.Name = "Option_" .. i
+                optionButton.Size = UDim2.new(1, -10, 0, 30)
+                optionButton.BackgroundColor3 = BillsLib.Theme.DropdownBackground
+                optionButton.BackgroundTransparency = 0.5
+                optionButton.Text = option
+                optionButton.TextColor3 = BillsLib.Theme.TextColor
+                optionButton.Font = Enum.Font.SourceSans
+                optionButton.TextSize = 14
+                optionButton.TextXAlignment = Enum.TextXAlignment.Left
+                optionButton.BorderSizePixel = 0
+                optionButton.ZIndex = 100
+                optionButton.Parent = optionsMenu
+                
+                -- Highlight if this is the selected option
+                if option == selectedOption then
+                    optionButton.BackgroundColor3 = BillsLib.Theme.Accent
+                    optionButton.BackgroundTransparency = 0.7
+                end
+                
+                -- Corner
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 4)
+                corner.Parent = optionButton
+                
+                -- Option selection
+                optionButton.MouseButton1Click:Connect(function()
+                    selectedOption = option
+                    dropdownText.Text = option
+                    
+                    -- Hide menu
+                    optionsMenu.Visible = false
+                    
+                    -- Call callback
+                    callback(option)
+                end)
+                
+                -- Hover effect
+                optionButton.MouseEnter:Connect(function()
+                    if option ~= selectedOption then
+                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.3}):Play()
+                    end
+                end)
+                
+                optionButton.MouseLeave:Connect(function()
+                    if option ~= selectedOption then
+                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.5}):Play()
+                    else
+                        CreateTween(optionButton, 0.2, {BackgroundTransparency = 0.7}):Play()
+                    end
+                end)
+            end
+            
+            -- Update menu size
+            optionsMenu.Size = UDim2.new(1, 0, 0, optionsLayout.AbsoluteContentSize.Y + 10)
+        end
+        
+        -- Initial population
+        populateOptions(options)
+        
+        -- Toggle dropdown
+        dropdownButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                optionsMenu.Visible = not optionsMenu.Visible
+                
+                -- Update arrow
+                if optionsMenu.Visible then
+                    dropdownArrow.Text = "▲"
+                else
+                    dropdownArrow.Text = "▼"
+                end
+                
+                -- Position correctly to avoid overflow
+                if optionsMenu.Visible then
+                    -- Check if dropdown would go off the bottom of the screen
+                    local dropdownAbsPos = dropdownButton.AbsolutePosition
+                    local dropdownAbsSize = dropdownButton.AbsoluteSize
+                    local optionsAbsSize = optionsMenu.AbsoluteSize
+                    local screenSize = Camera.ViewportSize
+                    
+                    if (dropdownAbsPos.Y + dropdownAbsSize.Y + optionsAbsSize.Y) > screenSize.Y then
+                        -- Position above instead of below
+                        optionsMenu.Position = UDim2.new(0, 0, 0, -optionsAbsSize.Y - 5)
+                    else
+                        -- Position below
+                        optionsMenu.Position = UDim2.new(0, 0, 1, 5)
+                    end
+                end
+            end
+        end)
+        
+        -- Close dropdown when clicking elsewhere
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local mousePos = UserInputService:GetMouseLocation()
+                
+                -- Check if click is outside dropdown
+                if optionsMenu.Visible then
+                    local dropdownAbsPos = dropdownButton.AbsolutePosition
+                    local dropdownAbsSize = dropdownButton.AbsoluteSize
+                    local optionsAbsPos = optionsMenu.AbsolutePosition
+                    local optionsAbsSize = optionsMenu.AbsoluteSize
+                    
+                    -- Check if click is outside both the dropdown button and options menu
+                    local inDropdownButton = 
+                        mousePos.X >= dropdownAbsPos.X and 
+                        mousePos.X <= dropdownAbsPos.X + dropdownAbsSize.X and 
+                        mousePos.Y >= dropdownAbsPos.Y and 
+                        mousePos.Y <= dropdownAbsPos.Y + dropdownAbsSize.Y
+                    
+                    local inOptionsMenu = 
+                        mousePos.X >= optionsAbsPos.X and 
+                        mousePos.X <= optionsAbsPos.X + optionsAbsSize.X and 
+                        mousePos.Y >= optionsAbsPos.Y and 
+                        mousePos.Y <= optionsAbsPos.Y + optionsAbsSize.Y
+                    
+                    if not inDropdownButton and not inOptionsMenu then
+                        optionsMenu.Visible = false
+                        dropdownArrow.Text = "▼"
+                    end
+                end
+            end
+        end)
+        
+        -- Dropdown API
+        local dropdownObj = {}
+        dropdownObj.Instance = dropdownContainer
+        dropdownObj.Options = options
+        dropdownObj.Value = selectedOption
+        
+        function dropdownObj:SetOptions(newOptions)
+            self.Options = newOptions
+            populateOptions(newOptions)
+            
+            -- If the previously selected option is no longer available, reset
+            local optionExists = false
+            for _, option in ipairs(newOptions) do
+                if option == selectedOption then
+                    optionExists = true
+                    break
+                end
+            end
+            
+            if not optionExists and #newOptions > 0 then
+                selectedOption = newOptions[1]
+                dropdownText.Text = selectedOption
+                self.Value = selectedOption
+                callback(selectedOption)
+            elseif not optionExists then
+                selectedOption = nil
+                dropdownText.Text = "Select an option"
+                self.Value = nil
+            end
+        end
+        
+        function dropdownObj:SetValue(option)
+            -- Check if option exists
+            local optionExists = false
+            for _, opt in ipairs(self.Options) do
+                if opt == option then
+                    optionExists = true
+                    break
+                end
+            end
+            
+            if optionExists then
+                selectedOption = option
+                dropdownText.Text = option
+                self.Value = option
+                
+                -- Update option buttons
+                for _, child in pairs(optionsMenu:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        if child.Text == option then
+                            child.BackgroundColor3 = BillsLib.Theme.Accent
+                            child.BackgroundTransparency = 0.7
+                        else
+                            child.BackgroundColor3 = BillsLib.Theme.DropdownBackground
+                            child.BackgroundTransparency = 0.5
+                        end
+                    end
+                end
+                
+                callback(option)
+            end
+        end
+        
+        function dropdownObj:GetValue()
+            return selectedOption
+        end
+        
+        return dropdownObj
+    end
+    
+    -- AddTextbox
+    function sectionObj:AddTextbox(text, default, callback)
+        self.ElementCount = self.ElementCount + 1
+        
+        local textboxContainer = Instance.new("Frame")
+        textboxContainer.Name = "Textbox_" .. self.ElementCount
+        textboxContainer.Size = UDim2.new(1, 0, 0, 60)
+        textboxContainer.BackgroundTransparency = 1
+        textboxContainer.LayoutOrder = self.ElementCount
+        textboxContainer.Parent = self.ContentContainer
+        
+        local textboxLabel = BillsLib:CreateLabel("TextboxLabel", text, UDim2.new(1, 0, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, textboxContainer, 14)
+        
+        local textboxFrame = BillsLib:CreateRoundFrame("TextboxFrame", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, textboxContainer, 6)
+        
+        local textbox = Instance.new("TextBox")
+        textbox.Name = "Textbox"
+        textbox.Size = UDim2.new(1, -20, 1, 0)
+        textbox.Position = UDim2.new(0, 10, 0, 0)
+        textbox.BackgroundTransparency = 1
+        textbox.Text = default or ""
+        textbox.PlaceholderText = "Enter text..."
+        textbox.PlaceholderColor3 = BillsLib.Theme.PlaceholderColor
+        textbox.TextColor3 = BillsLib.Theme.TextColor
+        textbox.Font = Enum.Font.SourceSans
+        textbox.TextSize = 14
+        textbox.TextXAlignment = Enum.TextXAlignment.Left
+        textbox.ClearTextOnFocus = false
+        textbox.Parent = textboxFrame
+        
+        -- Focus outline
+        textbox.Focused:Connect(function()
+            CreateTween(textboxFrame, 0.2, {BackgroundColor3 = BillsLib.Theme.Accent:Lerp(BillsLib.Theme.InputBackground, 0.5)}):Play()
+        end)
+        
+        textbox.FocusLost:Connect(function(enterPressed)
+            CreateTween(textboxFrame, 0.2, {BackgroundColor3 = BillsLib.Theme.InputBackground}):Play()
+            callback(textbox.Text, enterPressed)
+        end)
+        
+        -- Textbox API
+        local textboxObj = {}
+        textboxObj.Instance = textboxContainer
+        
+        function textboxObj:SetValue(value)
+            textbox.Text = value or ""
+        end
+        
+        function textboxObj:GetValue()
+            return textbox.Text
+        end
+        
+        return textboxObj
+    end
+    
+    -- AddColorPicker
+    function sectionObj:AddColorPicker(text, default, callback)
+        self.ElementCount = self.ElementCount + 1
+        default = default or Color3.fromRGB(255, 0, 0)
+        
+        local colorPickerContainer = Instance.new("Frame")
+        colorPickerContainer.Name = "ColorPicker_" .. self.ElementCount
+        colorPickerContainer.Size = UDim2.new(1, 0, 0, 60)
+        colorPickerContainer.BackgroundTransparency = 1
+        colorPickerContainer.LayoutOrder = self.ElementCount
+        colorPickerContainer.Parent = self.ContentContainer
+        
+        local colorLabel = BillsLib:CreateLabel("ColorLabel", text, UDim2.new(1, -50, 0, 20), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, colorPickerContainer, 14)
+        
+        local colorPreview = BillsLib:CreateRoundFrame("ColorPreview", UDim2.new(0, 30, 0, 20), UDim2.new(1, -40, 0, 0), default, colorPickerContainer, 4)
+        
+        local colorButton = BillsLib:CreateRoundFrame("ColorButton", UDim2.new(1, -10, 0, 32), UDim2.new(0, 5, 0, 25), BillsLib.Theme.InputBackground, colorPickerContainer, 6)
+        
+        -- Color picker popup
+        local pickerPopup = BillsLib:CreateRoundFrame("PickerPopup", UDim2.new(0, 200, 0, 230), UDim2.new(0.5, -100, 0, -240), BillsLib.Theme.Secondary, colorPickerContainer, 6)
+        pickerPopup.Visible = false
+        pickerPopup.ZIndex = 100
+        
+        -- Add shadow to popup
+        BillsLib:AddShadow(pickerPopup, 0.5, 20)
+        
+        -- Color grid (hue/saturation)
+        local colorGrid = Instance.new("ImageLabel")
+        colorGrid.Name = "ColorGrid"
+        colorGrid.Size = UDim2.new(1, -20, 0, 150)
+        colorGrid.Position = UDim2.new(0, 10, 0, 10)
+        colorGrid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        colorGrid.BorderSizePixel = 0
+        colorGrid.Image = "rbxassetid://4155801252" -- Saturation/brightness gradient
+        colorGrid.ZIndex = 101
+        colorGrid.Parent = pickerPopup
+        
+        local colorGridCorner = Instance.new("UICorner")
+        colorGridCorner.CornerRadius = UDim.new(0, 4)
+        colorGridCorner.Parent = colorGrid
+        
+        -- Hue slider
+        local hueSlider = BillsLib:CreateRoundFrame("HueSlider", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 170), Color3.fromRGB(255, 255, 255), pickerPopup, 4)
+        hueSlider.ZIndex = 101
+        
+        local hueGradient = Instance.new("UIGradient")
+        hueGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+            ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+            ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+        })
+        hueGradient.Parent = hueSlider
+        
+        -- Alpha slider
+        local alphaSlider = BillsLib:CreateRoundFrame("AlphaSlider", UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 200), Color3.fromRGB(255, 255, 255), pickerPopup, 4)
+        alphaSlider.ZIndex = 101
+        
+        local alphaGradient = Instance.new("UIGradient")
+        alphaGradient.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        alphaGradient.Parent = alphaSlider
+        
+        -- Grid selector
+        local gridSelector = BillsLib:CreateRoundFrame("GridSelector", UDim2.new(0, 10, 0, 10), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), colorGrid, 5)
+        gridSelector.ZIndex = 102
+        gridSelector.BorderSizePixel = 1
+        gridSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
+        
+        -- Hue selector
+        local hueSelector = BillsLib:CreateRoundFrame("HueSelector", UDim2.new(0, 5, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), hueSlider, 2)
+        hueSelector.ZIndex = 102
+        hueSelector.BorderSizePixel = 1
+        hueSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
+        
+        -- Alpha selector
+        local alphaSelector = BillsLib:CreateRoundFrame("AlphaSelector", UDim2.new(0, 5, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255, 255, 255), alphaSlider, 2)
+        alphaSelector.ZIndex = 102
+        alphaSelector.BorderSizePixel = 1
+        alphaSelector.BorderColor3 = Color3.fromRGB(20, 20, 20)
+        
+        -- Apply button
+        local applyButton = BillsLib:CreateTextButton("ApplyButton", "Apply", UDim2.new(0, 80, 0, 30), UDim2.new(0.5, -40, 1, -35), BillsLib.Theme.Accent, BillsLib.Theme.TextColor, function()
+            pickerPopup.Visible = false
+        end, pickerPopup, 6)
+        applyButton.ZIndex = 101
+        
+        -- Variables for color state
+        local hue, sat, val = Color3.toHSV(default)
+        local alpha = 0 -- 0 to 1, 0 being fully opaque
+        
+        -- Update color preview based on HSV
+        local function updateColor()
+            local color = Color3.fromHSV(hue, sat, val)
+            colorPreview.BackgroundColor3 = color
+            colorGrid.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+            alphaGradient.Color = ColorSequence.new(color)
+            
+            -- Update selectors
+            gridSelector.Position = UDim2.new(sat, -5, 1 - val, -5)
+            hueSelector.Position = UDim2.new(hue, -2.5, 0, 0)
+            alphaSelector.Position = UDim2.new(alpha, -2.5, 0, 0)
+            
+            -- Call callback
+            callback(color, alpha)
+        end
+        
+        -- Initial update
+        updateColor()
+        
+        -- Toggle picker popup
+        colorButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                pickerPopup.Visible = not pickerPopup.Visible
+            end
+        end)
+        
+        -- Color grid interaction
+        colorGrid.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local dragging = true
+                
+                local function updateGridSelection()
+                    local relativeX = math.clamp((Mouse.X - colorGrid.AbsolutePosition.X) / colorGrid.AbsoluteSize.X, 0, 1)
+                    local relativeY = math.clamp((Mouse.Y - colorGrid.AbsolutePosition.Y) / colorGrid.AbsoluteSize.Y, 0, 1)
+                    
+                    sat = relativeX
+                    val = 1 - relativeY
+                    
+                    updateColor()
+                end
+                
+                -- Initial update
+                updateGridSelection()
+                
+                -- Update while dragging
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if dragging then
+                        updateGridSelection()
+                    else
+                        connection:Disconnect()
+                    end
+                end)
+                
+                -- Stop dragging
+                UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        -- Hue slider interaction
+        hueSlider.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local dragging = true
+                
+                local function updateHueSelection()
+                    local relativeX = math.clamp((Mouse.X - hueSlider.AbsolutePosition.X) / hueSlider.AbsoluteSize.X, 0, 1)
+                    
+                    hue = relativeX
+                    
+                    updateColor()
+                end
+                
+                -- Initial update
+                updateHueSelection()
+                
+                -- Update while dragging
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if dragging then
+                        updateHueSelection()
+                    else
+                        connection:Disconnect()
+                    end
+                end)
+                
+                -- Stop dragging
+                UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        -- Alpha slider interaction
+        alphaSlider.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local dragging = true
+                
+                local function updateAlphaSelection()
+                    local relativeX = math.clamp((Mouse.X - alphaSlider.AbsolutePosition.X) / alphaSlider.AbsoluteSize.X, 0, 1)
+                    
+                    alpha = relativeX
+                    
+                    updateColor()
+                end
+                
+                -- Initial update
+                updateAlphaSelection()
+                
+                -- Update while dragging
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if dragging then
+                        updateAlphaSelection()
+                    else
+                        connection:Disconnect()
+                    end
+                end)
+                
+                -- Stop dragging
+                UserInputService.InputEnded:Connect(function(endInput)
+                    if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        -- Close picker when clicking elsewhere
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if pickerPopup.Visible then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    
+                    -- Check if click is within picker popup area
+                    local popupAbsPos = pickerPopup.AbsolutePosition
+                    local popupAbsSize = pickerPopup.AbsoluteSize
+                    
+                    local inPopup = 
+                        mousePos.X >= popupAbsPos.X and 
+                        mousePos.X <= popupAbsPos.X + popupAbsSize.X and 
+                        mousePos.Y >= popupAbsPos.Y and 
+                        mousePos.Y <= popupAbsPos.Y + popupAbsSize.Y
+                    
+                    -- Check if click is within color button area
+                    local buttonAbsPos = colorButton.AbsolutePosition
+                    local buttonAbsSize = colorButton.AbsoluteSize
+                    
+                    local inButton = 
+                        mousePos.X >= buttonAbsPos.X and 
+                        mousePos.X <= buttonAbsPos.X + buttonAbsSize.X and 
+                        mousePos.Y >= buttonAbsPos.Y and 
+                        mousePos.Y <= buttonAbsPos.Y + buttonAbsSize.Y
+                    
+                    if not inPopup and not inButton then
+                        pickerPopup.Visible = false
+                    end
+                end
+            end
+        end)
+        
+        -- ColorPicker API
+        local colorPickerObj = {}
+        colorPickerObj.Instance = colorPickerContainer
+        
+        function colorPickerObj:SetValue(color, newAlpha)
+            if typeof(color) == "Color3" then
+                hue, sat, val = Color3.toHSV(color)
+                if newAlpha ~= nil then
+                    alpha = math.clamp(newAlpha, 0, 1)
+                end
+                updateColor()
+            end
+        end
+        
+        function colorPickerObj:GetValue()
+            return Color3.fromHSV(hue, sat, val), alpha
+        end
+        
+        return colorPickerObj
+    end
+    
+    -- AddKeybind
+    function sectionObj:AddKeybind(text, default, callback)
+        self.ElementCount = self.ElementCount + 1
+        default = default or Enum.KeyCode.Unknown
+        
+        local keybindContainer = Instance.new("Frame")
+        keybindContainer.Name = "Keybind_" .. self.ElementCount
+        keybindContainer.Size = UDim2.new(1, 0, 0, 32)
+        keybindContainer.BackgroundTransparency = 1
+        keybindContainer.LayoutOrder = self.ElementCount
+        keybindContainer.Parent = self.ContentContainer
+        
+        local keybindLabel = BillsLib:CreateLabel("KeybindLabel", text, UDim2.new(1, -90, 1, 0), UDim2.new(0, 5, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, keybindContainer, 14)
+        
+        local keybindButton = BillsLib:CreateRoundFrame("KeybindButton", UDim2.new(0, 80, 0, 24), UDim2.new(1, -85, 0.5, -12), BillsLib.Theme.InputBackground, keybindContainer, 4)
+        
+        local keybindText = BillsLib:CreateLabel("KeybindText", default.Name, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), BillsLib.Theme.TextColor, Enum.Font.SourceSans, keybindButton, 14, Enum.TextXAlignment.Center)
+        
+        -- State tracking
+        local currentKey = default
+        local listening = false
+        
+        -- Update visuals when listening for key
+        local function updateListeningState()
+            if listening then
+                keybindText.Text = "Press a key..."
+                CreateTween(keybindButton, 0.2, {BackgroundColor3 = BillsLib.Theme.Accent}):Play()
+            else
+                keybindText.Text = currentKey.Name
+                CreateTween(keybindButton, 0.2, {BackgroundColor3 = BillsLib.Theme.InputBackground}):Play()
+            end
+        end
+        
+        -- Handle click to start listening
+        keybindButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                listening = true
+                updateListeningState()
+            end
+        end)
+        
+        -- Listen for key press
+        UserInputService.InputBegan:Connect(function(input)
+            if listening then
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    -- Capture the key
+                    currentKey = input.KeyCode
+                    listening = false
+                    updateListeningState()
+                    
+                    -- Call callback
+                    callback(currentKey)
+                end
+            elseif input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+                -- Key was pressed
+                callback(currentKey)
+            end
+        end)
+        
+        -- Stop listening if mouse clicked elsewhere
+        UserInputService.InputBegan:Connect(function(input)
+            if listening and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+                -- Check if mouse is outside button
+                local mousePos = UserInputService:GetMouseLocation()
+                local buttonAbsPos = keybindButton.AbsolutePosition
+                local buttonAbsSize = keybindButton.AbsoluteSize
+                
+                local inButton = 
+                    mousePos.X >= buttonAbsPos.X and 
+                    mousePos.X <= buttonAbsPos.X + buttonAbsSize.X and 
+                    mousePos.Y >= buttonAbsPos.Y and 
+                    mousePos.Y <= buttonAbsPos.Y + buttonAbsSize.Y
+                
+                if not inButton then
+                    listening = false
+                    updateListeningState()
+                end
+            end
+        end)
+        
+        -- Keybind API
+        local keybindObj = {}
+        keybindObj.Instance = keybindContainer
+        
+        function keybindObj:SetValue(key)
+            if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then
+                currentKey = key
+                keybindText.Text = key.Name
+                callback(key)
+            end
+        end
+        
+        function keybindObj:GetValue()
+            return currentKey
+        end
+        
+        return keybindObj
+    end
+    
+    return sectionObj
 end
 
-local Indicator = Tabs[TabId].Button:FindFirstChild("Indicator")
-if Indicator then
-    Tween(Indicator, {BackgroundTransparency = 0}, 0.2)
+-- Notification system
+function BillsLib:Notify(title, message, notifType, duration)
+    notifType = notifType or "info"  -- info, success, warning, error
+    duration = duration or 3  -- duration in seconds
+    
+    -- Create notification frame
+    local notification = self:CreateRoundFrame("Notification", UDim2.new(1, 0, 0, 0), UDim2.new(0, 0, 0, 0), self.Theme.NotificationBackground, self.NotificationContainer, 6)
+    notification.Size = UDim2.new(1, 0, 0, 0)  -- Start with 0 height for animation
+    notification.ClipsDescendants = true
+    notification.ZIndex = 1000
+    
+    -- Add shadow
+    self:AddShadow(notification, 0.3, 15)
+    
+    -- Calculate required height based on text
+    local messageLines = #message:split("\n")
+    local requiredHeight = 40 + (messageLines * 18)
+    
+    -- Set notification type color
+    local typeColor
+    local iconId
+    
+    if notifType == "success" then
+        typeColor = self.Theme.Success
+        iconId = self.Icons.Notification.Success
+    elseif notifType == "warning" then
+        typeColor = self.Theme.Warning
+        iconId = self.Icons.Notification.Warning
+    elseif notifType == "error" then
+        typeColor = self.Theme.Error
+        iconId = self.Icons.Notification.Error
+    else
+        typeColor = self.Theme.Info
+        iconId = self.Icons.Notification.Info
+    end
+    
+    -- Notification header with color
+    local header = self:CreateRoundFrame("Header", UDim2.new(1, 0, 0, 4), UDim2.new(0, 0, 0, 0), typeColor, notification, 0)
+    header.ZIndex = 1001
+    
+    -- Notification icon
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 20, 0, 20)
+    icon.Position = UDim2.new(0, 10, 0, 14)
+    icon.BackgroundTransparency = 1
+    icon.Image = iconId
+    icon.ZIndex = 1001
+    icon.Parent = notification
+    
+    -- Notification title
+    local titleLabel = self:CreateLabel("Title", title, UDim2.new(1, -50, 0, 20), UDim2.new(0, 40, 0, 14), self.Theme.TextColor, Enum.Font.SourceSansBold, notification, 15)
+    titleLabel.ZIndex = 1001
+    
+    -- Notification message
+    local messageLabel = self:CreateLabel("Message", message, UDim2.new(1, -20, 0, 20 + (messageLines * 18)), UDim2.new(0, 10, 0, 34), self.Theme.TextColor, Enum.Font.SourceSans, notification, 14, Enum.TextXAlignment.Left, Enum.TextYAlignment.Top)
+    messageLabel.TextWrapped = true
+    messageLabel.ZIndex = 1001
+    
+    -- Close button
+    local closeButton = self:CreateTextButton("CloseButton", "✕", UDim2.new(0, 24, 0, 24), UDim2.new(1, -30, 0, 12), self.Theme.NotificationBackground, self.Theme.TextColor, function()
+        -- Remove notification
+        self:RemoveNotification(notification)
+    end, notification, 4)
+    closeButton.ZIndex = 1001
+    
+    -- Animation - Appear
+    notification.Size = UDim2.new(1, 0, 0, 0)
+    CreateTween(notification, 0.3, {Size = UDim2.new(1, 0, 0, requiredHeight)}):Play()
+    
+    -- Add to notifications table
+    table.insert(self.Notifications, notification)
+    
+    -- Set the layout order
+    notification.LayoutOrder = #self.Notifications
+    
+    -- Auto-dismiss after duration
+    spawn(function()
+        wait(duration)
+        if notification and notification.Parent then
+            self:RemoveNotification(notification)
+        end
+    end)
+    
+    return notification
 end
+
+-- Remove notification
+function BillsLib:RemoveNotification(notification)
+    -- Animation - Disappear
+    local disappearTween = CreateTween(notification, 0.3, {Size = UDim2.new(1, 0, 0, 0)})
+    
+    disappearTween.Completed:Connect(function()
+        -- Find and remove from notifications table
+        for i, notif in pairs(self.Notifications) do
+            if notif == notification then
+                table.remove(self.Notifications, i)
+                break
+            end
+        end
+        
+        -- Destroy the notification
+        notification:Destroy()
+        
+        -- Update layout orders
+        for i, notif in pairs(self.Notifications) do
+            notif.LayoutOrder = i
+        end
+    end)
+    
+    disappearTween:Play()
+end
+
+-- Set theme
+function BillsLib:SetTheme(theme)
+    -- Merge theme with default
+    for key, value in pairs(theme) do
+        if self.Theme[key] ~= nil then
+            self.Theme[key] = value
+        end
+    end
+    
+    -- Update all UI elements to new theme
+    -- This would require tracking all created elements and updating them
+    -- For simplicity we're just covering the basics
+    
+    -- Update notification container
+    for _, notification in pairs(self.Notifications) do
+        notification.BackgroundColor3 = self.Theme.NotificationBackground
+    end
+    
+    -- Update all windows
+    for _, window in pairs(self.Windows) do
+        if window.Instance then
+            -- Main window
+            window.Instance.BackgroundColor3 = self.Theme.Primary
+            
+            -- Title bar
+            local titleBar = window.Instance:FindFirstChild("TitleBar")
+            if titleBar then
+                titleBar.BackgroundColor3 = self.Theme.Secondary
+            end
+            
+            -- Tab container
+            local tabContainer = window.Instance:FindFirstChild("TabContainer")
+            if tabContainer then
+                tabContainer.BackgroundColor3 = self.Theme.Secondary
+            end
+            
+            -- Content container
+            local contentContainer = window.Instance:FindFirstChild("ContentContainer")
+            if contentContainer then
+                contentContainer.BackgroundColor3 = self.Theme.Secondary
+            end
+            
+            -- Update tabs
+            for _, tabButton in pairs(window.TabButtons) do
+                if tabButton then
+                    if window.ActiveTab == tabButton.Name:sub(5) then
+                        tabButton.BackgroundColor3 = self.Theme.TabBackgroundSelected
+                    else
+                        tabButton.BackgroundColor3 = self.Theme.TabBackground
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Set toggle key
+function BillsLib:SetToggleKey(key)
+    if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then
+        self.ToggleKey = key
+    end
+end
+
+-- Toggle UI visibility
+function BillsLib:ToggleUIVisibility()
+    if self.ScreenGui then
+        self.ScreenGui.Enabled = not self.ScreenGui.Enabled
+    end
+end
+
+-- Toggle key listener
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == BillsLib.ToggleKey then
+        BillsLib:ToggleUIVisibility()
+    end
 end)
 
--- Update active tab reference
-ActiveTab = TabId
-end
-
--- Select first tab by default if no default tab is specified
-if Tabs and #Tabs > 0 then
--- Use pcall to handle any errors during initial tab selection
-local success, err = pcall(function()
-WindowAPI:SelectTab(1)
-end)
-
-if not success then
-warn("TBDLib: Failed to select default tab - " .. tostring(err))
--- Try to set visibility directly as a fallback
-if Tabs[1] and Tabs[1].Content then
-    Tabs[1].Content.Visible = true
-end
-end
-end
-
-return WindowAPI
-end
-
--- Configure the library
-function TBDLib:Configure(Config)
-Config = Config or {}
-local NeedsThemeUpdate = false
-
--- Update theme
-if Config.Theme then
-NeedsThemeUpdate = true
-for Key, Value in pairs(Config.Theme) do
-self.Theme[Key] = Value
-end
-end
-
--- Update config folder
-if Config.ConfigFolder then
-self.ConfigSystem.Folder = Config.ConfigFolder
-end
-
--- Update animation settings
-if Config.Animation then
-for Key, Value in pairs(Config.Animation) do
-self.Animation[Key] = Value
-end
-end
-
--- Update notification settings
-if Config.NotificationSettings then
-for Key, Value in pairs(Config.NotificationSettings) do
-self.NotificationSettings[Key] = Value
-end
-end
-
--- Apply theme to all UI elements if theme was updated
-if NeedsThemeUpdate then
-self:ApplyTheme()
-end
-
-return self
-end
-
--- Apply the current theme to all UI elements
-function TBDLib:ApplyTheme()
-local Container = CoreGui:FindFirstChild("TBDLibContainer")
-if not Container then return end
-
--- Function to update elements based on their type and properties
-local function UpdateElement(Element)
--- Update background colors
-if Element:IsA("Frame") or Element:IsA("ScrollingFrame") then
-if Element.Name == "WindowFrame" then
-    Element.BackgroundColor3 = self.Theme.Background
-elseif Element.Name == "WindowContainer" or Element.Name:find("ContentFrame") then
-    Element.BackgroundColor3 = self.Theme.Primary
-elseif Element.Name:find("Sidebar") or Element.Name:find("TopBar") or Element.Name:find("Section") or 
-       Element.Name:find("Content") then
-    Element.BackgroundColor3 = self.Theme.Secondary
-elseif Element.Name:find("Container") and not Element.Name:find("Window") then
-    Element.BackgroundColor3 = self.Theme.Tertiary
-elseif Element.Name:find("AccentBar") or Element.Name:find("ColorArea") or
-       Element.Name:find("Indicator") and Element.BackgroundTransparency < 1 then
-    Element.BackgroundColor3 = self.Theme.Accent
-end
-end
-
--- Update text colors
-if Element:IsA("TextLabel") or Element:IsA("TextButton") or Element:IsA("TextBox") then
-if Element.Name:find("Title") or Element.Name:find("Label") and not Element.Name:find("Placeholder") then
-    Element.TextColor3 = self.Theme.Text
-elseif Element.Name:find("Dark") or Element.Name:find("Description") then
-    Element.TextColor3 = self.Theme.TextDark
-end
-
-if Element:IsA("TextBox") then
-    Element.PlaceholderColor3 = self.Theme.TextDark
-end
-end
-
--- Update image colors for UI elements
-if Element:IsA("ImageLabel") or Element:IsA("ImageButton") then
-if Element.Name:find("Close") or Element.Name:find("Minimize") or Element.Name:find("Maximize") then
-    Element.ImageColor3 = self.Theme.ControlBg
-end
-end
-
--- Recursively update children
-for _, Child in ipairs(Element:GetChildren()) do
-UpdateElement(Child)
-end
-end
-
--- Start the recursive update process
-UpdateElement(Container)
-end
-
--- Save and Load configurations
-function TBDLib:SaveConfig(Name)
-return SaveConfig(Name)
-end
-
-function TBDLib:LoadConfig(Name)
-return LoadConfig(Name)
-end
-
--- Cleanup function
-function TBDLib:Destroy()
-DisconnectAll()
-
-if CoreGui:FindFirstChild("TBDLibContainer") then
-CoreGui:FindFirstChild("TBDLibContainer"):Destroy()
-end
-
-for _, Connection in ipairs(Connections) do
-Connection:Disconnect()
-end
-
-Connections = {}
-TBDLib.Windows = {}
-OpenFrames = {}
-NotificationCount = 0
-end
-
--- Direct return - no closures or IIFE
--- This is critical for compatibility with certain executors
-return TBDLib
+-- Return the library
+return BillsLib
