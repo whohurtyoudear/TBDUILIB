@@ -5165,4 +5165,3 @@ end
     end
     
     return SynthwaveUI
-end)()
